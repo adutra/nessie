@@ -17,6 +17,7 @@ package org.projectnessie.events.api;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
@@ -38,7 +39,7 @@ public interface MergeEvent extends CommittingEvent {
    * The hash of the common ancestor of the two merged branches.
    *
    * <p>If merging unrelated histories is allowed, and the two branches share no common history,
-   * this will be the so-called "no-ancestor" hash.
+   * this will be empty.
    */
-  String getCommonAncestorHash();
+  Optional<String> getCommonAncestorHash();
 }
