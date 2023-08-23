@@ -202,9 +202,12 @@ public class ObservingVersionStore implements VersionStore {
     return delegate.getCommits(ref, fetchAdditionalInfo);
   }
 
+  @WithSpan
   @Override
+  @Counted(PREFIX)
+  @Timed(value = PREFIX, histogram = true)
   public PaginationIterator<KeyEntry> getKeys(
-      Ref ref,
+      @SpanAttribute(TAG_REF) Ref ref,
       String pagingToken,
       boolean withContent,
       KeyRestrictions keyRestrictions,
