@@ -41,7 +41,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.immutables.value.Value;
 import org.projectnessie.error.BaseNessieClientServerException;
 import org.projectnessie.model.CommitMeta;
 import org.projectnessie.model.Content;
@@ -545,12 +545,25 @@ public class PersistVersionStore implements VersionStore {
     };
   }
 
+  @Value.Immutable
+  abstract static class DefaultKeyAttributes implements KeyAttributes {
+
+    abstract int payload();
+
+    @Override
+    @Value.Lazy
+    public Content.Type getContentType() {
+      return contentTypeForPayload(payload());
+    }
+  }
+
   @Override
   public PaginationIterator<KeyEntry> getKeys(
       Ref ref,
       String pagingToken,
-      @Nullable @jakarta.annotation.Nullable Predicate<KeyEntry> loadContentPredicate,
-      KeyRestrictions keyRestrictions)
+      boolean withContent,
+      KeyRestrictions keyRestrictions,
+      Predicate<KeyAttributes> keyFilter)
       throws ReferenceNotFoundException {
     checkArgument(pagingToken == null, "Paging not supported by the storage model in use");
     checkArgument(
@@ -566,20 +579,23 @@ public class PersistVersionStore implements VersionStore {
             ? (k, c, t) -> contentKeyPredicate.test(k)
             : KeyFilterPredicate.ALLOW_ALL;
 
+    if (keyFilter != null) {
+      keyPred =
+          keyPred.and(
+              (k, c, t) -> {
+                ImmutableDefaultKeyAttributes attr =
+                    ImmutableDefaultKeyAttributes.builder().key(k).payload(t).build();
+                return keyFilter.test(attr);
+              });
+    }
+
     @SuppressWarnings("MustBeClosedChecker")
     Stream<KeyListEntry> source = databaseAdapter.keys(hash, keyPred);
 
     return new FilteringPaginationIterator<KeyListEntry, KeyEntry>(
         source.iterator(),
         entry -> {
-          KeyEntry keyEntry =
-              KeyEntry.of(
-                  identifiedContentKeyFromContent(
-                      entry.getKey(),
-                      contentTypeForPayload(entry.getPayload()),
-                      entry.getContentId().getId(),
-                      elements -> null));
-          if (loadContentPredicate != null && loadContentPredicate.test(keyEntry)) {
+          if (withContent) {
             try {
               ContentAndState cs =
                   databaseAdapter
@@ -588,13 +604,21 @@ public class PersistVersionStore implements VersionStore {
                       .get(entry.getKey());
               if (cs != null) {
                 ContentResult content = mapContentAndState(entry.getKey(), cs);
-                return KeyEntry.of(keyEntry.getKey(), content.content());
+                return KeyEntry.of(
+                    identifiedContentKeyFromContent(
+                        entry.getKey(), content.content(), elements -> null),
+                    content.content());
               }
             } catch (ReferenceNotFoundException e) {
               throw new IllegalStateException("Reference no longer exists", e);
             }
           }
-          return keyEntry;
+          return KeyEntry.of(
+              identifiedContentKeyFromContent(
+                  entry.getKey(),
+                  contentTypeForPayload(entry.getPayload()),
+                  entry.getContentId().getId(),
+                  elements -> null));
         }) {
       @Override
       protected String computeTokenForCurrent() {

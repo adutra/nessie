@@ -33,6 +33,7 @@ import org.projectnessie.model.RefLogResponse;
 import org.projectnessie.model.Reference;
 import org.projectnessie.model.ReferenceMetadata;
 import org.projectnessie.versioned.KeyEntry;
+import org.projectnessie.versioned.VersionStore.KeyAttributes;
 
 /** A utility class for CEL declarations and other things. */
 public final class CELUtil {
@@ -171,8 +172,8 @@ public final class CELUtil {
     if (model instanceof Operation) {
       return new OperationForCelImpl((Operation) model);
     }
-    if (model instanceof KeyEntry) {
-      return new KeyEntryForCelImpl((KeyEntry) model);
+    if (model instanceof KeyAttributes) {
+      return new KeyEntryForCelImpl((KeyAttributes) model);
     }
     if (model instanceof ContentKey) {
       return new KeyForCelImpl((ContentKey) model);
@@ -199,20 +200,20 @@ public final class CELUtil {
   }
 
   private static class KeyEntryForCelImpl extends AbstractKeyedEntity implements KeyEntryForCel {
-    private final KeyEntry entry;
+    private final KeyAttributes entry;
 
-    private KeyEntryForCelImpl(KeyEntry entry) {
+    private KeyEntryForCelImpl(KeyAttributes entry) {
       this.entry = entry;
     }
 
     @Override
     protected ContentKey key() {
-      return entry.getKey().contentKey();
+      return entry.getKey();
     }
 
     @Override
     public String getContentType() {
-      return entry.getKey().type().name();
+      return entry.getContentType().name();
     }
 
     @Override

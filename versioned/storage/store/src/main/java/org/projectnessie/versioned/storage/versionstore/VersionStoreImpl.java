@@ -74,9 +74,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.immutables.value.Value;
 import org.projectnessie.model.CommitMeta;
 import org.projectnessie.model.Content;
+import org.projectnessie.model.Content.Type;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.IdentifiedContentKey;
 import org.projectnessie.model.RepositoryConfig;
@@ -543,12 +544,31 @@ public class VersionStoreImpl implements VersionStore {
         .collect(Collectors.toList());
   }
 
+  @Value.Immutable
+  abstract static class DefaultKeyAttributes implements KeyAttributes {
+
+    abstract StoreIndexElement<CommitOp> indexElement();
+
+    @Override
+    @Value.Lazy
+    public ContentKey getKey() {
+      return storeKeyToKey(indexElement().key());
+    }
+
+    @Override
+    @Value.Lazy
+    public Type getContentType() {
+      return contentTypeForPayload(indexElement().content().payload());
+    }
+  }
+
   @Override
   public PaginationIterator<KeyEntry> getKeys(
       Ref ref,
       String pagingToken,
-      @Nullable @jakarta.annotation.Nullable Predicate<KeyEntry> loadContentPredicate,
-      KeyRestrictions keyRestrictions)
+      boolean withContent,
+      KeyRestrictions keyRestrictions,
+      Predicate<KeyAttributes> keyFilter)
       throws ReferenceNotFoundException {
     KeyRanges keyRanges = keyRanges(pagingToken, keyRestrictions);
 
@@ -578,6 +598,15 @@ public class VersionStoreImpl implements VersionStore {
                 return key != null && contentKeyPredicate.test(key);
               });
     }
+    if (keyFilter != null) {
+      keyPredicate =
+          keyPredicate.and(
+              indexElement -> {
+                KeyAttributes keyAttributes =
+                    ImmutableDefaultKeyAttributes.builder().indexElement(indexElement).build();
+                return keyFilter.test(keyAttributes);
+              });
+    }
 
     Predicate<StoreIndexElement<CommitOp>> stopPredicate;
     ContentKey prefixKey = keyRestrictions.prefixKey();
@@ -595,32 +624,20 @@ public class VersionStoreImpl implements VersionStore {
             ContentKey key = storeKeyToKey(indexElement.key());
             CommitOp commitOp = indexElement.content();
             Content.Type contentType = contentTypeForPayload(commitOp.payload());
-            Content content = null;
+
+            if (withContent) {
+              Content c =
+                  contentMapping.fetchContent(
+                      requireNonNull(
+                          indexElement.content().value(), "Required value pointer is null"));
+              return KeyEntry.of(buildIdentifiedKey(key, index, c, x -> null), c);
+            }
 
             UUID contentId = commitOp.contentId();
-            String contentIdString;
-            if (contentId != null) {
-              contentIdString = contentId.toString();
-            } else {
-              // this should only be hit by imported legacy nessie repos
-              content =
-                  contentMapping.fetchContent(
-                      requireNonNull(commitOp.value(), "Required value pointer is null"));
-              contentIdString = content.getId();
-            }
-            KeyEntry keyEntry =
-                KeyEntry.of(
-                    buildIdentifiedKey(key, index, contentType, contentIdString, x -> null));
-
-            if (loadContentPredicate != null && loadContentPredicate.test(keyEntry)) {
-              if (content == null) {
-                content =
-                    contentMapping.fetchContent(
-                        requireNonNull(commitOp.value(), "Required value pointer is null"));
-              }
-              return KeyEntry.of(keyEntry.getKey(), content);
-            }
-            return keyEntry;
+            String contentIdString =
+                contentId != null ? contentId.toString() : contentIdFromContent(commitOp);
+            return KeyEntry.of(
+                buildIdentifiedKey(key, index, contentType, contentIdString, x -> null));
           } catch (ObjNotFoundException e) {
             throw new RuntimeException("Could not fetch or map content", e);
           }
@@ -642,6 +659,12 @@ public class VersionStoreImpl implements VersionStore {
         return pagingToken(copyFromUtf8(storeKey.rawString())).asString();
       }
     };
+  }
+
+  private String contentIdFromContent(CommitOp commitOp) throws ObjNotFoundException {
+    return new ContentMapping(persist)
+        .fetchContent(requireNonNull(commitOp.value(), "Required value pointer is null"))
+        .getId();
   }
 
   @Override

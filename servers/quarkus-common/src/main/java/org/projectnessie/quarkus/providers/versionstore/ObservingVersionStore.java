@@ -202,17 +202,15 @@ public class ObservingVersionStore implements VersionStore {
     return delegate.getCommits(ref, fetchAdditionalInfo);
   }
 
-  @WithSpan
   @Override
-  @Counted(PREFIX)
-  @Timed(value = PREFIX, histogram = true)
   public PaginationIterator<KeyEntry> getKeys(
-      @SpanAttribute(TAG_REF) Ref ref,
+      Ref ref,
       String pagingToken,
-      @Nullable @jakarta.annotation.Nullable Predicate<KeyEntry> loadContentPredicate,
-      KeyRestrictions keyRestrictions)
+      boolean withContent,
+      KeyRestrictions keyRestrictions,
+      @Nullable Predicate<KeyAttributes> keyFilter)
       throws ReferenceNotFoundException {
-    return delegate.getKeys(ref, pagingToken, loadContentPredicate, keyRestrictions);
+    return delegate.getKeys(ref, pagingToken, withContent, keyRestrictions, keyFilter);
   }
 
   @WithSpan

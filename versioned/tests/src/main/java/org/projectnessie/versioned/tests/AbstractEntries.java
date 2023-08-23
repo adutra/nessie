@@ -158,7 +158,8 @@ public abstract class AbstractEntries extends AbstractNestedVersionStore {
   }
 
   List<KeyEntry> keysAsList(Ref ref, KeyRestrictions keyRestrictions) throws Exception {
-    try (PaginationIterator<KeyEntry> keys = store().getKeys(ref, null, null, keyRestrictions)) {
+    try (PaginationIterator<KeyEntry> keys =
+        store().getKeys(ref, null, false, keyRestrictions, null)) {
       return newArrayList(keys);
     }
   }
@@ -185,7 +186,7 @@ public abstract class AbstractEntries extends AbstractNestedVersionStore {
     ContentResult content23a = store().getValue(commit, key23a);
 
     try (PaginationIterator<KeyEntry> iter =
-        store.getKeys(commit, null, null, NO_KEY_RESTRICTIONS)) {
+        store.getKeys(commit, null, false, NO_KEY_RESTRICTIONS, null)) {
       soft.assertThat(iter)
           .toIterable()
           .extracting(KeyEntry::getKey)

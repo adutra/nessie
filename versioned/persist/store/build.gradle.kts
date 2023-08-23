@@ -37,4 +37,7 @@ dependencies {
   compileOnly("com.fasterxml.jackson.core:jackson-annotations")
 
   compileOnly(libs.microprofile.openapi)
+
+  compileOnly(libs.immutables.value.annotations)
+  annotationProcessor(libs.immutables.value.processor)
 }

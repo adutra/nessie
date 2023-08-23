@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.error.BaseNessieClientServerException;
 import org.projectnessie.model.CommitMeta;
+import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.IdentifiedContentKey;
 import org.projectnessie.model.MergeBehavior;
@@ -359,19 +360,33 @@ public interface VersionStore {
   }
 
   /**
+   * Common attributes that can be used to filter the key stream returned by {@link #getKeys(Ref,
+   * String, boolean, KeyRestrictions, Predicate)}.
+   */
+  interface KeyAttributes {
+
+    ContentKey getKey();
+
+    Content.Type getContentType();
+  }
+
+  /**
    * Get a stream of all available keys for the given ref.
    *
    * @param ref The ref to get keys for.
    * @param pagingToken paging token to start at
-   * @param loadContentPredicate whether to load and populate {@link KeyEntry#getContent()}
+   * @param withContent whether to populate {@link KeyEntry#getContent()}
+   * @param keyRestrictions Key restrictions to apply to the key stream
+   * @param keyFilter An additional filter to apply to the key stream.
    * @return The stream of keys available for this ref.
    * @throws ReferenceNotFoundException if {@code ref} is not present in the store
    */
   PaginationIterator<KeyEntry> getKeys(
       Ref ref,
       String pagingToken,
-      @Nullable @jakarta.annotation.Nullable Predicate<KeyEntry> loadContentPredicate,
-      KeyRestrictions keyRestrictions)
+      boolean withContent,
+      KeyRestrictions keyRestrictions,
+      @Nullable @jakarta.annotation.Nullable Predicate<KeyAttributes> keyFilter)
       throws ReferenceNotFoundException;
 
   List<IdentifiedContentKey> getIdentifiedKeys(Ref ref, Collection<ContentKey> keys)

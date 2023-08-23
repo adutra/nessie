@@ -127,6 +127,7 @@ import org.projectnessie.versioned.TagName;
 import org.projectnessie.versioned.Unchanged;
 import org.projectnessie.versioned.VersionStore;
 import org.projectnessie.versioned.VersionStore.CommitValidator;
+import org.projectnessie.versioned.VersionStore.KeyAttributes;
 import org.projectnessie.versioned.VersionStore.MergeOp;
 import org.projectnessie.versioned.VersionStore.TransplantOp;
 import org.projectnessie.versioned.WithHash;
@@ -895,65 +896,75 @@ public class TreeApiImpl extends BaseApiImpl implements TreeService {
 
       // apply filter as early as possible to avoid work (i.e. content loading, authz checks)
       // for entries that we will eventually throw away
-      final int namespaceFilterDepth = namespaceDepth == null ? 0 : namespaceDepth.intValue();
-      if (namespaceFilterDepth > 0) {
-        Predicate<ContentKey> depthFilter = e -> e.getElementCount() >= namespaceFilterDepth;
+      if (namespaceDepth != null && namespaceDepth > 0) {
+        Predicate<ContentKey> depthFilter = e -> e.getElementCount() >= namespaceDepth;
         contentKeyPredicate =
             contentKeyPredicate == null ? depthFilter : contentKeyPredicate.and(depthFilter);
       }
-      final Predicate<KeyEntry> filterPredicate = filterEntries(filter);
-      final Predicate<KeyEntry> loadContentPredicate = withContent ? filterPredicate : null;
+
+      final Predicate<KeyAttributes> keyFilter = filterEntries(filter);
 
       try (PaginationIterator<KeyEntry> entries =
           getStore()
               .getKeys(
                   refWithHash.getHash(),
                   pagingToken,
-                  loadContentPredicate,
+                  withContent,
                   VersionStore.KeyRestrictions.builder()
                       .minKey(minKey)
                       .maxKey(maxKey)
                       .prefixKey(prefixKey)
                       .contentKeyPredicate(contentKeyPredicate)
-                      .build())) {
+                      .build(),
+                  keyFilter)) {
 
         AuthzPaginationIterator<KeyEntry> authz =
             new AuthzPaginationIterator<KeyEntry>(
                 entries, super::startAccessCheck, getServerConfig().accessChecksBatchSize()) {
               @Override
               protected Set<Check> checksForEntry(KeyEntry entry) {
-                if (!filterPredicate.test(entry)) {
-                  return Collections.emptySet();
-                }
                 return singleton(canReadContentKey(refWithHash.getValue(), entry.getKey()));
               }
             }.initialCheck(canReadEntries(refWithHash.getValue()));
 
-        Set<ContentKey> seenNamespaces = namespaceFilterDepth > 0 ? new HashSet<>() : null;
-        while (authz.hasNext()) {
-          KeyEntry key = authz.next();
+        if (namespaceDepth != null && namespaceDepth > 0) {
+          int depth = namespaceDepth;
+          Set<ContentKey> seen = new HashSet<>();
+          while (authz.hasNext()) {
+            KeyEntry key = authz.next();
 
-          if (!filterPredicate.test(key)) {
-            continue;
+            Content c = key.getContent();
+            Entry entry =
+                c != null
+                    ? Entry.entry(key.getKey().contentKey(), key.getKey().type(), c)
+                    : Entry.entry(
+                        key.getKey().contentKey(),
+                        key.getKey().type(),
+                        key.getKey().lastElement().contentId());
+
+            entry = maybeTruncateToDepth(entry, depth);
+
+            // add implicit namespace entries only once (single parent of multiple real entries)
+            if (seen.add(entry.getName())) {
+              if (!pagedResponseHandler.addEntry(entry)) {
+                pagedResponseHandler.hasMore(authz.tokenForCurrent());
+                break;
+              }
+            }
           }
+        } else {
+          while (authz.hasNext()) {
+            KeyEntry key = authz.next();
 
-          Content c = key.getContent();
-          Entry entry =
-              c != null
-                  ? Entry.entry(key.getKey().contentKey(), key.getKey().type(), c)
-                  : Entry.entry(
-                      key.getKey().contentKey(),
-                      key.getKey().type(),
-                      key.getKey().lastElement().contentId());
+            Content c = key.getContent();
+            Entry entry =
+                c != null
+                    ? Entry.entry(key.getKey().contentKey(), key.getKey().type(), c)
+                    : Entry.entry(
+                        key.getKey().contentKey(),
+                        key.getKey().type(),
+                        key.getKey().lastElement().contentId());
 
-          if (namespaceFilterDepth > 0) {
-            entry = maybeTruncateToDepth(entry, namespaceFilterDepth);
-          }
-
-          // add implicit namespace entries only once (single parent of multiple real entries)
-          if (seenNamespaces == null
-              || !Content.Type.NAMESPACE.equals(entry.getType())
-              || seenNamespaces.add(entry.getName())) {
             if (!pagedResponseHandler.addEntry(entry)) {
               pagedResponseHandler.hasMore(authz.tokenForCurrent());
               break;
@@ -983,9 +994,9 @@ public class TreeApiImpl extends BaseApiImpl implements TreeService {
    *
    * @param filter The filter to filter by
    */
-  protected Predicate<KeyEntry> filterEntries(String filter) {
+  protected Predicate<KeyAttributes> filterEntries(String filter) {
     if (Strings.isNullOrEmpty(filter)) {
-      return x -> true;
+      return null;
     }
 
     final Script script;

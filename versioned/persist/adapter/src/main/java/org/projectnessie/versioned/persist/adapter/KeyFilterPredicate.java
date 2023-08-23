@@ -23,8 +23,13 @@ import org.projectnessie.model.ContentKey;
  * prevent unnecessary read operations. A typical use case is to filter early based on authorization
  * rules.
  */
+@FunctionalInterface
 public interface KeyFilterPredicate {
   boolean check(ContentKey key, ContentId contentId, byte type);
+
+  default KeyFilterPredicate and(KeyFilterPredicate other) {
+    return (k, c, t) -> check(k, c, t) && other.check(k, c, t);
+  }
 
   KeyFilterPredicate ALLOW_ALL = (k, c, t) -> true;
 }
