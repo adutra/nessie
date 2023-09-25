@@ -87,6 +87,26 @@ dependencies {
     api(project(":nessie-versioned-tests"))
     api(project(":nessie-versioned-transfer-proto"))
     api(project(":nessie-versioned-transfer"))
+
+    // Nessie Data Catalog
+    api(project(":nessie-catalog-api-base"))
+    api(project(":nessie-catalog-api-direct"))
+    api(project(":nessie-catalog-api-rest"))
+    api(project(":nessie-catalog-api-proto"))
+    api(project(":nessie-catalog-api-grpc"))
+    api(project(":nessie-catalog-files-api"))
+    api(project(":nessie-catalog-files-local"))
+    api(project(":nessie-catalog-format-iceberg"))
+    api(project(":nessie-catalog-schema-model"))
+    api(project(":nessie-catalog-service-api"))
+    api(project(":nessie-catalog-service-direct"))
+    api(project(":nessie-catalog-service-rest"))
+    api(project(":nessie-catalog-service-grpc"))
+    api(project(":nessie-catalog-service-impl"))
+    api(project(":nessie-catalog-service-server"))
+    api(project(":nessie-catalog-storage-backend"))
+    api(project(":nessie-catalog-storage-inmemory"))
+
     if (!isIncludedInNesQuEIT()) {
       api(project(":iceberg-views"))
       api(project(":nessie-spark-antlr-runtime"))

@@ -1,0 +1,109 @@
+# TODOs
+
+## Data files/manifests/etc
+
+* Can we maintain references to all data files in the catalog?
+    * How much data would it consume?
+    * What is a good serialization scheme for the catalog data?
+        * Should different serialization methods for data files/manifests and "other" catalog data be used?
+* Identify how "predicate push-down" could work
+    * Consider partition/bucket functions (Iceberg, Delta?)
+    * Consider varying partition specs
+    * Consider min/max values (per-data file statistics)
+    * Can we use CEL to push-down predicates? (Think: possible data types)
+* Bucketing/partitioning - can we define a superset of bucketing functionality? Is it worth the effort?
+    * Additional bucketing functions could be:
+        * Extract timestamp from Time-UUIDs
+        * Substring ("starts with")
+    * Would need support in the software performing the DML operations.
+    * Can we define a common subset of Iceberg and Delta?
+
+## Transparently migrate to Nessie Catalog
+
+* Accessing tables that exist only in S3
+* Let the Nessie catalog
+* Define the "source of truth" during the migration to Nessie catalog
+    * Is it possible to work against the "plain data lake" _and_ the Nessie catalog concurrently (during the migration)?
+    * Is it worth to be able to (permanently) mark a table (or view) as "pure data lake only"
+* Have the Nessie catalog S3 endpoint work as "pass through only"
+* Fully migrating a table including **all versions** (Nessie commits) of a table to the Nessie Catalog will take a
+  while. Nessie Catalog must be able to cope with this to provide a seamless migration phase & experience.
+* Duplicate migration jobs for the same table should be prevented, but might occur. The (migration) system must be able
+  to deal with such a situation.
+
+### Ideas
+
+* Have a lookup functionality from an Iceberg table-metadata pointer to the Nessie Catalog snapshot information to
+  transparently migrate to the Nessie Catalog.
+
+### Migration steps
+
+Any table (or view) can be accessed through Nessie Catalog's S3 endpoint. Tables that (only) exist in the data lake
+would automatically be migrated to the Nessie Catalog.
+
+1. Configure the Nessie Catalog's S3 endpoint to work in "pass though only" mode. This means, that the Nessie Catalog
+   will be updated, but all metadata files will also be written to the data lake.
+2. Update all applications to use the Nessie Catalog. Either using a Nessie Catalog implementation for example for
+   Spark/Iceberg or point the applications to the Nessie Catalog S3 endpoint.
+3. Update the Nessie Catalog's S3 endpoint to switch to "normal operations" (i.e. to "only" "convert" updates to tables
+   to updates to the catalog). 
+
+## PoC
+
+1. In a terminal
+   ```bash
+   ./gradlew :nessie-quarkus:quarkusBuild && java -jar servers/quarkus-server/build/quarkus-app/quarkus-run.jar
+   ```
+1. In a second terminal
+   ```bash
+   ./gradlew :nessie-catalog-service-server:quarkusBuild && java -jar catalog/service/server/build/quarkus-app/quarkus-run.jar
+   ```
+1. In a third terminal
+   ```bash
+   rm -rf /tmp/nessie-catalog-demo
+   mkdir -p /tmp/nessie-catalog-demo
+
+   spark-3.2.1-bin-hadoop3.2/bin/spark-sql \
+     --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.3.1,org.projectnessie.nessie-integrations:nessie-spark-extensions-3.2_2.12:0.71.1 \
+     --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions \
+     --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19120/api/v1 \
+     --conf spark.sql.catalog.nessie.ref=main \
+     --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalog \
+     --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
+     --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
+   ```
+1. In Spark-SQL:
+   ```sql
+   CREATE NAMESPACE nessie.testing;
+
+   CREATE TABLE nessie.testing.city (
+    C_CITYKEY BIGINT, C_NAME STRING, N_NATIONKEY BIGINT, C_COMMENT STRING
+   ) USING iceberg PARTITIONED BY (N_NATIONKEY);
+   ```
+1. In a terminal:
+   ```bash
+   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   ```
+1. In Spark-SQL:
+   ```sql
+   INSERT INTO nessie.testing.city VALUES (1, 'a', 1, 'comment');
+   ```
+1. In a terminal:
+   ```bash
+   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   ```
+1. In Spark-SQL:
+   ```sql
+   INSERT INTO nessie.testing.city VALUES (2, 'b', 2, 'comment');
+   ```
+1. In a terminal:
+   ```bash
+   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   ```
+
+### Avro-Tools
+
+The `avro-tools` jar can be downloaded from [this location](https://dlcdn.apache.org/avro/avro-1.11.3/java/avro-tools-1.11.3.jar).
