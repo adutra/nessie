@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.manifest.NessieListManifestEntry;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
@@ -116,6 +117,9 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> icebergManifestFileLocations();
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<NessieListManifestEntry> manifests();
 
   // TODO Iceberg statistics files (stored in TableMetadata - NOT in Snapshot!)
   // TODO Iceberg last updated timestamp (ms since epoch)
@@ -242,6 +246,18 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
     @CanIgnoreReturnValue
     Builder addAllIcebergManifestFileLocations(Iterable<String> elements);
+
+    @CanIgnoreReturnValue
+    Builder addManifests(NessieListManifestEntry element);
+
+    @CanIgnoreReturnValue
+    Builder addManifests(NessieListManifestEntry... elements);
+
+    @CanIgnoreReturnValue
+    Builder manifests(Iterable<? extends NessieListManifestEntry> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllManifests(Iterable<? extends NessieListManifestEntry> elements);
 
     NessieTableSnapshot build();
   }

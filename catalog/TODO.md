@@ -103,6 +103,13 @@ would automatically be migrated to the Nessie Catalog.
    curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
    curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
    ```
+1. Manifest list:
+   ```
+   wget 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-list/testing.city'
+   java -jar avro-tools-1.11.3.jar getschema testing.city
+   java -jar avro-tools-1.11.3.jar getmeta testing.city
+   java -jar avro-tools-1.11.3.jar tojson testing.city
+   ```
 
 ### Avro-Tools
 

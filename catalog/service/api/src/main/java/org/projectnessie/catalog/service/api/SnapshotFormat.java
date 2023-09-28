@@ -15,13 +15,8 @@
  */
 package org.projectnessie.catalog.service.api;
 
-import java.util.OptionalInt;
-import org.projectnessie.error.NessieNotFoundException;
-import org.projectnessie.model.ContentKey;
-
-public interface CatalogService {
-
-  SnapshotResponse retrieveTableSnapshot(
-      String ref, ContentKey key, SnapshotFormat format, OptionalInt specVersion)
-      throws NessieNotFoundException;
+public enum SnapshotFormat {
+  NESSIE_SNAPSHOT,
+  ICEBERG_TABLE_METADATA,
+  ICEBERG_MANIFEST_LIST
 }

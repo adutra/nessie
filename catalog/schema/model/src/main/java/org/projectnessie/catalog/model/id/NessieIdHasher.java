@@ -25,6 +25,12 @@ public interface NessieIdHasher {
     return new IdHasherImpl();
   }
 
+  static NessieId hashObject(Hashable hashable) {
+    NessieIdHasher hasher = nessieIdHasher();
+    hashable.hash(hasher);
+    return hasher.generate();
+  }
+
   NessieIdHasher hash(boolean value);
 
   NessieIdHasher hash(int value);
@@ -34,6 +40,10 @@ public interface NessieIdHasher {
   NessieIdHasher hash(float value);
 
   NessieIdHasher hash(double value);
+
+  NessieIdHasher hash(Enum<?> value);
+
+  NessieIdHasher hash(Boolean value);
 
   NessieIdHasher hash(Integer value);
 

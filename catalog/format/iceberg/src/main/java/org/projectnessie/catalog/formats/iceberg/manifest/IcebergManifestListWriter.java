@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.io.DatumWriter;
@@ -49,7 +50,9 @@ public abstract class IcebergManifestListWriter {
 
   public abstract long snapshotId();
 
-  public abstract long parentSnapshotId();
+  @Nullable
+  @jakarta.annotation.Nullable
+  public abstract Long parentSnapshotId();
 
   @Value.Default
   public long sequenceNumber() {
@@ -74,7 +77,7 @@ public abstract class IcebergManifestListWriter {
     Builder snapshotId(long snapshotId);
 
     @CanIgnoreReturnValue
-    Builder parentSnapshotId(long parentSnapshotId);
+    Builder parentSnapshotId(Long parentSnapshotId);
 
     @CanIgnoreReturnValue
     Builder sequenceNumber(long sequenceNumber);
@@ -115,7 +118,9 @@ public abstract class IcebergManifestListWriter {
     DataFileWriter<IcebergManifestFile> entryWriter = buildDataFileWriter();
     entryWriter.setMeta("format-version", Integer.toString(spec().version()));
     entryWriter.setMeta("snapshot-id", String.valueOf(snapshotId()));
-    entryWriter.setMeta("parent-snapshot-id", String.valueOf(parentSnapshotId()));
+    if (parentSnapshotId() != null) {
+      entryWriter.setMeta("parent-snapshot-id", String.valueOf(parentSnapshotId()));
+    }
     if (spec().version() >= 2) {
       entryWriter.setMeta("sequence-number", String.valueOf(sequenceNumber()));
     }

@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.api;
+package org.projectnessie.catalog.model.manifest;
 
-import java.util.OptionalInt;
-import org.projectnessie.error.NessieNotFoundException;
-import org.projectnessie.model.ContentKey;
-
-public interface CatalogService {
-
-  SnapshotResponse retrieveTableSnapshot(
-      String ref, ContentKey key, SnapshotFormat format, OptionalInt specVersion)
-      throws NessieNotFoundException;
+public enum NessieFileContentType {
+  ICEBERG_DATA_FILE,
+  ICEBERG_DELETE_FILE,
+  ICEBERG_EQUALITY_DELETES_FILE,
+  ICEBERG_POSITION_DELETES_FILE,
+  DELTA_DATA_FILE,
+  DELTA_DELETION_VECTOR
 }

@@ -46,4 +46,17 @@ public interface NessieCatalogService {
       @QueryParam("format") @jakarta.ws.rs.QueryParam("format") String format,
       @QueryParam("specVersion") @jakarta.ws.rs.QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException;
+
+  @GET
+  @jakarta.ws.rs.GET
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-list/{key}")
+  @jakarta.ws.rs.Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-list/{key}")
+  @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  @jakarta.ws.rs.Produces(jakarta.ws.rs.core.MediaType.APPLICATION_OCTET_STREAM)
+  Object manifestList(
+      @PathParam("ref") @jakarta.ws.rs.PathParam("ref") String ref,
+      @PathParam("key") @jakarta.ws.rs.PathParam("key") ContentKey key,
+      @QueryParam("format") @jakarta.ws.rs.QueryParam("format") String format,
+      @QueryParam("specVersion") @jakarta.ws.rs.QueryParam("specVersion") String specVersion)
+      throws NessieNotFoundException;
 }

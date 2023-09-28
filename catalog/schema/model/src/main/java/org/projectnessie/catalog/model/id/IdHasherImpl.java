@@ -64,6 +64,22 @@ final class IdHasherImpl implements NessieIdHasher {
   }
 
   @Override
+  public NessieIdHasher hash(Enum<?> value) {
+    if (value != null) {
+      hashing.putInt(value.ordinal());
+    }
+    return this;
+  }
+
+  @Override
+  public NessieIdHasher hash(Boolean value) {
+    if (value != null) {
+      hashing.putBoolean(value);
+    }
+    return this;
+  }
+
+  @Override
   public NessieIdHasher hash(Integer value) {
     if (value != null) {
       hashing.putInt(value);

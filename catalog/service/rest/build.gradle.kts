@@ -34,15 +34,16 @@ dependencies {
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
+  implementation(platform(libs.jackson.bom))
+  implementation("com.fasterxml.jackson.core:jackson-databind")
+  implementation("com.fasterxml.jackson.core:jackson-annotations")
+
   implementation(libs.slf4j.api)
 
   // javax/jakarta
   compileOnly(libs.jakarta.ws.rs.api)
-  compileOnly(libs.javax.ws.rs)
   compileOnly(libs.jakarta.enterprise.cdi.api)
-  compileOnly(libs.javax.enterprise.cdi.api)
   compileOnly(libs.jakarta.validation.api)
-  compileOnly(libs.javax.validation.api)
   compileOnly(libs.findbugs.jsr305)
 
   compileOnly(libs.errorprone.annotations)

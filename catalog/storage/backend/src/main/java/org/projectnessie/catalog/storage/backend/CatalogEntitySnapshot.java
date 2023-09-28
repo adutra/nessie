@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.storage.backend;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -90,29 +91,79 @@ public interface CatalogEntitySnapshot {
    */
   List<NessieId> sortDefinitions();
 
-  static CatalogEntitySnapshot catalogEntitySnapshot(
-      NessieId snapshotId,
-      NessieId entityId,
-      //
-      NessieId currentSchema,
-      List<NessieId> schemas,
-      //
-      NessieId currentPartitionDefinition,
-      List<NessieId> partitionDefinitions,
-      //
-      NessieId currentSortDefinition,
-      List<NessieId> sortDefinitions) {
-    return ImmutableCatalogEntitySnapshot.of(
-        snapshotId,
-        entityId,
-        //
-        currentSchema,
-        schemas,
-        //
-        currentPartitionDefinition,
-        partitionDefinitions,
-        //
-        currentSortDefinition,
-        sortDefinitions);
+  List<NessieId> manifests();
+
+  static Builder builder() {
+    return ImmutableCatalogEntitySnapshot.builder();
+  }
+
+  interface Builder {
+    @CanIgnoreReturnValue
+    Builder from(CatalogEntitySnapshot instance);
+
+    @CanIgnoreReturnValue
+    Builder snapshotId(NessieId snapshotId);
+
+    @CanIgnoreReturnValue
+    Builder entityId(NessieId entityId);
+
+    @CanIgnoreReturnValue
+    Builder currentSchema(NessieId currentSchema);
+
+    @CanIgnoreReturnValue
+    Builder addSchemas(NessieId element);
+
+    @CanIgnoreReturnValue
+    Builder addSchemas(NessieId... elements);
+
+    @CanIgnoreReturnValue
+    Builder schemas(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllSchemas(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder currentPartitionDefinition(NessieId currentPartitionDefinition);
+
+    @CanIgnoreReturnValue
+    Builder addPartitionDefinitions(NessieId element);
+
+    @CanIgnoreReturnValue
+    Builder addPartitionDefinitions(NessieId... elements);
+
+    @CanIgnoreReturnValue
+    Builder partitionDefinitions(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllPartitionDefinitions(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder currentSortDefinition(NessieId currentSortDefinition);
+
+    @CanIgnoreReturnValue
+    Builder addSortDefinitions(NessieId element);
+
+    @CanIgnoreReturnValue
+    Builder addSortDefinitions(NessieId... elements);
+
+    @CanIgnoreReturnValue
+    Builder sortDefinitions(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllSortDefinitions(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder addManifests(NessieId element);
+
+    @CanIgnoreReturnValue
+    Builder addManifests(NessieId... elements);
+
+    @CanIgnoreReturnValue
+    Builder manifests(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllManifests(Iterable<? extends NessieId> elements);
+
+    CatalogEntitySnapshot build();
   }
 }

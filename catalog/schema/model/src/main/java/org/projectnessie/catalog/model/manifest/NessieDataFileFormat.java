@@ -13,15 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.api;
+package org.projectnessie.catalog.model.manifest;
 
-import java.util.OptionalInt;
-import org.projectnessie.error.NessieNotFoundException;
-import org.projectnessie.model.ContentKey;
+public enum NessieDataFileFormat {
+  ORC("orc", true),
+  PARQUET("parquet", true),
+  AVRO("avro", true),
+  METADATA("metadata.json", false);
 
-public interface CatalogService {
+  private final String fileExtension;
+  private final boolean splittable;
 
-  SnapshotResponse retrieveTableSnapshot(
-      String ref, ContentKey key, SnapshotFormat format, OptionalInt specVersion)
-      throws NessieNotFoundException;
+  NessieDataFileFormat(String fileExtension, boolean splittable) {
+    this.fileExtension = "." + fileExtension;
+    this.splittable = splittable;
+  }
+
+  public boolean splittable() {
+    return splittable;
+  }
+
+  public String fileExtension() {
+    return fileExtension;
+  }
 }

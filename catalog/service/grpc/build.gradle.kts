@@ -43,7 +43,6 @@ dependencies {
 
   // javax/jakarta
   compileOnly(libs.jakarta.validation.api)
-  compileOnly(libs.javax.validation.api)
   compileOnly(libs.findbugs.jsr305)
 
   compileOnly(libs.errorprone.annotations)

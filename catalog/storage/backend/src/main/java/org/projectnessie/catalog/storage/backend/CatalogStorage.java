@@ -22,6 +22,11 @@ import java.util.function.Consumer;
 import org.projectnessie.catalog.model.id.NessieId;
 
 public interface CatalogStorage {
+
+  // TODO Might need conditional update functionality - e.g. to conditionally bump the
+  //  `NessieTable.icebergLastColumnId` or `NessieTable.icebergLastPartitionId` values to coordinate
+  //  schema changes across multiple Nessie references.
+
   CatalogEntitySnapshot loadSnapshot(NessieId id);
 
   /**

@@ -31,12 +31,16 @@ public final class NessieIdSerializer extends JsonSerializer<NessieId> {
   @Override
   public void serialize(NessieId value, JsonGenerator gen, SerializerProvider serializers)
       throws IOException {
+    // TODO serialize as string in JSON, but as bytes for other (binary) formats
+    //  can use serializers.getAttribute()
     gen.writeBinary(value.idAsBytes());
   }
 
   @Override
   public void acceptJsonFormatVisitor(JsonFormatVisitorWrapper visitor, JavaType type)
       throws JsonMappingException {
+    // TODO serialize as string in JSON, but as bytes for other (binary) formats
+    //  can use serializers.getAttribute()
     visitor.expectStringFormat(BYTE_ARRAY_TYPE);
   }
 }
