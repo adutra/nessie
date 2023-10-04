@@ -17,12 +17,10 @@ package org.projectnessie.quarkus.providers.storage;
 
 import static org.projectnessie.quarkus.config.VersionStoreConfig.VersionStoreType.BIGTABLE;
 import static org.projectnessie.versioned.storage.bigtable.BigTableBackendFactory.configureDataClient;
-import static org.projectnessie.versioned.storage.bigtable.BigTableBackendFactory.configureDuration;
 
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.core.NoCredentialsProvider;
 import com.google.api.gax.grpc.ChannelPoolSettings;
-import com.google.api.gax.retrying.RetrySettings.Builder;
 import com.google.api.gax.rpc.PermissionDeniedException;
 import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
 import com.google.cloud.bigtable.admin.v2.BigtableTableAdminSettings;
@@ -33,7 +31,6 @@ import io.quarkiverse.googlecloudservices.common.GcpConfigHolder;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import java.time.Duration;
 import java.util.Optional;
 import org.projectnessie.quarkus.config.QuarkusBigTableConfig;
 import org.projectnessie.quarkus.providers.versionstore.StoreType;
@@ -180,9 +177,9 @@ public class BigTableBackendBuilder implements BackendBuilder {
         bigTableConfig.endpoint().ifPresent(adminSettings.stubSettings()::setEndpoint);
 
         adminSettings
-          .stubSettings()
-          .checkConsistencySettings()
-          .setSimpleTimeoutNoRetries(org.threeten.bp.Duration.ofMinutes(5));
+            .stubSettings()
+            .checkConsistencySettings()
+            .setSimpleTimeoutNoRetries(org.threeten.bp.Duration.ofMinutes(5));
 
         LOGGER.info("Creating Google BigTable table admin client...");
         tableAdminClient = BigtableTableAdminClient.create(adminSettings.build());

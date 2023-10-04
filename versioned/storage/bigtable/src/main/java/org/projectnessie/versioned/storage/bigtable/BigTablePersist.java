@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.projectnessie.versioned.storage.bigtable.BigTableBackend.REPO_REGEX_SUFFIX;
+import static org.projectnessie.versioned.storage.bigtable.BigTableConstants.CELL_TIMESTAMP;
 import static org.projectnessie.versioned.storage.bigtable.BigTableConstants.FAMILY_OBJS;
 import static org.projectnessie.versioned.storage.bigtable.BigTableConstants.FAMILY_REFS;
 import static org.projectnessie.versioned.storage.bigtable.BigTableConstants.MAX_PARALLEL_READS;
@@ -249,7 +250,7 @@ public class BigTablePersist implements Persist {
             QUALIFIER_REFS,
             // Note: must use a constant timestamp, otherwise BigTable will pile up historic values,
             // which would also break our CAS conditions, because historic values could match.
-            System.currentTimeMillis() * 1000,
+            CELL_TIMESTAMP,
             unsafeWrap(serializeReference(reference)));
   }
 
@@ -386,7 +387,7 @@ public class BigTablePersist implements Persist {
 
     try {
       ConditionalRowMutation conditionalRowMutation =
-          mutationForStoreObj(obj, ignoreSoftSizeRestrictions, System.currentTimeMillis() * 1000);
+          mutationForStoreObj(obj, ignoreSoftSizeRestrictions);
 
       boolean success = backend.writeClient().checkAndMutateRow(conditionalRowMutation);
 
@@ -406,8 +407,7 @@ public class BigTablePersist implements Persist {
 
   @NotNull
   private ConditionalRowMutation mutationForStoreObj(
-      @NotNull Obj obj, boolean ignoreSoftSizeRestrictions, long timestamp)
-      throws ObjTooLargeException {
+      @NotNull Obj obj, boolean ignoreSoftSizeRestrictions) throws ObjTooLargeException {
     checkArgument(obj.id() != null, "Obj to store must have a non-null ID");
     ByteString key = dbKey(obj.id());
 
@@ -421,9 +421,12 @@ public class BigTablePersist implements Persist {
 
     Mutation mutation =
         Mutation.create()
-            .setCell(FAMILY_OBJS, QUALIFIER_OBJS, timestamp, ref)
+            .setCell(FAMILY_OBJS, QUALIFIER_OBJS, CELL_TIMESTAMP, ref)
             .setCell(
-                FAMILY_OBJS, QUALIFIER_OBJ_TYPE, timestamp, OBJ_TYPE_VALUES[obj.type().ordinal()]);
+                FAMILY_OBJS,
+                QUALIFIER_OBJ_TYPE,
+                CELL_TIMESTAMP,
+                OBJ_TYPE_VALUES[obj.type().ordinal()]);
     Filter condition =
         FILTERS
             .chain()
@@ -453,11 +456,10 @@ public class BigTablePersist implements Persist {
     @SuppressWarnings("unchecked")
     ApiFuture<Boolean>[] futures = new ApiFuture[objs.length];
     int idx = 0;
-    long timestamp = System.currentTimeMillis() * 1000;
     for (int i = 0; i < objs.length; i++) {
       Obj obj = objs[i];
       if (obj != null) {
-        ConditionalRowMutation conditionalRowMutation = mutationForStoreObj(obj, false, timestamp);
+        ConditionalRowMutation conditionalRowMutation = mutationForStoreObj(obj, false);
         futures[idx] = backend.writeClient().checkAndMutateRowAsync(conditionalRowMutation);
       }
       idx++;
@@ -530,8 +532,7 @@ public class BigTablePersist implements Persist {
           .writeClient()
           .mutateRow(
               RowMutation.create(backend.tableObjs, key)
-                  .setCell(
-                      FAMILY_OBJS, QUALIFIER_OBJS, System.currentTimeMillis() * 1000, serialized));
+                  .setCell(FAMILY_OBJS, QUALIFIER_OBJS, CELL_TIMESTAMP, serialized));
       awaitReplication(backend.tableObjs);
     } catch (ApiException e) {
       throw apiException(e);

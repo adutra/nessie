@@ -16,7 +16,6 @@
 package org.projectnessie.versioned.storage.bigtable;
 
 import com.google.protobuf.ByteString;
-import java.util.concurrent.atomic.AtomicLong;
 
 final class BigTableConstants {
 
@@ -31,7 +30,7 @@ final class BigTableConstants {
   static final ByteString QUALIFIER_REFS = ByteString.copyFromUtf8("r");
 
   // Tue Apr 7 08:14:21 2020 +0200
-  static final AtomicLong CELL_TIMESTAMP = new AtomicLong( System.currentTimeMillis());
+  static final long CELL_TIMESTAMP = 1586232861000L;
 
   static final int MAX_PARALLEL_READS = 5;
   static final int MAX_BULK_READS = 100;
