@@ -112,8 +112,9 @@ final class ExportPersist extends ExportCommon {
 
     ReferenceLogic referenceLogic = referenceLogic(persist);
     CommitLogic commitLogic = commitLogic(persist);
+    String referencePrefix = exportVersion == ExportVersion.V2 ? null : RefMapping.REFS;
     referenceLogic
-        .queryReferences(referencesQuery())
+        .queryReferences(referencesQuery(referencePrefix))
         .forEachRemaining(
             ref -> {
               Deque<ObjId> commitsToProcess = new ArrayDeque<>();
@@ -149,14 +150,16 @@ final class ExportPersist extends ExportCommon {
   @Override
   void exportReferences(ExportContext exportContext) {
     ReferenceLogic referenceLogic = referenceLogic(persist());
-    for (PagedResult<Reference, String> refs = referenceLogic.queryReferences(referencesQuery());
+    String referencePrefix = exportVersion == ExportVersion.V2 ? null : RefMapping.REFS;
+    for (PagedResult<Reference, String> refs =
+            referenceLogic.queryReferences(referencesQuery(referencePrefix));
         refs.hasNext(); ) {
       Reference reference = refs.next();
       ObjId extendedInfoObj = reference.extendedInfoObj();
       String name =
-          exportVersion == ExportVersion.V1
-              ? RefMapping.referenceToNamedRef(reference.name()).getName()
-              : reference.name();
+          exportVersion == ExportVersion.V2
+              ? reference.name()
+              : RefMapping.referenceToNamedRef(reference).getName();
       Ref.Builder refBuilder =
           Ref.newBuilder().setName(name).setPointer(reference.pointer().asBytes());
       if (extendedInfoObj != null) {
