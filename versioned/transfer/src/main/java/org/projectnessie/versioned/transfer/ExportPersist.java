@@ -38,7 +38,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import org.projectnessie.model.CommitMeta;
 import org.projectnessie.model.Content;
 import org.projectnessie.nessie.relocated.protobuf.ByteString;
@@ -69,13 +68,18 @@ import org.projectnessie.versioned.transfer.serialize.TransferTypes.Ref;
 import org.projectnessie.versioned.transfer.serialize.TransferTypes.RepositoryDescriptionProto;
 
 final class ExportPersist extends ExportCommon {
-  ExportPersist(ExportFileSupplier exportFiles, NessieExporter exporter) {
+
+  private final ExportVersion exportVersion;
+
+  ExportPersist(
+      ExportFileSupplier exportFiles, NessieExporter exporter, ExportVersion exportVersion) {
     super(exportFiles, exporter);
+    this.exportVersion = exportVersion;
   }
 
   @Override
   ExportVersion getExportVersion() {
-    return ExportVersion.V1;
+    return exportVersion;
   }
 
   @Override
@@ -149,7 +153,10 @@ final class ExportPersist extends ExportCommon {
         refs.hasNext(); ) {
       Reference reference = refs.next();
       ObjId extendedInfoObj = reference.extendedInfoObj();
-      String name = RefMapping.referenceToNamedRef(reference.name()).getName();
+      String name =
+          exportVersion == ExportVersion.V1
+              ? RefMapping.referenceToNamedRef(reference.name()).getName()
+              : reference.name();
       Ref.Builder refBuilder =
           Ref.newBuilder().setName(name).setPointer(reference.pointer().asBytes());
       if (extendedInfoObj != null) {
@@ -217,22 +224,24 @@ final class ExportPersist extends ExportCommon {
   }
 
   private Commit mapCommitObj(CommitObj c, IndexesLogic indexesLogic, Map<ObjId, Obj> objs) {
-    CommitMeta commitMeta = TypeMapping.toCommitMeta(c);
-    byte[] commitMetaBytes;
-    try {
-      commitMetaBytes = exporter.objectMapper().writeValueAsBytes(commitMeta);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
-
     Commit.Builder b =
         Commit.newBuilder()
             .setCommitId(c.id().asBytes())
             .setParentCommitId(c.tail().get(0).asBytes())
             .setMessage(c.message())
-            .setMetadata(ByteString.copyFrom(commitMetaBytes))
             .setCommitSequence(c.seq())
             .setCreatedTimeMicros(c.created());
+
+    if (exportVersion == ExportVersion.V1) {
+      try {
+        CommitMeta commitMeta = TypeMapping.toCommitMeta(c);
+        byte[] commitMetaBytes = exporter.objectMapper().writeValueAsBytes(commitMeta);
+        b.setMetadata(ByteString.copyFrom(commitMetaBytes));
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
     c.headers()
         .keySet()
         .forEach(h -> b.addHeadersBuilder().setName(h).addAllValues(c.headers().getAll(h)));
@@ -244,7 +253,11 @@ final class ExportPersist extends ExportCommon {
               CommitOp content = op.content();
               Operation.Builder opBuilder = b.addOperationsBuilder().setPayload(content.payload());
 
-              opBuilder.addAllContentKey(TypeMapping.storeKeyToKey(op.key()).getElements());
+              if (exportVersion == ExportVersion.V1) {
+                opBuilder.addAllContentKey(TypeMapping.storeKeyToKey(op.key()).getElements());
+              } else {
+                opBuilder.addContentKey(op.key().rawString());
+              }
 
               ObjId valueId = content.value();
               if (valueId != null) {
