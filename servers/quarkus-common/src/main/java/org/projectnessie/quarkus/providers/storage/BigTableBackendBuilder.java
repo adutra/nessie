@@ -111,7 +111,7 @@ public class BigTableBackendBuilder implements BackendBuilder {
         dataSettings.stubSettings().setJwtAudienceMapping(bigTableConfig.jwtAudienceMapping());
       }
 
-      configureDataClient(dataSettings);
+      configureDataClient(dataSettings, bigTableConfig.enableTelemetry());
 
       LOGGER.info("Creating Google BigTable data client...");
       BigtableDataClient dataClient = BigtableDataClient.create(dataSettings.build());

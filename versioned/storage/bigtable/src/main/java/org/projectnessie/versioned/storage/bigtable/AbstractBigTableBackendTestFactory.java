@@ -59,7 +59,7 @@ public abstract class AbstractBigTableBackendTestFactory implements BackendTestF
               .setInstanceId(instanceId)
               .setCredentialsProvider(NoCredentialsProvider.create());
 
-      configureDataClient(settings);
+      configureDataClient(settings, false);
 
       return BigtableDataClient.create(settings.build());
     } catch (IOException e) {

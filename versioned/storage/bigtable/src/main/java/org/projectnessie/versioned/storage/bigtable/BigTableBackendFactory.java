@@ -17,6 +17,7 @@ package org.projectnessie.versioned.storage.bigtable;
 
 import com.google.api.gax.retrying.RetrySettings;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
+import com.google.cloud.bigtable.data.v2.BigtableDataSettings.Builder;
 import com.google.cloud.bigtable.data.v2.stub.EnhancedBigtableStubSettings;
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -49,7 +50,7 @@ public class BigTableBackendFactory implements BackendFactory<BigTableBackendCon
     return new BigTableBackend(config, false);
   }
 
-  public static void configureDataClient(BigtableDataSettings.Builder settings) {
+  public static void configureDataClient(Builder settings, boolean enableTelemetry) {
     Duration maxRetryDelay = Duration.ofSeconds(1);
 
     EnhancedBigtableStubSettings.Builder stubSettings = settings.stubSettings();
@@ -80,7 +81,9 @@ public class BigTableBackendFactory implements BackendFactory<BigTableBackendCon
                 .build());
 
     // Enable tracing & metrics
-    BigtableDataSettings.enableOpenCensusStats();
-    BigtableDataSettings.enableGfeOpenCensusStats();
+    if (enableTelemetry) {
+      BigtableDataSettings.enableOpenCensusStats();
+      BigtableDataSettings.enableGfeOpenCensusStats();
+    }
   }
 }
