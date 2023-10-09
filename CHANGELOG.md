@@ -14,6 +14,11 @@ as necessary. Empty sections will not end in the release notes.
 
 ### New Features
 
+- Spark SQL extensions now support the `DROP ... IF EXISTS` syntax for branches and tags.
+- `table-prefix` configuration option added to DynamoDB version store.
+- Ability to export repositories in V1 format. This is useful for migrating repositories to older 
+  Nessie servers that do not support the new storage model.
+
 ### Changes
 
 - Introduces sizing of the Nessie object cache using a relative value of the max Java heap size.
@@ -21,6 +26,7 @@ as necessary. Empty sections will not end in the release notes.
   If a fixed cache size setting has been explicitly configured, consider to change it to the fraction based one.
 - Relative hashes are now supported in table references, thus allowing SQL queries to specify a relative hash
   in the `FROM` clause, e.g. `FROM table1@main#1234^1`.
+- BigTable backend: ability to disable telemetry (which is enabled by default).
 
 ### Deprecations
 

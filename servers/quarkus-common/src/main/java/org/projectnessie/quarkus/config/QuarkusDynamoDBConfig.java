@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Dremio
+ * Copyright (C) 2023 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.sql.execution.datasources.v2
+package org.projectnessie.quarkus.config;
 
-import org.apache.spark.sql.catalyst.expressions.Attribute
-import org.apache.spark.sql.connector.catalog.CatalogPlugin
+import io.quarkus.runtime.annotations.StaticInitSafe;
+import io.smallrye.config.ConfigMapping;
+import java.util.Optional;
 
-case class DropReferenceExec(
-    output: Seq[Attribute],
-    branch: String,
-    currentCatalog: CatalogPlugin,
-    isBranch: Boolean,
-    catalog: Option[String],
-    failOnDrop: Boolean
-) extends BaseDropReferenceExec(
-      output,
-      branch,
-      currentCatalog,
-      isBranch,
-      catalog,
-      failOnDrop
-    ) {}
+@StaticInitSafe
+@ConfigMapping(prefix = "nessie.version.store.persist.dynamodb")
+public interface QuarkusDynamoDBConfig {
+  Optional<String> tablePrefix();
+}

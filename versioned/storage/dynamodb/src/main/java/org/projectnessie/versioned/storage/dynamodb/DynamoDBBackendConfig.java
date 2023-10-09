@@ -15,12 +15,15 @@
  */
 package org.projectnessie.versioned.storage.dynamodb;
 
+import java.util.Optional;
 import org.immutables.value.Value;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @Value.Immutable
 public interface DynamoDBBackendConfig {
   DynamoDbClient client();
+
+  Optional<String> tablePrefix();
 
   static ImmutableDynamoDBBackendConfig.Builder builder() {
     return ImmutableDynamoDBBackendConfig.builder();
