@@ -35,7 +35,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
  * </ul>
  *
  * <h2>(De)composing a Nessie Data Catalog model object, example using {@link
- * org.projectnessie.catalog.model.snapshot.NessieTableSnapshot}
+ * org.projectnessie.catalog.model.snapshot.NessieTableSnapshot}</h2>
  *
  * <p>A {@linkplain org.projectnessie.catalog.model.snapshot.NessieTableSnapshot table snapshot}
  * contains data and all relevant parts (schemas, partition-definitions, sort-definitions) of a
@@ -47,7 +47,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
  * to the above list, separately persisted parts of the table snapshot are not persisted with the
  * table snapshot itself.
  *
- * <h2>Caching/stateful clients
+ * <h2>Caching/stateful clients</h2>
  *
  * <p>Clients <em>may</em> can cache individual persisted objects, they indicate the IDs of the
  * objects they know about using a probabilistic data structure (e.g. bloom filter). The code that

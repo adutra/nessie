@@ -341,6 +341,8 @@ public class NessieModelIceberg {
         return NessieType.stringType();
       case IcebergType.TYPE_BINARY:
         return NessieType.binaryType();
+      default:
+        break;
     }
 
     if (type instanceof IcebergDecimalType) {
