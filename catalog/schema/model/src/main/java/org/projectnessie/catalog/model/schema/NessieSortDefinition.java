@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -45,6 +46,18 @@ public interface NessieSortDefinition {
   @Value.Default
   default int icebergSortOrderId() {
     return NO_SORT_ORDER_ID;
+  }
+
+  static NessieSortDefinition nessieSortDefinition(
+      List<NessieSortField> fields, int icebergSortOrderId) {
+    return nessieSortDefinition(
+        NessieIdHasher.nessieIdHasher()
+            .hash("NessieSortDefinition")
+            .hashCollection(fields)
+            .hash(icebergSortOrderId)
+            .generate(),
+        fields,
+        icebergSortOrderId);
   }
 
   static NessieSortDefinition nessieSortDefinition(

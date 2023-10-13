@@ -78,6 +78,5 @@ public class InMemoryStorage implements CatalogStorage {
         throw new ObjectMismatchException(id);
       }
     }
-    ;
   }
 }

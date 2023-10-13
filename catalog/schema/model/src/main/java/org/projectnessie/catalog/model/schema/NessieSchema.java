@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -41,6 +42,20 @@ public interface NessieSchema {
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieId> identifierFieldIds();
+
+  static NessieSchema nessieSchema(
+      NessieStruct struct, int icebergSchemaId, List<NessieId> identifierFieldIds) {
+    return nessieSchema(
+        NessieIdHasher.nessieIdHasher()
+            .hash("NessieSchema")
+            .hash(struct)
+            .hash(icebergSchemaId)
+            .hashCollection(identifierFieldIds)
+            .generate(),
+        struct,
+        icebergSchemaId,
+        identifierFieldIds);
+  }
 
   static NessieSchema nessieSchema(
       NessieId schemaId,

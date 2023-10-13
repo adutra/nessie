@@ -124,9 +124,7 @@ public class NessieModelIceberg {
                 })
             .collect(Collectors.toList());
 
-    NessieId sortDefinitionId =
-        NessieIdHasher.nessieIdHasher().hashCollection(fields).hash(sortOrder.orderId()).generate();
-    return NessieSortDefinition.nessieSortDefinition(sortDefinitionId, fields, sortOrder.orderId());
+    return NessieSortDefinition.nessieSortDefinition(fields, sortOrder.orderId());
   }
 
   public static IcebergPartitionSpec nessiePartitionDefinitionToIceberg(
@@ -179,15 +177,7 @@ public class NessieModelIceberg {
                 })
             .collect(Collectors.toList());
 
-    NessieId partitionDefinitionId =
-        NessieIdHasher.nessieIdHasher()
-            .hashCollection(fields)
-            .hash(partitionSpec.specId())
-            .generate();
-    NessiePartitionDefinition partitionDefinition =
-        NessiePartitionDefinition.nessiePartitionDefinition(
-            partitionDefinitionId, fields, partitionSpec.specId());
-    return partitionDefinition;
+    return NessiePartitionDefinition.nessiePartitionDefinition(fields, partitionSpec.specId());
   }
 
   public static IcebergSchema nessieSchemaToIcebergSchema(NessieSchema schema) {
@@ -226,14 +216,7 @@ public class NessieModelIceberg {
             .map(NessieField::fieldId)
             .collect(Collectors.toList());
 
-    NessieId schemaId =
-        NessieIdHasher.nessieIdHasher()
-            .hash(struct)
-            .hash(schema.schemaId())
-            .hashCollection(identifierFieldIds)
-            .generate();
-
-    return NessieSchema.nessieSchema(schemaId, struct, schema.schemaId(), identifierFieldIds);
+    return NessieSchema.nessieSchema(struct, schema.schemaId(), identifierFieldIds);
   }
 
   public static IcebergType nessieTypeToIcebergType(NessieTypeSpec type) {

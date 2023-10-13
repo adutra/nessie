@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -38,6 +39,18 @@ public interface NessiePartitionDefinition {
   @Value.Default
   default int icebergSpecId() {
     return NO_PARTITION_SPEC_ID;
+  }
+
+  static NessiePartitionDefinition nessiePartitionDefinition(
+      List<NessiePartitionField> fields, int icebergSpecId) {
+    return nessiePartitionDefinition(
+        NessieIdHasher.nessieIdHasher()
+            .hash("NessiePartitionDefinition")
+            .hashCollection(fields)
+            .hash(icebergSpecId)
+            .generate(),
+        fields,
+        icebergSpecId);
   }
 
   static NessiePartitionDefinition nessiePartitionDefinition(
