@@ -42,6 +42,7 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import org.apache.avro.file.SeekableFileInput;
+import org.apache.avro.file.SeekableInput;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergDataFile;
@@ -413,7 +414,6 @@ public class CatalogServiceImpl implements CatalogService {
       IcebergSnapshot icebergSnapshot,
       IntFunction<NessiePartitionDefinition> partitionDefinitionBySpecId,
       Consumer<NessieListManifestEntry> listEntryConsumer) {
-    icebergSnapshot.manifests();
     if (icebergSnapshot.manifestList() != null && !icebergSnapshot.manifestList().isEmpty()) {
       // Common code path - use the manifest-list file per Iceberg snapshot.
       importManifestListFromList(
@@ -432,112 +432,122 @@ public class CatalogServiceImpl implements CatalogService {
       Consumer<NessieListManifestEntry> listEntryConsumer) {
     LOGGER.info("Fetching Iceberg manifest-list from {}", manifestListLocation);
 
-    // TODO Need some tooling to create an Avro `SeekableInput` from an `InputStream`
-    try {
-      Path tempFile = Files.createTempFile("manifest-list-temp-", ".avro");
-      try {
-        try (InputStream inputStream = objectIO.readObject(URI.create(manifestListLocation))) {
-          Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+    try (SeekableInput avroListInput =
+            new SeekableStreamInput(
+                manifestListLocation, () -> objectIO.readObject(URI.create(manifestListLocation)));
+        IcebergManifestListReader.IcebergManifestListEntryReader listReader =
+            IcebergManifestListReader.builder().build().entryReader(avroListInput)) {
+
+      // TODO The information in the manifest-list header seems redundant?
+      // TODO Do we need to store it separately?
+      // TODO Do we need an assertion that it matches the values in the Iceberg snapshot?
+      listReader.spec();
+      listReader.snapshotId();
+      listReader.parentSnapshotId();
+      listReader.sequenceNumber();
+
+      // TODO trace level
+      LOGGER.info(
+          "  format version {}, snapshot id {}, sequence number {}",
+          listReader.spec(),
+          listReader.snapshotId(),
+          listReader.sequenceNumber());
+
+      while (listReader.hasNext()) {
+        IcebergManifestFile manifestListEntry = listReader.next();
+
+        manifestListEntry.addedSnapshotId();
+        manifestListEntry.sequenceNumber();
+        manifestListEntry.minSequenceNumber();
+        manifestListEntry.partitionSpecId();
+        manifestListEntry.partitions();
+
+        // TODO trace level
+        LOGGER.info("  with manifest list entry {}", manifestListEntry);
+
+        NessieFileContentType content;
+        IcebergManifestContent entryContent = manifestListEntry.content();
+        if (entryContent != null) {
+          switch (entryContent) {
+            case DATA:
+              content = NessieFileContentType.ICEBERG_DATA_FILE;
+              break;
+            case DELETES:
+              content = NessieFileContentType.ICEBERG_DELETE_FILE;
+              break;
+            default:
+              throw new IllegalArgumentException();
+          }
+        } else {
+          content = NessieFileContentType.ICEBERG_DATA_FILE;
         }
 
-        try (SeekableFileInput avroInput = new SeekableFileInput(tempFile.toFile());
-            IcebergManifestListReader.IcebergManifestListEntryReader entryReader =
-                IcebergManifestListReader.builder().build().entryReader(avroInput)) {
+        NessiePartitionDefinition partitionDefinition =
+            partitionDefinitionBySpecId.apply(manifestListEntry.partitionSpecId());
 
-          // TODO The information in the manifest-list header seems redundant?
-          // TODO Do we need to store it separately?
-          // TODO Do we need an assertion that it matches the values in the Iceberg snapshot?
+        // TODO remove collection overhead
+        List<NessieFieldSummary> partitions = new ArrayList<>();
+        for (int i = 0; i < manifestListEntry.partitions().size(); i++) {
+          IcebergPartitionFieldSummary fieldSummary = manifestListEntry.partitions().get(i);
+          partitions.add(
+              NessieFieldSummary.builder()
+                  .fieldId(partitionDefinition.columns().get(i).icebergFieldId())
+                  .containsNan(fieldSummary.containsNan())
+                  .containsNull(fieldSummary.containsNull())
+                  .lowerBound(toByteArray(fieldSummary.lowerBound()))
+                  .upperBound(toByteArray(fieldSummary.upperBound()))
+                  .build());
+        }
+
+        NessieListManifestEntry entry =
+            NessieListManifestEntry.builder()
+                .content(content)
+                //
+                .manifestPath(manifestListEntry.manifestPath())
+                .manifestLength(manifestListEntry.manifestLength())
+                //
+                .addedSnapshotId(manifestListEntry.addedSnapshotId())
+                .sequenceNumber(manifestListEntry.sequenceNumber())
+                .minSequenceNumber(manifestListEntry.minSequenceNumber())
+                .partitionSpecId(manifestListEntry.partitionSpecId())
+                .partitions(partitions)
+                //
+                .addedDataFilesCount(manifestListEntry.addedDataFilesCount())
+                .addedRowsCount(manifestListEntry.addedRowsCount())
+                .deletedDataFilesCount(manifestListEntry.deletedDataFilesCount())
+                .deletedRowsCount(manifestListEntry.deletedRowsCount())
+                .existingDataFilesCount(manifestListEntry.existingDataFilesCount())
+                .existingRowsCount(manifestListEntry.existingRowsCount())
+                //
+                .keyMetadata(toByteArray(manifestListEntry.keyMetadata()))
+                //
+                .build();
+
+        listEntryConsumer.accept(entry);
+
+        try (SeekableInput avroFileInput =
+                new SeekableStreamInput(
+                    manifestListEntry.manifestPath(),
+                    () -> objectIO.readObject(URI.create(manifestListEntry.manifestPath())));
+            IcebergManifestFileReader.IcebergManifestFileEntryReader entryReader =
+                IcebergManifestFileReader.builder().build().entryReader(avroFileInput)) {
+          entryReader.schema();
           entryReader.spec();
-          entryReader.snapshotId();
-          entryReader.parentSnapshotId();
-          entryReader.sequenceNumber();
-
-          // TODO trace level
-          LOGGER.info(
-              "  format version {}, snapshot id {}, sequence number {}",
-              entryReader.spec(),
-              entryReader.snapshotId(),
-              entryReader.sequenceNumber());
-
+          entryReader.content();
+          entryReader.partitionSpec();
           while (entryReader.hasNext()) {
-            IcebergManifestFile manifestListEntry = entryReader.next();
+            IcebergManifestEntry manifestEntry = entryReader.next();
+            manifestEntry.fileSequenceNumber();
+            manifestEntry.sequenceNumber();
+            manifestEntry.snapshotId();
+            IcebergDataFile dataFile = manifestEntry.dataFile();
+            manifestEntry.status();
 
-            manifestListEntry.addedSnapshotId();
-            manifestListEntry.sequenceNumber();
-            manifestListEntry.minSequenceNumber();
-            manifestListEntry.partitionSpecId();
-            manifestListEntry.partitions();
-
-            // TODO trace level
-            LOGGER.info("  with manifest list entry {}", manifestListEntry);
-
-            NessieFileContentType content;
-            IcebergManifestContent entryContent = manifestListEntry.content();
-            if (entryContent != null) {
-              switch (entryContent) {
-                case DATA:
-                  content = NessieFileContentType.ICEBERG_DATA_FILE;
-                  break;
-                case DELETES:
-                  content = NessieFileContentType.ICEBERG_DELETE_FILE;
-                  break;
-                default:
-                  throw new IllegalArgumentException();
-              }
-            } else {
-              content = NessieFileContentType.ICEBERG_DATA_FILE;
-            }
-
-            NessiePartitionDefinition partitionDefinition =
-                partitionDefinitionBySpecId.apply(manifestListEntry.partitionSpecId());
-
-            // TODO remove collection overhead
-            List<NessieFieldSummary> partitions = new ArrayList<>();
-            for (int i = 0; i < manifestListEntry.partitions().size(); i++) {
-              IcebergPartitionFieldSummary fieldSummary = manifestListEntry.partitions().get(i);
-              partitions.add(
-                  NessieFieldSummary.builder()
-                      .fieldId(partitionDefinition.columns().get(i).icebergFieldId())
-                      .containsNan(fieldSummary.containsNan())
-                      .containsNull(fieldSummary.containsNull())
-                      .lowerBound(toByteArray(fieldSummary.lowerBound()))
-                      .upperBound(toByteArray(fieldSummary.upperBound()))
-                      .build());
-            }
-
-            NessieListManifestEntry entry =
-                NessieListManifestEntry.builder()
-                    .content(content)
-                    //
-                    .manifestPath(manifestListEntry.manifestPath())
-                    .manifestLength(manifestListEntry.manifestLength())
-                    //
-                    .addedSnapshotId(manifestListEntry.addedSnapshotId())
-                    .sequenceNumber(manifestListEntry.sequenceNumber())
-                    .minSequenceNumber(manifestListEntry.minSequenceNumber())
-                    .partitionSpecId(manifestListEntry.partitionSpecId())
-                    .partitions(partitions)
-                    //
-                    .addedDataFilesCount(manifestListEntry.addedDataFilesCount())
-                    .addedRowsCount(manifestListEntry.addedRowsCount())
-                    .deletedDataFilesCount(manifestListEntry.deletedDataFilesCount())
-                    .deletedRowsCount(manifestListEntry.deletedRowsCount())
-                    .existingDataFilesCount(manifestListEntry.existingDataFilesCount())
-                    .existingRowsCount(manifestListEntry.existingRowsCount())
-                    //
-                    .keyMetadata(toByteArray(manifestListEntry.keyMetadata()))
-                    //
-                    .build();
-
-            listEntryConsumer.accept(entry);
+            LOGGER.info("Manifest file entry: {}", manifestEntry);
           }
         }
-
-      } finally {
-        if (tempFile != null) {
-          Files.deleteIfExists(tempFile);
-        }
       }
+
     } catch (Exception e) {
       // TODO some better error handling
       throw new RuntimeException(e);
