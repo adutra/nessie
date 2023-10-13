@@ -33,13 +33,6 @@ public interface NessieSortDefinition {
 
   NessieId sortDefinitionId();
 
-  // TODO replace `NessieField` with `NessieSortField`, referencing a schema+field and having these
-  //  attributes:
-  //  - source NessieField
-  //  - transform (Iceberg thing??),
-  //  - result type of the transform
-  //  - direction (asc/desc).
-  //  - nullOrder (first/last)
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieSortField> columns();
 
