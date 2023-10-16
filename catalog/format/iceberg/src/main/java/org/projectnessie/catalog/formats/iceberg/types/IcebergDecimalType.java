@@ -18,7 +18,7 @@ package org.projectnessie.catalog.formats.iceberg.types;
 import static org.projectnessie.catalog.formats.iceberg.manifest.Avro.decimalRequiredBytes;
 
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
+import java.math.BigInteger;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.immutables.value.Value;
@@ -49,9 +49,14 @@ public abstract class IcebergDecimalType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
+  public byte[] serializeSingleValue(Object value) {
     BigDecimal decimal = (BigDecimal) value;
-    return ByteBuffer.wrap(decimal.unscaledValue().toByteArray());
+    return decimal.unscaledValue().toByteArray();
+  }
+
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return new BigDecimal(new BigInteger(value));
   }
 
   @Override

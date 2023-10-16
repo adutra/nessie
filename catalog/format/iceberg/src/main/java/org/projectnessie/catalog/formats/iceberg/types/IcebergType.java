@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import java.nio.ByteBuffer;
 import java.util.List;
 import javax.validation.constraints.NotNull;
 import org.apache.avro.Schema;
@@ -123,7 +122,9 @@ public interface IcebergType {
 
   int compare(Object left, Object right);
 
-  ByteBuffer serializeSingleValue(@NotNull @jakarta.validation.constraints.NotNull Object value);
+  byte[] serializeSingleValue(@NotNull @jakarta.validation.constraints.NotNull Object value);
+
+  Object deserializeSingleValue(byte[] value);
 
   Schema avroSchema(int fieldId);
 }

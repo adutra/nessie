@@ -15,7 +15,6 @@
  */
 package org.projectnessie.catalog.formats.iceberg.types;
 
-import java.nio.ByteBuffer;
 import org.apache.avro.Schema;
 
 public final class IcebergBooleanType extends IcebergPrimitiveType {
@@ -32,8 +31,12 @@ public final class IcebergBooleanType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
-    byte[] bytes = {(Boolean) value ? (byte) 1 : (byte) 0};
-    return ByteBuffer.wrap(bytes);
+  public byte[] serializeSingleValue(Object value) {
+    return new byte[] {(Boolean) value ? (byte) 1 : (byte) 0};
+  }
+
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return value[0] != 0;
   }
 }

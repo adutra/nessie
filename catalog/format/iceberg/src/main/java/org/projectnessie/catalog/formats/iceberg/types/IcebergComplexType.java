@@ -17,7 +17,6 @@ package org.projectnessie.catalog.formats.iceberg.types;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import java.nio.ByteBuffer;
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -35,7 +34,12 @@ public interface IcebergComplexType extends IcebergType {
   }
 
   @Override
-  default ByteBuffer serializeSingleValue(Object value) {
+  default byte[] serializeSingleValue(Object value) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  default Object deserializeSingleValue(byte[] value) {
     throw new UnsupportedOperationException();
   }
 }

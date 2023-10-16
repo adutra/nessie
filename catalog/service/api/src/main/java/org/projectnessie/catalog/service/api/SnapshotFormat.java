@@ -18,5 +18,6 @@ package org.projectnessie.catalog.service.api;
 public enum SnapshotFormat {
   NESSIE_SNAPSHOT,
   ICEBERG_TABLE_METADATA,
-  ICEBERG_MANIFEST_LIST
+  ICEBERG_MANIFEST_LIST,
+  ICEBERG_MANIFEST_FILE
 }

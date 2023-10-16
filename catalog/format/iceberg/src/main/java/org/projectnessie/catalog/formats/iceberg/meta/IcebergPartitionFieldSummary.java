@@ -16,7 +16,6 @@
 package org.projectnessie.catalog.formats.iceberg.meta;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -27,7 +26,7 @@ public interface IcebergPartitionFieldSummary {
   }
 
   static IcebergPartitionFieldSummary icebergPartitionFieldSummary(
-      boolean containsNull, ByteBuffer lowerBound, ByteBuffer upperBound, Boolean containsNan) {
+      boolean containsNull, byte[] lowerBound, byte[] upperBound, Boolean containsNan) {
     return ImmutableIcebergPartitionFieldSummary.of(
         containsNull, lowerBound, upperBound, containsNan);
   }
@@ -41,7 +40,7 @@ public interface IcebergPartitionFieldSummary {
   // TODO Use Agrona-Collections
   @Nullable
   @jakarta.annotation.Nullable
-  ByteBuffer lowerBound();
+  byte[] lowerBound();
 
   // TODO subject to write.metadata.metrics.default / write.metadata.metrics.column.* settings !!
   //  Default is 'truncate(16)', see
@@ -53,7 +52,7 @@ public interface IcebergPartitionFieldSummary {
   // TODO Use Agrona-Collections
   @Nullable
   @jakarta.annotation.Nullable
-  ByteBuffer upperBound();
+  byte[] upperBound();
 
   @Nullable
   @jakarta.annotation.Nullable
@@ -67,10 +66,10 @@ public interface IcebergPartitionFieldSummary {
     Builder containsNull(boolean containsNull);
 
     @CanIgnoreReturnValue
-    Builder lowerBound(ByteBuffer lowerBound);
+    Builder lowerBound(byte[] lowerBound);
 
     @CanIgnoreReturnValue
-    Builder upperBound(ByteBuffer upperBound);
+    Builder upperBound(byte[] upperBound);
 
     @CanIgnoreReturnValue
     Builder containsNan(Boolean containsNan);

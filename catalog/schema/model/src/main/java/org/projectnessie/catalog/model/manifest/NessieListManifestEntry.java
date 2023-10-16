@@ -21,7 +21,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.projectnessie.catalog.model.id.Hashable;
+import org.immutables.value.Value;
+import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -29,12 +30,12 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @NessieImmutable
 @JsonSerialize(as = ImmutableNessieListManifestEntry.class)
 @JsonDeserialize(as = ImmutableNessieListManifestEntry.class)
-public interface NessieListManifestEntry extends Hashable {
-  @Override
-  default void hash(NessieIdHasher idHasher) {
-    idHasher
-        .hash(manifestPath())
-        .hash(manifestLength())
+public interface NessieListManifestEntry {
+  @Value.Default
+  default NessieId id() {
+    return NessieIdHasher.nessieIdHasher()
+        .hash(icebergManifestPath())
+        .hash(icebergManifestLength())
         .hash(partitionSpecId())
         .hash(addedSnapshotId())
         .hash(addedDataFilesCount())
@@ -47,18 +48,19 @@ public interface NessieListManifestEntry extends Hashable {
         .hash(minSequenceNumber())
         .hash(content())
         .hash(keyMetadata())
-        .hashCollection(partitions());
+        .hashCollection(partitions())
+        .generate();
   }
 
   @Nullable
   @jakarta.annotation.Nullable
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  String manifestPath();
+  String icebergManifestPath();
 
   @Nullable
   @jakarta.annotation.Nullable
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  Long manifestLength();
+  Long icebergManifestLength();
 
   @Nullable
   @jakarta.annotation.Nullable
@@ -138,6 +140,9 @@ public interface NessieListManifestEntry extends Hashable {
   // Only in Iceberg
   List<NessieFieldSummary> partitions();
 
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<NessieId> dataFiles();
+
   static Builder builder() {
     return ImmutableNessieListManifestEntry.builder();
   }
@@ -150,10 +155,13 @@ public interface NessieListManifestEntry extends Hashable {
     Builder clear();
 
     @CanIgnoreReturnValue
-    Builder manifestPath(String manifestPath);
+    Builder id(NessieId id);
 
     @CanIgnoreReturnValue
-    Builder manifestLength(Long manifestLength);
+    Builder icebergManifestPath(String icebergManifestPath);
+
+    @CanIgnoreReturnValue
+    Builder icebergManifestLength(Long icebergManifestLength);
 
     @CanIgnoreReturnValue
     Builder partitionSpecId(Integer partitionSpecId);
@@ -202,6 +210,18 @@ public interface NessieListManifestEntry extends Hashable {
 
     @CanIgnoreReturnValue
     Builder addAllPartitions(Iterable<? extends NessieFieldSummary> elements);
+
+    @CanIgnoreReturnValue
+    Builder addDataFiles(NessieId element);
+
+    @CanIgnoreReturnValue
+    Builder addDataFiles(NessieId... elements);
+
+    @CanIgnoreReturnValue
+    Builder dataFiles(Iterable<? extends NessieId> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllDataFiles(Iterable<? extends NessieId> elements);
 
     NessieListManifestEntry build();
   }

@@ -15,16 +15,21 @@
  */
 package org.projectnessie.catalog.formats.iceberg.manifest;
 
+import org.projectnessie.catalog.model.manifest.NessieFileContentType;
+
 public enum IcebergManifestContent {
-  DATA("data", 0),
-  DELETES("deletes", 1);
+  DATA("data", 0, NessieFileContentType.ICEBERG_DATA_FILE),
+  DELETES("deletes", 1, NessieFileContentType.ICEBERG_DELETE_FILE);
 
   private final String stringValue;
   private final int intValue;
+  private final NessieFileContentType nessieFileContentType;
 
-  IcebergManifestContent(String stringValue, int intValue) {
+  IcebergManifestContent(
+      String stringValue, int intValue, NessieFileContentType nessieFileContentType) {
     this.stringValue = stringValue;
     this.intValue = intValue;
+    this.nessieFileContentType = nessieFileContentType;
   }
 
   public static IcebergManifestContent fromStringValue(String content) {
@@ -44,5 +49,22 @@ public enum IcebergManifestContent {
 
   public int intValue() {
     return intValue;
+  }
+
+  public NessieFileContentType nessieFileContentType() {
+    return nessieFileContentType;
+  }
+
+  public static IcebergManifestContent fromNessieFileContentType(
+      NessieFileContentType nessieFileContentType) {
+    switch (nessieFileContentType) {
+      case ICEBERG_DATA_FILE:
+        return DATA;
+      case ICEBERG_DELETE_FILE:
+        return DELETES;
+      default:
+        throw new IllegalArgumentException(
+            "Unknown file content type for Iceberg: " + nessieFileContentType);
+    }
   }
 }

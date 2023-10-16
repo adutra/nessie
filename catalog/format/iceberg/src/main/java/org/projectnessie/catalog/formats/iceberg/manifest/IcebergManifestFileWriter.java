@@ -26,7 +26,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -69,7 +68,7 @@ public abstract class IcebergManifestFileWriter {
 
   @Nullable
   @jakarta.annotation.Nullable
-  public abstract ByteBuffer keyMetadata();
+  public abstract byte[] keyMetadata();
 
   public interface Builder {
 
@@ -98,7 +97,7 @@ public abstract class IcebergManifestFileWriter {
     Builder minSequenceNumber(long minSequenceNumber);
 
     @CanIgnoreReturnValue
-    Builder keyMetadata(ByteBuffer keyMetadata);
+    Builder keyMetadata(byte[] keyMetadata);
 
     @CanIgnoreReturnValue
     Builder putTableProperties(String key, String value);
@@ -128,9 +127,9 @@ public abstract class IcebergManifestFileWriter {
     IcebergManifestFileEntryWriter append(
         IcebergDataFile dataFile,
         IcebergManifestEntryStatus status,
-        long fileSequenceNumber,
-        long sequenceNumber,
-        long snapshotId);
+        Long fileSequenceNumber,
+        Long sequenceNumber,
+        Long snapshotId);
 
     IcebergManifestFileEntryWriter append(IcebergManifestEntry entry);
 
@@ -258,17 +257,16 @@ public abstract class IcebergManifestFileWriter {
     public IcebergManifestFileEntryWriter append(
         IcebergDataFile dataFile,
         IcebergManifestEntryStatus status,
-        long fileSequenceNumber,
-        long sequenceNumber,
-        long snapshotId) {
+        Long fileSequenceNumber,
+        Long sequenceNumber,
+        Long snapshotId) {
       IcebergManifestEntry.Builder entry =
-          IcebergManifestEntry.builder().dataFile(dataFile).status(status).snapshotId(snapshotId);
-      if (fileSequenceNumber != 0L) {
-        entry.fileSequenceNumber(fileSequenceNumber);
-      }
-      if (sequenceNumber != 0L) {
-        entry.sequenceNumber(sequenceNumber);
-      }
+          IcebergManifestEntry.builder()
+              .dataFile(dataFile)
+              .status(status)
+              .snapshotId(snapshotId)
+              .fileSequenceNumber(fileSequenceNumber)
+              .sequenceNumber(sequenceNumber);
       return append(entry.build());
     }
 
@@ -376,9 +374,9 @@ public abstract class IcebergManifestFileWriter {
       //  +0.0 is a value of the partition field, the upper_bound must not be -0.0."
       // TODO see https://iceberg.apache.org/spec/#binary-single-value-serialization
       Object lower = lowerBound;
-      ByteBuffer lowerBoundBytes = lower != null ? type.serializeSingleValue(lower) : null;
+      byte[] lowerBoundBytes = lower != null ? type.serializeSingleValue(lower) : null;
       Object upper = upperBound;
-      ByteBuffer upperBoundBytes = upper != null ? type.serializeSingleValue(upper) : null;
+      byte[] upperBoundBytes = upper != null ? type.serializeSingleValue(upper) : null;
       return icebergPartitionFieldSummary(
           containsNull, lowerBoundBytes, upperBoundBytes, containsNan);
     }

@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.formats.iceberg.types;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 
@@ -34,11 +35,20 @@ public final class IcebergUuidType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
-    java.util.UUID uuid = (java.util.UUID) value;
-    ByteBuffer buffer = ByteBuffer.allocate(16);
+  public byte[] serializeSingleValue(Object value) {
+    UUID uuid = (UUID) value;
+    byte[] buf = new byte[16];
+    ByteBuffer buffer = ByteBuffer.wrap(buf);
     buffer.putLong(0, uuid.getMostSignificantBits());
     buffer.putLong(8, uuid.getLeastSignificantBits());
-    return buffer;
+    return buf;
+  }
+
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    ByteBuffer bb = ByteBuffer.wrap(value);
+    long msb = bb.getLong();
+    long lsb = bb.getLong();
+    return new UUID(msb, lsb);
   }
 }

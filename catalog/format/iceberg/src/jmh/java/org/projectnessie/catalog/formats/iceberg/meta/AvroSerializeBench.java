@@ -180,8 +180,8 @@ public class AvroSerializeBench {
 
       ThreadLocalRandom random = ThreadLocalRandom.current();
 
-      Supplier<ByteBuffer> fieldValueSupplier =
-          () -> ByteBuffer.wrap(prefixed("", 30).toString().getBytes(StandardCharsets.UTF_8));
+      Supplier<byte[]> fieldValueSupplier =
+          () -> prefixed("", 30).toString().getBytes(StandardCharsets.UTF_8);
 
       icebergDataFiles = new ArrayList<>(entriesCount);
       for (int i = 0; i < entriesCount; i++) {
@@ -492,8 +492,12 @@ public class AvroSerializeBench {
                 dataFile.valueCounts(),
                 dataFile.nullValueCounts(),
                 dataFile.nanValueCounts(),
-                dataFile.lowerBounds(),
-                dataFile.upperBounds()))
+                dataFile.lowerBounds().entrySet().stream()
+                    .collect(
+                        Collectors.toMap(Map.Entry::getKey, e -> ByteBuffer.wrap(e.getValue()))),
+                dataFile.upperBounds().entrySet().stream()
+                    .collect(
+                        Collectors.toMap(Map.Entry::getKey, e -> ByteBuffer.wrap(e.getValue())))))
         .build();
   }
 
@@ -516,7 +520,7 @@ public class AvroSerializeBench {
         file.partitions().stream()
             .map(AvroSerializeBench::toPartitionFieldSummary)
             .collect(Collectors.toList()),
-        file.keyMetadata());
+        ByteBuffer.wrap(file.keyMetadata()));
   }
 
   static ManifestFile.PartitionFieldSummary toPartitionFieldSummary(
@@ -524,7 +528,7 @@ public class AvroSerializeBench {
     return new GenericPartitionFieldSummary(
         summary.containsNull(),
         summary.containsNan() != null && summary.containsNan(),
-        summary.lowerBound(),
-        summary.upperBound());
+        ByteBuffer.wrap(summary.lowerBound()),
+        ByteBuffer.wrap(summary.upperBound()));
   }
 }

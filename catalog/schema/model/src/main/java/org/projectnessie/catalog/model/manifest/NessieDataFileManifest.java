@@ -17,15 +17,48 @@ package org.projectnessie.catalog.model.manifest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.immutables.value.Value;
+import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 // Corresponds to one Iceberg manifest-file entry (aka Iceberg's ManifestEntry)
 @NessieImmutable
 public interface NessieDataFileManifest {
+
+  @Value.Derived
+  default NessieId id() {
+    return NessieIdHasher.nessieIdHasher()
+        .hash(status())
+        .hash(content())
+        .hash(specId())
+        .hashCollection(partition())
+        .hashIntCollection(equalityIds())
+        .hash(sortOrderId())
+        .hash(fileFormat())
+        .hash(filePath())
+        .hash(fileSizeInBytes())
+        .hash(blockSizeInBytes())
+        .hash(recordCount())
+        .hashLongCollection(splitOffsets())
+        .hash(keyMetadata())
+        .hashCollection(columns())
+        .hash(tightBounds())
+        .hash(dataChange())
+        .hashStringToStringMap(tags())
+        .hash(deltaBaseRowId())
+        .hash(deltaDefaultRowCommitVersion())
+        .hash(icebergFileSequenceNumber())
+        .hash(icebergSequenceNumber())
+        .hash(icebergSnapshotId())
+        .generate();
+  }
+
+  NessieFileStatus status();
+
   NessieFileContentType content();
 
   @Nullable
@@ -78,7 +111,7 @@ public interface NessieDataFileManifest {
   @Nullable
   @jakarta.annotation.Nullable
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  ByteBuffer keyMetadata();
+  byte[] keyMetadata();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieFieldSummary> columns();
@@ -111,6 +144,21 @@ public interface NessieDataFileManifest {
   // Only in Delta
   Long deltaDefaultRowCommitVersion();
 
+  @Nullable
+  @jakarta.annotation.Nullable
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  Long icebergFileSequenceNumber();
+
+  @Nullable
+  @jakarta.annotation.Nullable
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  Long icebergSequenceNumber();
+
+  @Nullable
+  @jakarta.annotation.Nullable
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  Long icebergSnapshotId();
+
   static Builder builder() {
     return ImmutableNessieDataFileManifest.builder();
   }
@@ -118,6 +166,9 @@ public interface NessieDataFileManifest {
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessieDataFileManifest instance);
+
+    @CanIgnoreReturnValue
+    Builder status(NessieFileStatus status);
 
     @CanIgnoreReturnValue
     Builder content(NessieFileContentType content);
@@ -180,7 +231,7 @@ public interface NessieDataFileManifest {
     Builder addAllSplitOffsets(Iterable<Long> elements);
 
     @CanIgnoreReturnValue
-    Builder keyMetadata(@Nullable ByteBuffer keyMetadata);
+    Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
     Builder addColumns(NessieFieldSummary element);
@@ -217,6 +268,15 @@ public interface NessieDataFileManifest {
 
     @CanIgnoreReturnValue
     Builder deltaDefaultRowCommitVersion(@Nullable Long deltaDefaultRowCommitVersion);
+
+    @CanIgnoreReturnValue
+    Builder icebergFileSequenceNumber(@Nullable Long icebergFileSequenceNumber);
+
+    @CanIgnoreReturnValue
+    Builder icebergSequenceNumber(@Nullable Long icebergSequenceNumber);
+
+    @CanIgnoreReturnValue
+    Builder icebergSnapshotId(@Nullable Long icebergSnapshotId);
 
     NessieDataFileManifest build();
   }

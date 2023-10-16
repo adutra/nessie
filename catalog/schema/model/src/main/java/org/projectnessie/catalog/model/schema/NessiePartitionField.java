@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.Hashable;
+import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.catalog.model.schema.types.NessieTypeSpec;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -29,6 +30,8 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonDeserialize(as = ImmutableNessiePartitionField.class)
 public interface NessiePartitionField extends Hashable {
   int NO_FIELD_ID = -1;
+
+  NessieId id();
 
   NessieField sourceField();
 
@@ -49,12 +52,25 @@ public interface NessiePartitionField extends Hashable {
 
   @Override
   default void hash(NessieIdHasher idHasher) {
-    idHasher
-        .hash(sourceField().fieldId())
-        .hash(name())
-        .hash(type())
-        .hash(transformSpec())
-        .hash(icebergFieldId());
+    idHasher.hash(id());
+  }
+
+  static NessiePartitionField nessiePartitionField(
+      NessieField sourceField,
+      String name,
+      NessieTypeSpec type,
+      NessieFieldTransform transformSpec,
+      int icebergFieldId) {
+    NessieId id =
+        NessieIdHasher.nessieIdHasher()
+            .hash(sourceField.fieldId())
+            .hash(name)
+            .hash(type)
+            .hash(transformSpec)
+            .hash(icebergFieldId)
+            .generate();
+    return ImmutableNessiePartitionField.of(
+        id, sourceField, name, type, transformSpec, icebergFieldId);
   }
 
   static Builder builder() {
@@ -64,6 +80,9 @@ public interface NessiePartitionField extends Hashable {
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessiePartitionField instance);
+
+    @CanIgnoreReturnValue
+    Builder id(NessieId id);
 
     @CanIgnoreReturnValue
     Builder sourceField(NessieField sourceField);

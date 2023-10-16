@@ -13,21 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.api;
+package org.projectnessie.catalog.model.manifest;
 
-import java.util.Optional;
-import java.util.OptionalInt;
-import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.error.NessieNotFoundException;
-import org.projectnessie.model.ContentKey;
-
-public interface CatalogService {
-
-  SnapshotResponse retrieveTableSnapshot(
-      String ref,
-      ContentKey key,
-      Optional<NessieId> manifestFileId,
-      SnapshotFormat format,
-      OptionalInt specVersion)
-      throws NessieNotFoundException;
+public enum NessieFileStatus {
+  EXISTING,
+  ADDED,
+  DELETED
 }

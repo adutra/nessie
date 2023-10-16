@@ -17,13 +17,14 @@ package org.projectnessie.catalog.model.manifest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
+import org.projectnessie.catalog.model.id.Hashable;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
-public interface NessieFieldValue {
+public interface NessieFieldValue extends Hashable {
   NessieId fieldId();
 
   @Nullable
@@ -31,7 +32,12 @@ public interface NessieFieldValue {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Integer icebergFieldId();
 
-  ByteBuffer value();
+  byte[] value();
+
+  @Override
+  default void hash(NessieIdHasher idHasher) {
+    idHasher.hash(fieldId());
+  }
 
   static Builder builder() {
     return ImmutableNessieFieldValue.builder();
@@ -48,7 +54,7 @@ public interface NessieFieldValue {
     Builder icebergFieldId(@Nullable Integer icebergFieldId);
 
     @CanIgnoreReturnValue
-    Builder value(ByteBuffer value);
+    Builder value(byte[] value);
 
     NessieFieldValue build();
   }

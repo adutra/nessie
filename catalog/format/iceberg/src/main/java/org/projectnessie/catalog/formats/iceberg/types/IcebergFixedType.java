@@ -15,7 +15,6 @@
  */
 package org.projectnessie.catalog.formats.iceberg.types;
 
-import java.nio.ByteBuffer;
 import org.apache.avro.Schema;
 import org.immutables.value.Value;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -43,8 +42,13 @@ public abstract class IcebergFixedType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
+  public byte[] serializeSingleValue(Object value) {
     return IcebergBinaryType.serializeBinary(value);
+  }
+
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return IcebergBinaryType.deserializeBinary(value);
   }
 
   @Override

@@ -16,7 +16,6 @@
 package org.projectnessie.catalog.formats.iceberg.manifest;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -73,7 +72,7 @@ public interface IcebergDataFile {
   //  https://iceberg.apache.org/docs/1.3.0/configuration/#write-properties
   // TODO how is this encoded?? in IJ's Avro/Parquet viewer string values appear "interesting"
   // TODO Use Agrona-Collections
-  Map<Integer, ByteBuffer> lowerBounds();
+  Map<Integer, byte[]> lowerBounds();
 
   // TODO subject to write.metadata.metrics.default / write.metadata.metrics.column.* settings !!
   //  Default is 'truncate(16)', see
@@ -83,11 +82,11 @@ public interface IcebergDataFile {
   //  uses Parquet's functionality, see
   //  org.apache.parquet.internal.column.columnindex.BinaryTruncator.truncateMax?
   // TODO Use Agrona-Collections
-  Map<Integer, ByteBuffer> upperBounds();
+  Map<Integer, byte[]> upperBounds();
 
   @Nullable
   @jakarta.annotation.Nullable
-  ByteBuffer keyMetadata();
+  byte[] keyMetadata();
 
   // TODO Use Agrona-Collections
   List<Long> splitOffsets();
@@ -181,31 +180,31 @@ public interface IcebergDataFile {
     Builder putAllNanValueCounts(Map<Integer, ? extends Long> entries);
 
     @CanIgnoreReturnValue
-    Builder putLowerBounds(int key, ByteBuffer value);
+    Builder putLowerBounds(int key, byte[] value);
 
     @CanIgnoreReturnValue
-    Builder putLowerBounds(Map.Entry<Integer, ? extends ByteBuffer> entry);
+    Builder putLowerBounds(Map.Entry<Integer, ? extends byte[]> entry);
 
     @CanIgnoreReturnValue
-    Builder lowerBounds(Map<Integer, ? extends ByteBuffer> entries);
+    Builder lowerBounds(Map<Integer, ? extends byte[]> entries);
 
     @CanIgnoreReturnValue
-    Builder putAllLowerBounds(Map<Integer, ? extends ByteBuffer> entries);
+    Builder putAllLowerBounds(Map<Integer, ? extends byte[]> entries);
 
     @CanIgnoreReturnValue
-    Builder putUpperBounds(int key, ByteBuffer value);
+    Builder putUpperBounds(int key, byte[] value);
 
     @CanIgnoreReturnValue
-    Builder putUpperBounds(Map.Entry<Integer, ? extends ByteBuffer> entry);
+    Builder putUpperBounds(Map.Entry<Integer, ? extends byte[]> entry);
 
     @CanIgnoreReturnValue
-    Builder upperBounds(Map<Integer, ? extends ByteBuffer> entries);
+    Builder upperBounds(Map<Integer, ? extends byte[]> entries);
 
     @CanIgnoreReturnValue
-    Builder putAllUpperBounds(Map<Integer, ? extends ByteBuffer> entries);
+    Builder putAllUpperBounds(Map<Integer, ? extends byte[]> entries);
 
     @CanIgnoreReturnValue
-    Builder keyMetadata(@Nullable ByteBuffer keyMetadata);
+    Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
     Builder addSplitOffsets(long element);

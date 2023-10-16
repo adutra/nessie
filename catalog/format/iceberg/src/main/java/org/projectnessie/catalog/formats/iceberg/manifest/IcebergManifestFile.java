@@ -16,7 +16,6 @@
 package org.projectnessie.catalog.formats.iceberg.manifest;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.ByteBuffer;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary;
@@ -76,7 +75,7 @@ public interface IcebergManifestFile {
 
   @Nullable
   @jakarta.annotation.Nullable
-  ByteBuffer keyMetadata();
+  byte[] keyMetadata();
 
   List<IcebergPartitionFieldSummary> partitions();
 
@@ -129,7 +128,7 @@ public interface IcebergManifestFile {
     Builder content(@Nullable IcebergManifestContent content);
 
     @CanIgnoreReturnValue
-    Builder keyMetadata(@Nullable ByteBuffer keyMetadata);
+    Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
     Builder addPartitions(IcebergPartitionFieldSummary element);

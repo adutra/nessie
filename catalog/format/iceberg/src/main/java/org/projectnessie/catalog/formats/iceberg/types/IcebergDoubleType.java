@@ -15,7 +15,6 @@
  */
 package org.projectnessie.catalog.formats.iceberg.types;
 
-import java.nio.ByteBuffer;
 import org.apache.avro.Schema;
 
 public final class IcebergDoubleType extends IcebergPrimitiveType {
@@ -32,7 +31,12 @@ public final class IcebergDoubleType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
+  public byte[] serializeSingleValue(Object value) {
     return IcebergLongType.serializeLong(Double.doubleToLongBits((Double) value));
+  }
+
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return Double.longBitsToDouble(IcebergLongType.deserializeLong(value));
   }
 }

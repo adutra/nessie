@@ -15,8 +15,8 @@
  */
 package org.projectnessie.catalog.formats.iceberg.types;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.apache.avro.Schema;
 
 public final class IcebergStringType extends IcebergPrimitiveType {
@@ -33,7 +33,12 @@ public final class IcebergStringType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
-    return ByteBuffer.wrap(((String) value).getBytes(StandardCharsets.UTF_8));
+  public byte[] serializeSingleValue(Object value) {
+    return ((String) value).getBytes(UTF_8);
+  }
+
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return new String(value, UTF_8);
   }
 }

@@ -213,7 +213,7 @@ public class TestAvroSerialization {
             .content(IcebergManifestContent.valueOf(file.content().name()))
             .partitionSpecId(file.partitionSpecId())
             .addedSnapshotId(file.snapshotId())
-            .keyMetadata(file.keyMetadata())
+            .keyMetadata(toByteArray(file.keyMetadata()))
             .manifestLength(file.length())
             .manifestPath(file.path())
             .addedDataFilesCount(file.addedFilesCount())
@@ -238,7 +238,10 @@ public class TestAvroSerialization {
   static IcebergPartitionFieldSummary toIcebergPartitionFieldSummary(
       ManifestFile.PartitionFieldSummary field) {
     return IcebergPartitionFieldSummary.icebergPartitionFieldSummary(
-        field.containsNull(), field.lowerBound(), field.upperBound(), field.containsNaN());
+        field.containsNull(),
+        toByteArray(field.lowerBound()),
+        toByteArray(field.upperBound()),
+        field.containsNaN());
   }
 
   static ManifestFile toManifestFile(IcebergManifestFile file) {
@@ -260,13 +263,16 @@ public class TestAvroSerialization {
         file.partitions().stream()
             .map(TestAvroSerialization::toPartitionFieldSummary)
             .collect(Collectors.toList()),
-        file.keyMetadata());
+        toByteBuffer(file.keyMetadata()));
   }
 
   static ManifestFile.PartitionFieldSummary toPartitionFieldSummary(
       IcebergPartitionFieldSummary summary) {
     return new GenericPartitionFieldSummary(
-        summary.containsNull(), summary.containsNan(), summary.lowerBound(), summary.upperBound());
+        summary.containsNull(),
+        summary.containsNan(),
+        toByteBuffer(summary.lowerBound()),
+        toByteBuffer(summary.upperBound()));
   }
 
   static Stream<Arguments> manifestLists() {
@@ -372,7 +378,7 @@ public class TestAvroSerialization {
       throws Exception {
     IcebergManifestFile icebergManifestFile;
 
-    long fileSequenceNumber = 0L;
+    Long fileSequenceNumber = null;
     long sequenceNumber = 8888L;
     long snapshotId = 42424242L;
 
@@ -480,10 +486,18 @@ public class TestAvroSerialization {
                       dataFileBuilder.columnSizes(dataFile.columnSizes());
                     }
                     if (dataFile.lowerBounds() != null) {
-                      dataFileBuilder.lowerBounds(dataFile.lowerBounds());
+                      dataFileBuilder.lowerBounds(
+                          dataFile.lowerBounds().entrySet().stream()
+                              .collect(
+                                  Collectors.toMap(
+                                      Map.Entry::getKey, e -> toByteArray(e.getValue()))));
                     }
                     if (dataFile.upperBounds() != null) {
-                      dataFileBuilder.upperBounds(dataFile.upperBounds());
+                      dataFileBuilder.upperBounds(
+                          dataFile.upperBounds().entrySet().stream()
+                              .collect(
+                                  Collectors.toMap(
+                                      Map.Entry::getKey, e -> toByteArray(e.getValue()))));
                     }
                     if (dataFile.nanValueCounts() != null) {
                       dataFileBuilder.nanValueCounts(dataFile.nanValueCounts());
@@ -497,7 +511,7 @@ public class TestAvroSerialization {
                         .filePath(dataFile.path().toString())
                         .fileSizeInBytes(dataFile.fileSizeInBytes())
                         // .blockSizeInBytes(dataFile.)
-                        .keyMetadata(dataFile.keyMetadata())
+                        .keyMetadata(toByteArray(dataFile.keyMetadata()))
                         .sortOrderId(dataFile.sortOrderId())
                         // .specId(dataFile.specId())
                         .build();
@@ -564,21 +578,18 @@ public class TestAvroSerialization {
   private static IcebergManifestEntry dataFileToIcebergManifestEntry(
       IcebergDataFile dataFile,
       IcebergSpec spec,
-      long snapshotId,
-      long fileSequenceNumber,
-      long sequenceNumber) {
+      Long snapshotId,
+      Long fileSequenceNumber,
+      Long sequenceNumber) {
     IcebergManifestEntry.Builder entryBuilder =
         IcebergManifestEntry.builder().dataFile(dataFile).status(ADDED).snapshotId(snapshotId);
     if (spec.version() == 1) {
       return entryBuilder.build();
     }
-    if (fileSequenceNumber != 0L) {
-      entryBuilder.fileSequenceNumber(fileSequenceNumber);
-    }
-    if (sequenceNumber != 0L) {
-      entryBuilder.sequenceNumber(sequenceNumber);
-    }
-    return entryBuilder.build();
+    return entryBuilder
+        .fileSequenceNumber(fileSequenceNumber)
+        .sequenceNumber(sequenceNumber)
+        .build();
   }
 
   static DataFile toDataFile(
@@ -597,8 +608,10 @@ public class TestAvroSerialization {
                 dataFile.valueCounts(),
                 dataFile.nullValueCounts(),
                 dataFile.nanValueCounts(),
-                dataFile.lowerBounds(),
-                dataFile.upperBounds()))
+                dataFile.lowerBounds().entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> toByteBuffer(e.getValue()))),
+                dataFile.upperBounds().entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> toByteBuffer(e.getValue())))))
         .build();
   }
 
@@ -622,7 +635,20 @@ public class TestAvroSerialization {
         icebergManifestFile.deletedDataFilesCount(),
         icebergManifestFile.deletedRowsCount(),
         partitions,
-        icebergManifestFile.keyMetadata());
+        toByteBuffer(icebergManifestFile.keyMetadata()));
+  }
+
+  private static byte[] toByteArray(ByteBuffer byteBuffer) {
+    if (byteBuffer == null) {
+      return null;
+    }
+    byte[] bytes = new byte[byteBuffer.remaining()];
+    byteBuffer.duplicate().get(bytes);
+    return bytes;
+  }
+
+  private static ByteBuffer toByteBuffer(byte[] bytes) {
+    return bytes != null ? ByteBuffer.wrap(bytes) : null;
   }
 
   static Stream<Arguments> manifestFiles() {
@@ -799,15 +825,9 @@ public class TestAvroSerialization {
                 .partitionSpecId(42)
                 .addPartitions(
                     icebergPartitionFieldSummary(
-                        false,
-                        ByteBuffer.wrap("aaa".getBytes(UTF_8)),
-                        ByteBuffer.wrap("zzz".getBytes(UTF_8)),
-                        null),
+                        false, "aaa".getBytes(UTF_8), "zzz".getBytes(UTF_8), null),
                     icebergPartitionFieldSummary(
-                        true,
-                        ByteBuffer.wrap("000".getBytes(UTF_8)),
-                        ByteBuffer.wrap("999".getBytes(UTF_8)),
-                        Boolean.TRUE))
+                        true, "000".getBytes(UTF_8), "999".getBytes(UTF_8), Boolean.TRUE))
                 .addedSnapshotId(666L)
                 .build(),
             null,
@@ -829,15 +849,9 @@ public class TestAvroSerialization {
                 .partitionSpecId(42)
                 .addPartitions(
                     icebergPartitionFieldSummary(
-                        false,
-                        ByteBuffer.wrap("aaa".getBytes(UTF_8)),
-                        ByteBuffer.wrap("zzz".getBytes(UTF_8)),
-                        null),
+                        false, "aaa".getBytes(UTF_8), "zzz".getBytes(UTF_8), null),
                     icebergPartitionFieldSummary(
-                        true,
-                        ByteBuffer.wrap("000".getBytes(UTF_8)),
-                        ByteBuffer.wrap("999".getBytes(UTF_8)),
-                        Boolean.TRUE))
+                        true, "000".getBytes(UTF_8), "999".getBytes(UTF_8), Boolean.TRUE))
                 .addedSnapshotId(666L)
                 .sequenceNumber(123L)
                 .minSequenceNumber(111L)

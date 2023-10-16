@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.impl;
+package org.projectnessie.catalog.formats.iceberg.manifest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -25,24 +26,24 @@ import org.apache.avro.file.SeekableInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class SeekableStreamInput implements SeekableInput {
+public final class SeekableStreamInput implements SeekableInput {
   private static final Logger LOGGER = LoggerFactory.getLogger(SeekableStreamInput.class);
-  private final String name;
+  private final URI uri;
   private final Path tempFile;
   private final SeekableFileInput seekableFileInput;
   private boolean closed;
 
   @FunctionalInterface
-  interface SourceProvider {
-    InputStream open() throws IOException;
+  public interface SourceProvider {
+    InputStream open(URI uri) throws IOException;
   }
 
-  SeekableStreamInput(String name, SourceProvider source) throws IOException {
-    this.name = name;
+  public SeekableStreamInput(URI uri, SourceProvider source) throws IOException {
+    this.uri = uri;
     this.tempFile = Files.createTempFile("manifest-list-temp-", ".avro");
     // TODO Need some tooling to create an Avro `SeekableInput` from an `InputStream` without
     //  copying it to a temporary file
-    try (InputStream inputStream = source.open()) {
+    try (InputStream inputStream = source.open(uri)) {
       Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
     }
     this.seekableFileInput = new SeekableFileInput(tempFile.toFile());
@@ -50,25 +51,25 @@ final class SeekableStreamInput implements SeekableInput {
 
   @Override
   public void seek(long p) throws IOException {
-    LOGGER.info("seek({}) for {}", p, name);
+    LOGGER.info("seek({}) for {}", p, uri);
     seekableFileInput.seek(p);
   }
 
   @Override
   public long tell() throws IOException {
-    LOGGER.info("tell() for {}", name);
+    LOGGER.info("tell() for {}", uri);
     return seekableFileInput.tell();
   }
 
   @Override
   public long length() throws IOException {
-    LOGGER.info("length() for {}", name);
+    LOGGER.info("length() for {}", uri);
     return seekableFileInput.length();
   }
 
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
-    LOGGER.info("read({}, {}, {}) for {}", b.length, off, len, name);
+    LOGGER.info("read({}, {}, {}) for {}", b.length, off, len, uri);
     return seekableFileInput.read(b, off, len);
   }
 
@@ -77,7 +78,7 @@ final class SeekableStreamInput implements SeekableInput {
     if (closed) {
       return;
     }
-    LOGGER.info("close() for {}", name);
+    LOGGER.info("close() for {}", uri);
     try {
       seekableFileInput.close();
     } finally {

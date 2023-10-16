@@ -49,6 +49,11 @@ public interface NessieId extends Hashable {
     return NessieIdGeneric.nessieIdFromString(id);
   }
 
+  static NessieId nessieIdFromStringBase64(String id) {
+    // TODO add specialized NessieId implementations
+    return NessieIdGeneric.nessieIdFromStringBase64(id);
+  }
+
   static NessieId nessieIdFromBytes(byte[] bytes) {
     // TODO add specialized NessieId implementations
     // TODO safeguard: bytes.clone() or the like
@@ -76,6 +81,8 @@ public interface NessieId extends Hashable {
   ByteBuffer id();
 
   String idAsString();
+
+  String idAsBase64();
 
   byte[] idAsBytes();
 

@@ -161,6 +161,22 @@ final class IdHasherImpl implements NessieIdHasher {
   }
 
   @Override
+  public NessieIdHasher hashIntCollection(Collection<Integer> value) {
+    if (value != null) {
+      value.forEach(this::hash);
+    }
+    return this;
+  }
+
+  @Override
+  public NessieIdHasher hashLongCollection(Collection<Long> value) {
+    if (value != null) {
+      value.forEach(this::hash);
+    }
+    return this;
+  }
+
+  @Override
   public NessieIdHasher hashStringToStringMap(Map<String, String> map) {
     if (map != null) {
       map.entrySet().stream()

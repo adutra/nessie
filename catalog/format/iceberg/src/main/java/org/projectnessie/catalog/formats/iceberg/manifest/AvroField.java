@@ -23,6 +23,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -150,8 +151,26 @@ public final class AvroField {
     return decoder.readBytes(null);
   }
 
-  static Object readByteArray(Decoder decoder, @SuppressWarnings("unused") Schema schema) {
-    throw new UnsupportedOperationException();
+  static Object readByteArray(Decoder decoder, @SuppressWarnings("unused") Schema schema)
+      throws IOException {
+    ByteBuffer byteBuffer = decoder.readBytes(null);
+    if (byteBuffer == null) {
+      return null;
+    }
+    if (byteBuffer.hasArray()) {
+      byte[] array = byteBuffer.array();
+      int pos = byteBuffer.position();
+      int rem = byteBuffer.remaining();
+      if (array.length == rem && pos == 0) {
+        return array;
+      }
+      if (pos == 0) {
+        return Arrays.copyOf(array, rem);
+      }
+    }
+    byte[] bytes = new byte[byteBuffer.remaining()];
+    byteBuffer.duplicate().get(bytes);
+    return bytes;
   }
 
   static Object readFixed(Decoder decoder, @SuppressWarnings("unused") Schema schema) {

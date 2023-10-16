@@ -15,10 +15,15 @@
  */
 package org.projectnessie.catalog.model.schema;
 
+import static java.util.function.Function.identity;
+import static org.projectnessie.catalog.model.schema.NessiePartitionField.NO_FIELD_ID;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.id.NessieIdHasher;
@@ -39,6 +44,13 @@ public interface NessiePartitionDefinition {
   @Value.Default
   default int icebergSpecId() {
     return NO_PARTITION_SPEC_ID;
+  }
+
+  @Value.Lazy
+  default Map<Integer, NessiePartitionField> icebergColumnMap() {
+    return columns().stream()
+        .filter(f -> f.icebergFieldId() != NO_FIELD_ID)
+        .collect(Collectors.toMap(NessiePartitionField::icebergFieldId, identity()));
   }
 
   static NessiePartitionDefinition nessiePartitionDefinition(

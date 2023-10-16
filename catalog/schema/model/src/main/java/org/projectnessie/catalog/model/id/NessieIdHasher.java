@@ -65,6 +65,10 @@ public interface NessieIdHasher {
 
   NessieIdHasher hashCollection(Collection<? extends Hashable> value);
 
+  NessieIdHasher hashIntCollection(Collection<Integer> value);
+
+  NessieIdHasher hashLongCollection(Collection<Long> value);
+
   NessieIdHasher hashStringToStringMap(Map<String, String> map);
 
   NessieId generate();

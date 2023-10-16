@@ -1,5 +1,9 @@
 # TODOs
 
+## General
+
+* Do not use `java.nio.ByteBuffer` in (value) objects
+
 ## Data files/manifests/etc
 
 * Can we maintain references to all data files in the catalog?
@@ -63,8 +67,8 @@ would automatically be migrated to the Nessie Catalog.
    rm -rf /tmp/nessie-catalog-demo
    mkdir -p /tmp/nessie-catalog-demo
 
-   spark-3.2.1-bin-hadoop3.2/bin/spark-sql \
-     --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.3.1,org.projectnessie.nessie-integrations:nessie-spark-extensions-3.2_2.12:0.71.1 \
+   spark-3.2.2-bin-hadoop3.2/bin/spark-sql \
+     --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.4.0,org.projectnessie.nessie-integrations:nessie-spark-extensions-3.2_2.12:0.71.1 \
      --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions \
      --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19120/api/v1 \
      --conf spark.sql.catalog.nessie.ref=main \
@@ -78,7 +82,7 @@ would automatically be migrated to the Nessie Catalog.
 
    CREATE TABLE nessie.testing.city (
     C_CITYKEY BIGINT, C_NAME STRING, N_NATIONKEY BIGINT, C_COMMENT STRING
-   ) USING iceberg PARTITIONED BY (N_NATIONKEY);
+   ) USING iceberg PARTITIONED BY (bucket(16, N_NATIONKEY));
    ```
 1. In a terminal:
    ```bash
@@ -96,7 +100,11 @@ would automatically be migrated to the Nessie Catalog.
    ```
 1. In Spark-SQL:
    ```sql
-   INSERT INTO nessie.testing.city VALUES (2, 'b', 2, 'comment');
+   INSERT INTO nessie.testing.city VALUES
+     (2, 'b', 2, 'commentb'),
+     (3, 'c', 3, 'comment c'),
+     (4, 'd', 4, 'comment d'),
+     (5, 'e', 5, 'comment e');
    ```
 1. In a terminal:
    ```bash
@@ -109,6 +117,13 @@ would automatically be migrated to the Nessie Catalog.
    java -jar avro-tools-1.11.3.jar getschema testing.city
    java -jar avro-tools-1.11.3.jar getmeta testing.city
    java -jar avro-tools-1.11.3.jar tojson testing.city
+   ```
+1. Manifest file:
+   ```
+   wget 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-file/testing.city?manifest-file=<BASE_64_NESSIE_ID_OF_THE_MANIFEST_FILE>'
+   java -jar avro-tools-1.11.3.jar getschema 'testing.city?manifest-file=ApQJd6PVe7wEuJRTnByXJDCNqsTkSmUklAKDWKxazy4='
+   java -jar avro-tools-1.11.3.jar getmeta 'testing.city?manifest-file=ApQJd6PVe7wEuJRTnByXJDCNqsTkSmUklAKDWKxazy4='
+   java -jar avro-tools-1.11.3.jar tojson 'testing.city?manifest-file=ApQJd6PVe7wEuJRTnByXJDCNqsTkSmUklAKDWKxazy4='
    ```
 
 ### Avro-Tools

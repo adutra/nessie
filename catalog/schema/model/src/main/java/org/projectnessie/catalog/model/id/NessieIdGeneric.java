@@ -17,6 +17,7 @@ package org.projectnessie.catalog.model.id;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -67,6 +68,11 @@ public final class NessieIdGeneric implements NessieId {
       bin[i] = (byte) (high << 4 | low);
     }
     return new NessieIdGeneric(bin);
+  }
+
+  static NessieIdGeneric nessieIdFromStringBase64(String id) {
+    byte[] decoded = Base64.getDecoder().decode(id);
+    return new NessieIdGeneric(decoded);
   }
 
   /** Constructs a new ID instance starting with the value of this ID plus the given UUID. */
@@ -130,6 +136,11 @@ public final class NessieIdGeneric implements NessieId {
 
   public String idAsString() {
     return idBytesString(new StringBuilder(id.length * 2)).toString();
+  }
+
+  @Override
+  public String idAsBase64() {
+    return Base64.getEncoder().encodeToString(id);
   }
 
   private StringBuilder idBytesString(StringBuilder sb) {

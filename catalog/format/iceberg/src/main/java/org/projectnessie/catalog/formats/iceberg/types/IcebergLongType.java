@@ -32,13 +32,23 @@ public final class IcebergLongType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
+  public byte[] serializeSingleValue(Object value) {
     return serializeLong((Long) value);
   }
 
-  static ByteBuffer serializeLong(long value) {
-    ByteBuffer buffer = ByteBuffer.allocate(8);
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return deserializeLong(value);
+  }
+
+  static byte[] serializeLong(long value) {
+    byte[] buf = new byte[8];
+    ByteBuffer buffer = ByteBuffer.wrap(buf);
     buffer.putLong(0, value);
-    return buffer;
+    return buf;
+  }
+
+  static long deserializeLong(byte[] value) {
+    return ByteBuffer.wrap(value).getLong();
   }
 }

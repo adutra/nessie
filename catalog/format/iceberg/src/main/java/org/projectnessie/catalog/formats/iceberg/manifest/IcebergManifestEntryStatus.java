@@ -15,12 +15,38 @@
  */
 package org.projectnessie.catalog.formats.iceberg.manifest;
 
+import org.projectnessie.catalog.model.manifest.NessieFileStatus;
+
 public enum IcebergManifestEntryStatus {
-  EXISTING,
-  ADDED,
-  DELETED;
+  EXISTING(NessieFileStatus.EXISTING),
+  ADDED(NessieFileStatus.ADDED),
+  DELETED(NessieFileStatus.DELETED);
+
+  private final NessieFileStatus nessieFileStatus;
+
+  IcebergManifestEntryStatus(NessieFileStatus nessieFileStatus) {
+    this.nessieFileStatus = nessieFileStatus;
+  }
 
   public int intValue() {
     return ordinal();
+  }
+
+  public NessieFileStatus nessieFileStatus() {
+    return nessieFileStatus;
+  }
+
+  public static IcebergManifestEntryStatus fromNessieFileStatus(NessieFileStatus nessieFileStatus) {
+    switch (nessieFileStatus) {
+      case ADDED:
+        return ADDED;
+      case EXISTING:
+        return EXISTING;
+      case DELETED:
+        return DELETED;
+      default:
+        throw new IllegalArgumentException(
+            "Unknown data file status for Iceberg: " + nessieFileStatus);
+    }
   }
 }

@@ -32,13 +32,23 @@ public final class IcebergIntegerType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
+  public byte[] serializeSingleValue(Object value) {
     return serializeInt((Integer) value);
   }
 
-  static ByteBuffer serializeInt(int value) {
-    ByteBuffer buffer = ByteBuffer.allocate(4);
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return deserializeInt(value);
+  }
+
+  static byte[] serializeInt(int value) {
+    byte[] buf = new byte[4];
+    ByteBuffer buffer = ByteBuffer.wrap(buf);
     buffer.putInt(0, value);
-    return buffer;
+    return buf;
+  }
+
+  static int deserializeInt(byte[] value) {
+    return ByteBuffer.wrap(value).getInt();
   }
 }

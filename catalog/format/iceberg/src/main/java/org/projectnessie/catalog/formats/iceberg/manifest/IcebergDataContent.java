@@ -15,8 +15,35 @@
  */
 package org.projectnessie.catalog.formats.iceberg.manifest;
 
+import org.projectnessie.catalog.model.manifest.NessieFileContentType;
+
 public enum IcebergDataContent {
-  DATA,
-  POSITION_DELETES,
-  EQUALITY_DELETES;
+  DATA(NessieFileContentType.ICEBERG_DATA_FILE),
+  POSITION_DELETES(NessieFileContentType.ICEBERG_POSITION_DELETES_FILE),
+  EQUALITY_DELETES(NessieFileContentType.ICEBERG_EQUALITY_DELETES_FILE);
+
+  private final NessieFileContentType nessieFileContentType;
+
+  IcebergDataContent(NessieFileContentType nessieFileContentType) {
+    this.nessieFileContentType = nessieFileContentType;
+  }
+
+  public NessieFileContentType nessieFileContentType() {
+    return nessieFileContentType;
+  }
+
+  public static IcebergDataContent fromNessieFileContentType(
+      NessieFileContentType nessieFileContentType) {
+    switch (nessieFileContentType) {
+      case ICEBERG_DATA_FILE:
+        return DATA;
+      case ICEBERG_EQUALITY_DELETES_FILE:
+        return EQUALITY_DELETES;
+      case ICEBERG_POSITION_DELETES_FILE:
+        return POSITION_DELETES;
+      default:
+        throw new IllegalArgumentException(
+            "Unsupported file content type for Iceberg: " + nessieFileContentType);
+    }
+  }
 }

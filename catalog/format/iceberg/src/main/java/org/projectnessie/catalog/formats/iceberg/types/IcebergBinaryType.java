@@ -37,8 +37,13 @@ public final class IcebergBinaryType extends IcebergPrimitiveType {
   }
 
   @Override
-  public ByteBuffer serializeSingleValue(Object value) {
+  public byte[] serializeSingleValue(Object value) {
     return serializeBinary(value);
+  }
+
+  @Override
+  public Object deserializeSingleValue(byte[] value) {
+    return deserializeBinary(value);
   }
 
   static int compareBinary(Object left, Object right) {
@@ -47,13 +52,26 @@ public final class IcebergBinaryType extends IcebergPrimitiveType {
     return bufferLeft.compareTo(bufferRight);
   }
 
-  static ByteBuffer serializeBinary(Object value) {
+  static Object deserializeBinary(byte[] value) {
+    return value;
+  }
+
+  static byte[] serializeBinary(Object value) {
     if (value instanceof ByteBuffer) {
-      return (ByteBuffer) value;
+      return toByteArray((ByteBuffer) value);
     }
     if (value instanceof byte[]) {
-      return ByteBuffer.wrap((byte[]) value);
+      return (byte[]) value;
     }
     throw new IllegalArgumentException(value.getClass().toString());
+  }
+
+  private static byte[] toByteArray(ByteBuffer byteBuffer) {
+    if (byteBuffer == null) {
+      return null;
+    }
+    byte[] bytes = new byte[byteBuffer.remaining()];
+    byteBuffer.duplicate().get(bytes);
+    return bytes;
   }
 }

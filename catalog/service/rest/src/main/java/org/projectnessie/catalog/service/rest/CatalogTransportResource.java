@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.projectnessie.catalog.api.rest.spec.NessieCatalogService;
+import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
@@ -72,7 +73,7 @@ public class CatalogTransportResource implements NessieCatalogService {
       }
     }
 
-    return snapshotBased(ref, key, snapshotFormat, reqVersion);
+    return snapshotBased(ref, key, snapshotFormat, Optional.empty(), reqVersion);
   }
 
   @Override
@@ -101,14 +102,50 @@ public class CatalogTransportResource implements NessieCatalogService {
         throw new UnsupportedOperationException();
     }
 
-    return snapshotBased(ref, key, snapshotFormat, reqVersion);
+    return snapshotBased(ref, key, snapshotFormat, Optional.empty(), reqVersion);
+  }
+
+  @Override
+  public Object manifestFile(
+      String ref, ContentKey key, String manifestFile, String format, String specVersion)
+      throws NessieNotFoundException {
+    SnapshotFormat snapshotFormat;
+    NessieId manifestFileId;
+    OptionalInt reqVersion = OptionalInt.empty();
+
+    TableFormat tableFormat =
+        format != null ? TableFormat.valueOf(format.toUpperCase(Locale.ROOT)) : TableFormat.ICEBERG;
+
+    switch (tableFormat) {
+      case ICEBERG:
+        // Return the snapshot as an Iceberg table-metadata using either the spec-version given in
+        // the request or the one used when the table-metadata was written.
+        // TODO Does requesting a table-metadata using another spec-version make any sense?
+        // TODO Response should respect the JsonView / spec-version
+        // TODO Add a check that the original table format was Iceberg (not Delta)
+        manifestFileId = NessieId.nessieIdFromStringBase64(manifestFile);
+        snapshotFormat = SnapshotFormat.ICEBERG_MANIFEST_FILE;
+        if (specVersion != null) {
+          reqVersion = OptionalInt.of(Integer.parseInt(specVersion));
+        }
+        break;
+      case DELTA_LAKE:
+      default:
+        throw new UnsupportedOperationException();
+    }
+
+    return snapshotBased(ref, key, snapshotFormat, Optional.of(manifestFileId), reqVersion);
   }
 
   private Response snapshotBased(
-      String ref, ContentKey key, SnapshotFormat snapshotFormat, OptionalInt reqVersion)
+      String ref,
+      ContentKey key,
+      SnapshotFormat snapshotFormat,
+      Optional<NessieId> manifestFileId,
+      OptionalInt reqVersion)
       throws NessieNotFoundException {
     SnapshotResponse snapshot =
-        catalogService.retrieveTableSnapshot(ref, key, snapshotFormat, reqVersion);
+        catalogService.retrieveTableSnapshot(ref, key, manifestFileId, snapshotFormat, reqVersion);
 
     // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit ID)
 

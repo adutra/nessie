@@ -15,6 +15,10 @@
  */
 package org.projectnessie.catalog.model.snapshot;
 
+import static java.util.function.Function.identity;
+import static org.projectnessie.catalog.model.schema.NessiePartitionDefinition.NO_PARTITION_SPEC_ID;
+import static org.projectnessie.catalog.model.schema.NessieSortDefinition.NO_SORT_ORDER_ID;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -22,7 +26,9 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieListManifestEntry;
@@ -63,6 +69,13 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessiePartitionDefinition> partitionDefinitions();
 
+  @Value.Lazy
+  default Map<Integer, NessiePartitionDefinition> partitionDefinitionByIcebergId() {
+    return partitionDefinitions().stream()
+        .filter(p -> p.icebergSpecId() != NO_PARTITION_SPEC_ID)
+        .collect(Collectors.toMap(NessiePartitionDefinition::icebergSpecId, identity()));
+  }
+
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
@@ -70,6 +83,13 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieSortDefinition> sortDefinitions();
+
+  @Value.Lazy
+  default Map<Integer, NessieSortDefinition> sortDefinitionByIcebergId() {
+    return sortDefinitions().stream()
+        .filter(s -> s.icebergSortOrderId() != NO_SORT_ORDER_ID)
+        .collect(Collectors.toMap(NessieSortDefinition::icebergSortOrderId, identity()));
+  }
 
   @Override
   NessieTable entity();

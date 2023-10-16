@@ -64,7 +64,6 @@ public interface IcebergPartitionSpec {
 
       checkState(schemaField != null, "No field with ID %s in schema", sourceId);
 
-      // TODO need ability to retrieve the result-type of `IcebergPartitionField.transform()`
       // TODO need ability to find fields in schema (nested?) by field id
       // TODO since partition field IDs are assigned starting at 1000, those could collide with
       //  column-IDs
@@ -84,7 +83,7 @@ public interface IcebergPartitionSpec {
       //      PartitionField(source-id=1, field-id=2, transform=...)
 
       // TODO use transformed type
-      IcebergType partitionFieldType = schemaField.type();
+      IcebergType partitionFieldType = partitionField.type(schema);
 
       IcebergNestedField asNestedField =
           nestedField(
