@@ -69,12 +69,14 @@ would automatically be migrated to the Nessie Catalog.
 
    spark-3.2.2-bin-hadoop3.2/bin/spark-sql \
      --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.4.0,org.projectnessie.nessie-integrations:nessie-spark-extensions-3.2_2.12:0.71.1 \
+     --jars /home/snazy/devel/projectnessie/nessie/catalog/catalog/util/iceberg-http-fileio/build/libs/nessie-catalog-iceberg-httpfileio-0.72.1-SNAPSHOT.jar \
      --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions \
      --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19120/api/v1 \
      --conf spark.sql.catalog.nessie.ref=main \
      --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalog \
      --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
-     --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
+     --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog \
+     --conf spark.sql.catalog.nessie.io-impl=org.projectnessie.catalog.iceberg.httpfileio.HttpFileIO
    ```
 1. In Spark-SQL:
    ```sql
@@ -95,8 +97,8 @@ would automatically be migrated to the Nessie Catalog.
    ```
 1. In a terminal:
    ```bash
-   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
-   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
    ```
 1. In Spark-SQL:
    ```sql
@@ -108,22 +110,22 @@ would automatically be migrated to the Nessie Catalog.
    ```
 1. In a terminal:
    ```bash
-   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
-   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
    ```
 1. Manifest list:
    ```
-   wget 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-list/testing.city'
-   java -jar avro-tools-1.11.3.jar getschema testing.city
-   java -jar avro-tools-1.11.3.jar getmeta testing.city
-   java -jar avro-tools-1.11.3.jar tojson testing.city
+   wget --content-disposition 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-list/testing.city'
+   java -jar avro-tools-1.11.3.jar getschema #USE_DOWNLOADED_FILE_NAME
+   java -jar avro-tools-1.11.3.jar getmeta #USE_DOWNLOADED_FILE_NAME
+   java -jar avro-tools-1.11.3.jar tojson #USE_DOWNLOADED_FILE_NAME
    ```
 1. Manifest file:
    ```
-   wget 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-file/testing.city?manifest-file=<BASE_64_NESSIE_ID_OF_THE_MANIFEST_FILE>'
-   java -jar avro-tools-1.11.3.jar getschema 'testing.city?manifest-file=ApQJd6PVe7wEuJRTnByXJDCNqsTkSmUklAKDWKxazy4='
-   java -jar avro-tools-1.11.3.jar getmeta 'testing.city?manifest-file=ApQJd6PVe7wEuJRTnByXJDCNqsTkSmUklAKDWKxazy4='
-   java -jar avro-tools-1.11.3.jar tojson 'testing.city?manifest-file=ApQJd6PVe7wEuJRTnByXJDCNqsTkSmUklAKDWKxazy4='
+   wget --content-disposition 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-file/testing.city?manifest-file=<BASE_64_NESSIE_ID_OF_THE_MANIFEST_FILE>'
+   java -jar avro-tools-1.11.3.jar getschema #USE_DOWNLOADED_FILE_NAME
+   java -jar avro-tools-1.11.3.jar getmeta #USE_DOWNLOADED_FILE_NAME
+   java -jar avro-tools-1.11.3.jar tojson #USE_DOWNLOADED_FILE_NAME
    ```
 
 ### Avro-Tools

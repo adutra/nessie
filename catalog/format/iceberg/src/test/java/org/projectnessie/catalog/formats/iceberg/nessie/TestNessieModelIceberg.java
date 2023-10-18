@@ -248,7 +248,8 @@ public class TestNessieModelIceberg {
         .isEqualTo(nessie);
 
     IcebergTableMetadata iceberg =
-        NessieModelIceberg.nessieTableSnapshotToIceberg(nessie, Optional.empty());
+        NessieModelIceberg.nessieTableSnapshotToIceberg(
+            nessie, Optional.empty(), NessieModelIceberg.IcebergSnapshotTweak.NOOP);
     IcebergTableMetadata icebergWithCatalogProps =
         IcebergTableMetadata.builder()
             .from(icebergTableMetadata)

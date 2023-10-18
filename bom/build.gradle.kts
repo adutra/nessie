@@ -106,6 +106,7 @@ dependencies {
     api(project(":nessie-catalog-service-server"))
     api(project(":nessie-catalog-storage-backend"))
     api(project(":nessie-catalog-storage-inmemory"))
+    api(project(":nessie-catalog-iceberg-httpfileio"))
 
     if (!isIncludedInNesQuEIT()) {
       api(project(":iceberg-views"))

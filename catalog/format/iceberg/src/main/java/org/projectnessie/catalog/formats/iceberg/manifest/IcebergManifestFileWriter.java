@@ -157,7 +157,7 @@ public abstract class IcebergManifestFileWriter {
     entryWriter.setMeta("partition-spec", specJson);
     entryWriter.setMeta("partition-spec-id", Integer.toString(partitionSpec().specId()));
     entryWriter.setMeta("format-version", Integer.toString(spec().version()));
-    // TODO entryWriter.setMeta("iceberg.schema", entrySchemaJson);
+    // TODO add 'iceberg.schema', which is the Avro schema as an Iceberg schema
     if (spec().version() >= 2) {
       entryWriter.setMeta("content", content().stringValue());
     }

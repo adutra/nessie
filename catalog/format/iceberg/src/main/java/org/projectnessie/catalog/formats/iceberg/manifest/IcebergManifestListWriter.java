@@ -124,6 +124,7 @@ public abstract class IcebergManifestListWriter {
     if (spec().version() >= 2) {
       entryWriter.setMeta("sequence-number", String.valueOf(sequenceNumber()));
     }
+    // TODO add 'iceberg.schema', which is the Avro schema as an Iceberg schema
 
     AvroSerializationContext serializationContext = dataSerializationContext(tableProperties());
     entryWriter.setCodec(serializationContext.codec());

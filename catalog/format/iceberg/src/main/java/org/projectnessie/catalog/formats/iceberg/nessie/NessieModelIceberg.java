@@ -954,8 +954,29 @@ public class NessieModelIceberg {
     return value != null ? value : defaultValue;
   }
 
+  public interface IcebergSnapshotTweak {
+    String resolveManifestListLocation(String original);
+
+    List<String> resolveManifestFilesLocations(List<String> original);
+
+    IcebergSnapshotTweak NOOP =
+        new IcebergSnapshotTweak() {
+          @Override
+          public String resolveManifestListLocation(String original) {
+            return original;
+          }
+
+          @Override
+          public List<String> resolveManifestFilesLocations(List<String> original) {
+            return original;
+          }
+        };
+  }
+
   public static IcebergTableMetadata nessieTableSnapshotToIceberg(
-      NessieTableSnapshot nessie, Optional<IcebergSpec> requestedSpecVersion) {
+      NessieTableSnapshot nessie,
+      Optional<IcebergSpec> requestedSpecVersion,
+      IcebergSnapshotTweak tweak) {
     NessieTable entity = nessie.entity();
 
     checkArgument(entity.tableFormat() == TableFormat.ICEBERG, "Not an Iceberg table.");
@@ -1037,8 +1058,9 @@ public class NessieModelIceberg {
           IcebergSnapshot.builder()
               .snapshotId(snapshotId)
               .schemaId(currentSchemaId) // TODO is this fine?
-              .manifests(nessie.icebergManifestFileLocations()) // TODO replace
-              .manifestList(nessie.icebergManifestListLocation()) // TODO replace
+              // TODO can we safely omit the list of manifest files, unconditionally ?
+              // .manifests(tweak.resolveManifestFilesLocations(nessie.icebergManifestFileLocations()))
+              .manifestList(tweak.resolveManifestListLocation(nessie.icebergManifestListLocation()))
               .summary(nessie.icebergSnapshotSummary())
               .timestampMs(timestampMs)
               .sequenceNumber(nessie.icebergSnapshotSequenceNumber());
@@ -1069,15 +1091,21 @@ public class NessieModelIceberg {
       Schema avroPartitionSchema) {
     IcebergDataFile.Builder dataFile =
         IcebergDataFile.builder()
-            .equalityIds(dataFileManifest.equalityIds())
             .fileFormat(IcebergFileFormat.fromNessieDataFileFormat(dataFileManifest.fileFormat()))
             .filePath(dataFileManifest.filePath())
             .content(IcebergDataContent.fromNessieFileContentType(dataFileManifest.content()))
-            .splitOffsets(dataFileManifest.splitOffsets())
             .fileSizeInBytes(dataFileManifest.fileSizeInBytes())
             .recordCount(dataFileManifest.recordCount())
             .sortOrderId(dataFileManifest.sortOrderId())
             .keyMetadata(dataFileManifest.keyMetadata());
+    if (!dataFileManifest.equalityIds().isEmpty()) {
+      // Nullable collection
+      dataFile.equalityIds(dataFileManifest.equalityIds());
+    }
+    if (!dataFileManifest.splitOffsets().isEmpty()) {
+      // Nullable collection
+      dataFile.splitOffsets(dataFileManifest.splitOffsets());
+    }
     for (NessieFieldSummary column : dataFileManifest.columns()) {
       Long v = column.columnSize();
       if (v != null) {
@@ -1093,6 +1121,10 @@ public class NessieModelIceberg {
       v = column.nullValueCount();
       if (v != null) {
         dataFile.putNullValueCounts(column.fieldId(), v);
+      }
+      v = column.valueCount();
+      if (v != null) {
+        dataFile.putValueCounts(column.fieldId(), v);
       }
 
       GenericData.Record record = new GenericData.Record(avroPartitionSchema);

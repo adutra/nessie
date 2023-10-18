@@ -42,7 +42,7 @@ public final class SeekableStreamInput implements SeekableInput {
     this.uri = uri;
     this.tempFile = Files.createTempFile("manifest-list-temp-", ".avro");
     // TODO Need some tooling to create an Avro `SeekableInput` from an `InputStream` without
-    //  copying it to a temporary file
+    //  copying it to a temporary file. Something like org.apache.iceberg.aws.s3.S3InputStream ?
     try (InputStream inputStream = source.open(uri)) {
       Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
     }

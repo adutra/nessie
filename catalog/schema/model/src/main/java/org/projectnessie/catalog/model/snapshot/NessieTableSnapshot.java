@@ -133,6 +133,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
+  // TODO this is the manifest list path from the _imported_ snapshot
   String icebergManifestListLocation();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)

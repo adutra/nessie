@@ -19,8 +19,15 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Optional;
 
+/**
+ * Wraps a response from the catalog.
+ *
+ * <p>The response is either {@linkplain #entityObject() an object} or, if not present, can
+ * {@linkplain #produce(OutputStream) produce the response} to an {@linkplain OutputStream output
+ * stream}.
+ */
 public interface SnapshotResponse {
-  static SnapshotResponse forEntity(Object result, String fileName) {
+  static SnapshotResponse forEntity(Object result, String fileName, String contentType) {
     return new SnapshotResponse() {
       @Override
       public Optional<Object> entityObject() {
@@ -33,6 +40,11 @@ public interface SnapshotResponse {
       }
 
       @Override
+      public String contentType() {
+        return contentType;
+      }
+
+      @Override
       public void produce(OutputStream outputStream) throws IOException {
         throw new UnsupportedOperationException();
       }
@@ -42,6 +54,8 @@ public interface SnapshotResponse {
   Optional<Object> entityObject();
 
   String fileName();
+
+  String contentType();
 
   void produce(OutputStream outputStream) throws IOException;
 }

@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.service.api;
 
+import java.net.URI;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.projectnessie.catalog.model.id.NessieId;
@@ -23,11 +24,32 @@ import org.projectnessie.model.ContentKey;
 
 public interface CatalogService {
 
+  /**
+   * Retrieves table-snapshot related information, including data file manifests.
+   *
+   * @param ref Nessie reference specification.
+   * @param key The table's content key
+   * @param manifestFileId ID of the manifest file, if retrieving a manifest file.
+   * @param format Requested kind and representation of the table snapshot related information.
+   * @param specVersion Version of the specification to use in the returned data.
+   * @param catalogUriResolver produces URIs for related entities, like Iceberg manifest lists or
+   *     manifest files.
+   * @return The response is either a response object or callback to produce the result. The latter
+   *     is useful to return results that are quite big, for example Iceberg manifest lists or
+   *     manifest files.
+   */
   SnapshotResponse retrieveTableSnapshot(
       String ref,
       ContentKey key,
       Optional<NessieId> manifestFileId,
       SnapshotFormat format,
-      OptionalInt specVersion)
+      OptionalInt specVersion,
+      CatalogUriResolver catalogUriResolver)
       throws NessieNotFoundException;
+
+  interface CatalogUriResolver {
+    URI icebergManifestList();
+
+    URI icebergManifestFile(NessieId manifestFileId);
+  }
 }

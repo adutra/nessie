@@ -17,8 +17,11 @@ package org.projectnessie.catalog.service.rest;
 
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.UriInfo;
+import java.net.URI;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -35,6 +38,8 @@ import org.projectnessie.model.ContentKey;
 public class CatalogTransportResource implements NessieCatalogService {
 
   private final CatalogService catalogService;
+
+  @Context UriInfo uriInfo;
 
   public CatalogTransportResource() {
     this(null);
@@ -144,8 +149,31 @@ public class CatalogTransportResource implements NessieCatalogService {
       Optional<NessieId> manifestFileId,
       OptionalInt reqVersion)
       throws NessieNotFoundException {
+    // Remove content key and query parameters from the URI. For example, the request URI
+    //   http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg
+    // becomes
+    //   http://127.0.0.1:19110/catalog/v1/trees/main/
+    // which is then resolved to the URIs for manifest lists and manifest files.
+    CatalogService.CatalogUriResolver catalogUriResolver =
+        new CatalogService.CatalogUriResolver() {
+          final URI baseUri = uriInfo.getRequestUri().resolve("..");
+          final String keyPathString = key.toPathString();
+
+          @Override
+          public URI icebergManifestList() {
+            return baseUri.resolve("manifest-list/" + keyPathString);
+          }
+
+          @Override
+          public URI icebergManifestFile(NessieId manifestFileId) {
+            return baseUri.resolve(
+                "manifest-file/" + keyPathString + "?manifest-file=" + manifestFileId.idAsBase64());
+          }
+        };
+
     SnapshotResponse snapshot =
-        catalogService.retrieveTableSnapshot(ref, key, manifestFileId, snapshotFormat, reqVersion);
+        catalogService.retrieveTableSnapshot(
+            ref, key, manifestFileId, snapshotFormat, reqVersion, catalogUriResolver);
 
     // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit ID)
 
@@ -153,11 +181,13 @@ public class CatalogTransportResource implements NessieCatalogService {
     if (entity.isPresent()) {
       return Response.ok(entity.get())
           .header("Content-Disposition", "attachment; filename=\"" + snapshot.fileName() + "\"")
+          .header("Content-Type", snapshot.contentType())
           .build();
     }
 
     return Response.ok((StreamingOutput) snapshot::produce)
         .header("Content-Disposition", "attachment; filename=\"" + snapshot.fileName() + "\"")
+        .header("Content-Type", snapshot.contentType())
         .build();
   }
 }

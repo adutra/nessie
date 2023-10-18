@@ -77,6 +77,8 @@ public interface IcebergManifestFile {
   @jakarta.annotation.Nullable
   byte[] keyMetadata();
 
+  @Nullable
+  @jakarta.annotation.Nullable
   List<IcebergPartitionFieldSummary> partitions();
 
   interface Builder {
