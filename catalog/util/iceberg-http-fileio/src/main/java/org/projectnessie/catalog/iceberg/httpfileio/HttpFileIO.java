@@ -29,6 +29,14 @@ import org.apache.iceberg.util.SerializableSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Quick-n-dirty implementation of "resolving file IO" that can read files via http and otherwise
+ * defers to {@link ResolvingFileIO}.
+ *
+ * <p>Ideally Iceberg's {@link ResolvingFileIO} should use Java's {@linkplain
+ * java.util.ServiceLoader service loading mechanism} to make {@linkplain DelegateFileIO file IO
+ * implementations} pluggable.
+ */
 public class HttpFileIO implements HadoopConfigurable, DelegateFileIO {
   private static final Logger LOG = LoggerFactory.getLogger(HttpFileIO.class);
 

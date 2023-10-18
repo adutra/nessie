@@ -22,6 +22,8 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -33,6 +35,8 @@ import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RequestScoped
 public class CatalogTransportResource implements NessieCatalogService {
@@ -167,7 +171,10 @@ public class CatalogTransportResource implements NessieCatalogService {
           @Override
           public URI icebergManifestFile(NessieId manifestFileId) {
             return baseUri.resolve(
-                "manifest-file/" + keyPathString + "?manifest-file=" + manifestFileId.idAsBase64());
+                "manifest-file/"
+                    + keyPathString
+                    + "?manifest-file="
+                    + URLEncoder.encode(manifestFileId.idAsBase64(), UTF_8));
           }
         };
 
