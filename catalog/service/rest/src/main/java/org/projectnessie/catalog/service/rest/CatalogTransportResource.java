@@ -181,7 +181,9 @@ public class CatalogTransportResource implements NessieCatalogService {
         catalogService.retrieveTableSnapshot(
             ref, key, manifestFileId, snapshotFormat, reqVersion, catalogUriResolver);
 
-    // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit ID)
+    // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit ID and
+    //  state of the manifest-list/files to reflect "in-place" changes, like
+    // compaction/optimization)
 
     Optional<Object> entity = snapshot.entityObject();
     if (entity.isPresent()) {
@@ -190,6 +192,11 @@ public class CatalogTransportResource implements NessieCatalogService {
           .header("Content-Type", snapshot.contentType())
           .build();
     }
+
+    // TODO Should have support for HTTP range-requests (`Range` request header / `Accept-Ranges`
+    //  response header). Probably requires some logic to ensure that the generated stream matches
+    //  is "still the same" - so generated URLs, content unchanged. Maybe cache control headers can
+    //  help here.
 
     return Response.ok((StreamingOutput) snapshot::produce)
         .header("Content-Disposition", "attachment; filename=\"" + snapshot.fileName() + "\"")
