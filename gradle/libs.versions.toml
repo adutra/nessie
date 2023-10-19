@@ -4,7 +4,7 @@
 antlr4 = "4.13.1"
 bouncycastle = "1.70"
 checkstyle = "10.12.4"
-errorprone = "2.22.0"
+errorprone = "2.23.0"
 errorproneSlf4j = "0.1.20"
 gatling = "3.9.5"
 googleJavaFormat = "1.18.1"
@@ -29,7 +29,7 @@ protobuf = "3.24.4"
 quarkus = "3.4.3"
 slf4j = "1.7.36"
 smallryeConfig = "2.13.3"
-undertow = "2.2.26.Final"
+undertow = "2.2.28.Final"
 
 # Docker image tags
 postgresContainerTag = "14"
@@ -45,7 +45,7 @@ antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "ant
 assertj-core = { module = "org.assertj:assertj-core", version = "3.24.2" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.0" }
-awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.1" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.2" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
 bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
 cassandra-driver-bom = { module = "com.datastax.oss:java-driver-bom", version = "4.17.0" }

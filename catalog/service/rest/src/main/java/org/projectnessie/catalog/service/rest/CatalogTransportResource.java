@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.service.rest;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Context;
@@ -23,7 +25,6 @@ import jakarta.ws.rs.core.StreamingOutput;
 import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -35,8 +36,6 @@ import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RequestScoped
 public class CatalogTransportResource implements NessieCatalogService {
