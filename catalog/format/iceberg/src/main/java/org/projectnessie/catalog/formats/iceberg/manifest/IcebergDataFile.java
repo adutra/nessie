@@ -72,8 +72,6 @@ public interface IcebergDataFile {
   //  https://iceberg.apache.org/docs/1.3.0/configuration/#write-properties
   // TODO how is this encoded?? in IJ's Avro/Parquet viewer string values appear "interesting"
   // TODO Use Agrona-Collections
-  @Nullable
-  @jakarta.annotation.Nullable
   Map<Integer, byte[]> lowerBounds();
 
   // TODO subject to write.metadata.metrics.default / write.metadata.metrics.column.* settings !!
@@ -84,8 +82,6 @@ public interface IcebergDataFile {
   //  uses Parquet's functionality, see
   //  org.apache.parquet.internal.column.columnindex.BinaryTruncator.truncateMax?
   // TODO Use Agrona-Collections
-  @Nullable
-  @jakarta.annotation.Nullable
   Map<Integer, byte[]> upperBounds();
 
   @Nullable
