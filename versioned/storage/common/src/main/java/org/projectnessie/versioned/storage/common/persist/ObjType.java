@@ -18,6 +18,7 @@ package org.projectnessie.versioned.storage.common.persist;
 import org.projectnessie.versioned.storage.common.logic.InternalRef;
 import org.projectnessie.versioned.storage.common.objtypes.CommitObj;
 import org.projectnessie.versioned.storage.common.objtypes.ContentValueObj;
+import org.projectnessie.versioned.storage.common.objtypes.GenericObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.RefObj;
@@ -50,9 +51,11 @@ public enum ObjType {
   INDEX_SEGMENTS("I"),
 
   /** {@link Obj} is a {@link IndexObj}. */
-  INDEX("i");
+  INDEX("i"),
 
-  private static final ObjType[] ALL_OBJ_TYPES = ObjType.values();
+  /** {@link Obj} is a {@link GenericObj}. */
+  GENERIC("g"),
+  ;
 
   private final String shortName;
 
@@ -61,12 +64,26 @@ public enum ObjType {
   }
 
   public static ObjType fromShortName(String shortName) {
-    for (ObjType type : ALL_OBJ_TYPES) {
-      if (type.shortName().equals(shortName)) {
-        return type;
-      }
+    switch (shortName) {
+      case "r":
+        return REF;
+      case "c":
+        return COMMIT;
+      case "t":
+        return TAG;
+      case "v":
+        return VALUE;
+      case "s":
+        return STRING;
+      case "I":
+        return INDEX_SEGMENTS;
+      case "i":
+        return INDEX;
+      case "g":
+        return GENERIC;
+      default:
+        throw new IllegalStateException("Unknown object short type name " + shortName);
     }
-    throw new IllegalStateException("Unknown object short type name " + shortName);
   }
 
   public String shortName() {

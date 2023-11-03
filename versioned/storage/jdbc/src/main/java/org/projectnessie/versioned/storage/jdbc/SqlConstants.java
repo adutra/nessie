@@ -40,6 +40,7 @@ final class SqlConstants {
   static final String COLS_TAG = "t_message, t_headers, t_signature";
   static final String COLS_STRING =
       "s_content_type, s_compression, s_filename, s_predecessors, s_text";
+  static final String COLS_GENERIC = "g_content_type, g_payload";
 
   static final String STORE_OBJ =
       "INSERT INTO "
@@ -65,6 +66,8 @@ final class SqlConstants {
           + COLS_SEGMENTS
           + ", "
           + COLS_INDEX
+          + ", "
+          + COLS_GENERIC
           + ") VALUES (?,?,? "
           + ",?,?,?,? " // REF
           + ",?,?,?,?,?,?,?,?,?,?,?" // COMMIT
@@ -73,6 +76,7 @@ final class SqlConstants {
           + ",?,?,?,?,? " // STRING
           + ",? " // SEGMENTS
           + ",? " // INDEX
+          + ",?,? " // GENERIC
           + ")";
 
   static final String CREATE_TABLE_OBJS =
@@ -92,6 +96,7 @@ final class SqlConstants {
           + ",\n    i_index {4}"
           + ",\n    t_message {6}, t_headers {4}, t_signature {4}"
           + ",\n    s_content_type {0}, s_compression {0}, s_filename {0}, s_predecessors {2}, s_text {4}"
+          + ",\n    g_content_type {0}, g_payload {4}"
           + ",\n    PRIMARY KEY ("
           + COL_REPO_ID
           + ", "
@@ -240,7 +245,9 @@ final class SqlConstants {
           + ", "
           + COLS_TAG
           + ", "
-          + COLS_STRING;
+          + COLS_STRING
+          + ", "
+          + COLS_GENERIC;
   static final int COL_COMMIT_CREATED = 3; // obj_id + obj_type before this column
   static final int COL_COMMIT_SEQ = COL_COMMIT_CREATED + 1;
   static final int COL_COMMIT_MESSAGE = COL_COMMIT_SEQ + 1;
@@ -269,6 +276,8 @@ final class SqlConstants {
   static final int COL_STRING_FILENAME = COL_STRING_COMPRESSION + 1;
   static final int COL_STRING_PREDECESSORS = COL_STRING_FILENAME + 1;
   static final int COL_STRING_TEXT = COL_STRING_PREDECESSORS + 1;
+  static final int COL_GENERIC_CONTENT_TYPE = COL_STRING_TEXT + 1;
+  static final int COL_GENERIC_PAYLOAD = COL_GENERIC_CONTENT_TYPE + 1;
 
   static final String FETCH_OBJ_TYPE =
       "SELECT "

@@ -26,6 +26,7 @@ import static org.projectnessie.versioned.storage.common.indexes.StoreKey.keyFro
 import static org.projectnessie.versioned.storage.common.objtypes.CommitHeaders.newCommitHeaders;
 import static org.projectnessie.versioned.storage.common.objtypes.CommitObj.commitBuilder;
 import static org.projectnessie.versioned.storage.common.objtypes.ContentValueObj.contentValue;
+import static org.projectnessie.versioned.storage.common.objtypes.GenericObj.genericData;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexObj.index;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj.indexSegments;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexStripe.indexStripe;
@@ -50,6 +51,9 @@ import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL
 import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_COMMIT_SEQ;
 import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_COMMIT_TAIL;
 import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_COMMIT_TYPE;
+import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_GENERIC;
+import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_GENERIC_CONTENT_TYPE;
+import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_GENERIC_PAYLOAD;
 import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_INDEX;
 import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_INDEX_INDEX;
 import static org.projectnessie.versioned.storage.dynamodb.DynamoDBConstants.COL_OBJ_TYPE;
@@ -107,6 +111,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -126,6 +131,7 @@ import org.projectnessie.versioned.storage.common.objtypes.CommitObj;
 import org.projectnessie.versioned.storage.common.objtypes.CommitType;
 import org.projectnessie.versioned.storage.common.objtypes.Compression;
 import org.projectnessie.versioned.storage.common.objtypes.ContentValueObj;
+import org.projectnessie.versioned.storage.common.objtypes.GenericObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexStripe;
@@ -919,6 +925,28 @@ public class DynamoDBPersist implements Persist {
                 attributeToString(i, COL_STRING_FILENAME),
                 predecessors,
                 attributeToBytes(i, COL_STRING_TEXT));
+          }
+        });
+    STORE_OBJ_TYPE.put(
+        ObjType.GENERIC,
+        new StoreObjDesc<GenericObj>(COL_GENERIC) {
+          @Override
+          void toMap(
+              GenericObj obj,
+              Map<String, AttributeValue> i,
+              int incrementalIndexSize,
+              int maxSerializedIndexSize) {
+            String s = obj.contentType();
+            i.put(COL_GENERIC_CONTENT_TYPE, fromS(s));
+            bytesAttribute(i, COL_GENERIC_PAYLOAD, obj.payload());
+          }
+
+          @Override
+          GenericObj fromMap(ObjId id, Map<String, AttributeValue> i) {
+            return genericData(
+                id,
+                Objects.requireNonNull(attributeToString(i, COL_GENERIC_CONTENT_TYPE)),
+                Objects.requireNonNull(attributeToBytes(i, COL_GENERIC_PAYLOAD)));
           }
         });
   }

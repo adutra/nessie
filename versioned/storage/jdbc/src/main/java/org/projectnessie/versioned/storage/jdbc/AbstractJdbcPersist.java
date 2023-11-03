@@ -45,6 +45,8 @@ import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_COMMIT_S
 import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_COMMIT_SEQ;
 import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_COMMIT_TAIL;
 import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_COMMIT_TYPE;
+import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_GENERIC_CONTENT_TYPE;
+import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_GENERIC_PAYLOAD;
 import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_INDEX_INDEX;
 import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_REF_CREATED_AT;
 import static org.projectnessie.versioned.storage.jdbc.SqlConstants.COL_REF_EXTENDED_INFO;
@@ -111,6 +113,7 @@ import org.projectnessie.versioned.storage.common.objtypes.CommitObj;
 import org.projectnessie.versioned.storage.common.objtypes.CommitType;
 import org.projectnessie.versioned.storage.common.objtypes.Compression;
 import org.projectnessie.versioned.storage.common.objtypes.ContentValueObj;
+import org.projectnessie.versioned.storage.common.objtypes.GenericObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexStripe;
@@ -1038,6 +1041,37 @@ abstract class AbstractJdbcPersist implements Persist {
                 rs.getString(COL_STRING_FILENAME),
                 deserializeObjIds(rs, COL_STRING_PREDECESSORS),
                 deserializeBytes(rs, COL_STRING_TEXT));
+          }
+        });
+    STORE_OBJ_TYPE.put(
+        ObjType.GENERIC,
+        new StoreObjDesc<GenericObj>() {
+          @Override
+          int storeNone(PreparedStatement ps, int idx) throws SQLException {
+            ps.setNull(idx++, Types.VARCHAR);
+            ps.setNull(idx++, Types.BINARY);
+            return idx;
+          }
+
+          @Override
+          int store(
+              PreparedStatement ps,
+              int idx,
+              GenericObj obj,
+              int incrementalIndexLimit,
+              int maxSerializedIndexSize)
+              throws SQLException {
+            ps.setString(idx++, obj.contentType());
+            serializeBytes(ps, idx++, obj.payload());
+            return idx;
+          }
+
+          @Override
+          GenericObj deserialize(ResultSet rs, ObjId id) throws SQLException {
+            return GenericObj.genericData(
+                id,
+                requireNonNull(rs.getString(COL_GENERIC_CONTENT_TYPE)),
+                requireNonNull(deserializeBytes(rs, COL_GENERIC_PAYLOAD)));
           }
         });
   }

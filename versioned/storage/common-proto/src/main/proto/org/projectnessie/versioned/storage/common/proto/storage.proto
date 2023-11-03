@@ -96,6 +96,11 @@ message TagProto {
   optional bytes signature = 4;
 }
 
+message GenericProto {
+  string content_type = 1;
+  bytes payload = 2;
+}
+
 message ObjProto {
   // bytes id = 1;
   oneof obj {
@@ -106,6 +111,7 @@ message ObjProto {
     IndexProto index = 6;
     StringProto string_data = 7;
     TagProto tag = 8;
+    GenericProto generic = 9;
   }
 }
 

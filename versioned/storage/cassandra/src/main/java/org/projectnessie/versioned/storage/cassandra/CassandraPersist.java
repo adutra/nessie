@@ -32,6 +32,8 @@ import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.C
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_COMMIT_SEQ;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_COMMIT_TAIL;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_COMMIT_TYPE;
+import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_GENERIC_CONTENT_TYPE;
+import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_GENERIC_PAYLOAD;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_INDEX_INDEX;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_REF_CREATED_AT;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.COL_REF_EXTENDED_INFO;
@@ -54,6 +56,7 @@ import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.F
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.FIND_OBJS;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.FIND_REFERENCES;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.INSERT_OBJ_COMMIT;
+import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.INSERT_OBJ_GENERIC;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.INSERT_OBJ_INDEX;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.INSERT_OBJ_REF;
 import static org.projectnessie.versioned.storage.cassandra.CassandraConstants.INSERT_OBJ_SEGMENTS;
@@ -90,6 +93,7 @@ import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -111,6 +115,7 @@ import org.projectnessie.versioned.storage.common.objtypes.CommitObj;
 import org.projectnessie.versioned.storage.common.objtypes.CommitType;
 import org.projectnessie.versioned.storage.common.objtypes.Compression;
 import org.projectnessie.versioned.storage.common.objtypes.ContentValueObj;
+import org.projectnessie.versioned.storage.common.objtypes.GenericObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexStripe;
@@ -463,7 +468,7 @@ public class CassandraPersist implements Persist {
   }
 
   @FunctionalInterface
-  interface WriteSingleObj<R> {
+  private interface WriteSingleObj<R> {
     R apply(StoreObjDesc<?> storeObj, Object[] values);
   }
 
@@ -833,6 +838,27 @@ public class CassandraPersist implements Persist {
                 row.getString(COL_STRING_FILENAME),
                 deserializeObjIds(row, COL_STRING_PREDECESSORS),
                 deserializeBytes(row, COL_STRING_TEXT));
+          }
+        });
+    STORE_OBJ_TYPE.put(
+        ObjType.GENERIC,
+        new StoreObjDesc<GenericObj>(INSERT_OBJ_GENERIC) {
+          @Override
+          void store(
+              Consumer<Object> values,
+              GenericObj obj,
+              int incrementalIndexLimit,
+              int maxSerializedIndexSize) {
+            values.accept(obj.contentType());
+            values.accept(obj.payload().asReadOnlyByteBuffer());
+          }
+
+          @Override
+          GenericObj deserialize(Row row, ObjId id) {
+            return GenericObj.genericData(
+                id,
+                Objects.requireNonNull(row.getString(COL_GENERIC_CONTENT_TYPE)),
+                Objects.requireNonNull(deserializeBytes(row, COL_GENERIC_PAYLOAD)));
           }
         });
   }

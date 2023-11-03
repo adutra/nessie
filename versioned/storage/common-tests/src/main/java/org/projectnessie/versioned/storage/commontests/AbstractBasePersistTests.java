@@ -44,6 +44,7 @@ import static org.projectnessie.versioned.storage.common.objtypes.CommitOp.COMMI
 import static org.projectnessie.versioned.storage.common.objtypes.CommitOp.commitOp;
 import static org.projectnessie.versioned.storage.common.objtypes.Compression.NONE;
 import static org.projectnessie.versioned.storage.common.objtypes.ContentValueObj.contentValue;
+import static org.projectnessie.versioned.storage.common.objtypes.GenericObj.genericData;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexObj.index;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj.indexSegments;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexStripe.indexStripe;
@@ -54,6 +55,7 @@ import static org.projectnessie.versioned.storage.common.persist.ObjId.EMPTY_OBJ
 import static org.projectnessie.versioned.storage.common.persist.ObjId.objIdFromString;
 import static org.projectnessie.versioned.storage.common.persist.ObjId.randomObjId;
 import static org.projectnessie.versioned.storage.common.persist.ObjType.COMMIT;
+import static org.projectnessie.versioned.storage.common.persist.ObjType.GENERIC;
 import static org.projectnessie.versioned.storage.common.persist.ObjType.INDEX;
 import static org.projectnessie.versioned.storage.common.persist.ObjType.INDEX_SEGMENTS;
 import static org.projectnessie.versioned.storage.common.persist.ObjType.REF;
@@ -93,6 +95,7 @@ import org.projectnessie.versioned.storage.common.objtypes.CommitOp;
 import org.projectnessie.versioned.storage.common.objtypes.CommitType;
 import org.projectnessie.versioned.storage.common.objtypes.Compression;
 import org.projectnessie.versioned.storage.common.objtypes.ContentValueObj;
+import org.projectnessie.versioned.storage.common.objtypes.GenericObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.RefObj;
@@ -434,7 +437,9 @@ public class AbstractBasePersistTests {
                 objIdFromString("0000000000000000")),
             copyFromUtf8("This is not a markdown")),
         ref(randomObjId(), "foo", randomObjId(), 123L, null),
-        ref(randomObjId(), "bar", randomObjId(), 456L, randomObjId()));
+        ref(randomObjId(), "bar", randomObjId(), 456L, randomObjId()),
+        genericData(randomObjId(), "foo", ByteString.copyFromUtf8("initial value")),
+        genericData(randomObjId(), "", ByteString.EMPTY));
   }
 
   @SuppressWarnings("rawtypes")
@@ -454,6 +459,8 @@ public class AbstractBasePersistTests {
         return TagObj.class;
       case STRING:
         return StringObj.class;
+      case GENERIC:
+        return GenericObj.class;
       default:
         throw new IllegalArgumentException(type.name());
     }
@@ -468,13 +475,15 @@ public class AbstractBasePersistTests {
       case INDEX_SEGMENTS:
         return TAG;
       case INDEX:
-        return REF;
+        return GENERIC;
       case REF:
         return INDEX;
       case TAG:
         return STRING;
       case STRING:
         return INDEX_SEGMENTS;
+      case GENERIC:
+        return REF;
       default:
         throw new IllegalArgumentException(type.name());
     }
@@ -896,6 +905,9 @@ public class AbstractBasePersistTests {
                 "filename",
                 asList(randomObjId(), randomObjId(), randomObjId(), randomObjId()),
                 ByteString.copyFrom(new byte[123]));
+        break;
+      case GENERIC:
+        newObj = genericData(obj.id(), "bar", ByteString.copyFromUtf8("updated"));
         break;
       default:
         throw new UnsupportedOperationException("Unknown object type " + obj.type());

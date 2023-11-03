@@ -44,6 +44,7 @@ final class DynamoDBConstants {
   static final String COL_INDEX = "i";
   static final String COL_TAG = "t";
   static final String COL_STRING = "s";
+  static final String COL_GENERIC = "g";
 
   static final String CONDITION_STORE_REF = "attribute_not_exists(" + COL_REFERENCES_POINTER + ")";
   static final String CONDITION_STORE_OBJ = "attribute_not_exists(" + COL_OBJ_TYPE + ")";
@@ -86,6 +87,9 @@ final class DynamoDBConstants {
   static final String COL_STRING_FILENAME = "f";
   static final String COL_STRING_PREDECESSORS = "p";
   static final String COL_STRING_TEXT = "t";
+
+  static final String COL_GENERIC_CONTENT_TYPE = "t";
+  static final String COL_GENERIC_PAYLOAD = "p";
 
   private DynamoDBConstants() {}
 }

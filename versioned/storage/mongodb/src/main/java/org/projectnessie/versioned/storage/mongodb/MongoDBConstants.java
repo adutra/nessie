@@ -40,6 +40,7 @@ final class MongoDBConstants {
   static final String COL_INDEX = "i";
   static final String COL_TAG = "t";
   static final String COL_STRING = "s";
+  static final String COL_GENERIC = "g";
 
   static final String COL_COMMIT_CREATED = "c";
   static final String COL_COMMIT_SEQ = "q";
@@ -79,6 +80,9 @@ final class MongoDBConstants {
   static final String COL_STRING_FILENAME = "f";
   static final String COL_STRING_PREDECESSORS = "p";
   static final String COL_STRING_TEXT = "t";
+
+  static final String COL_GENERIC_CONTENT_TYPE = "c";
+  static final String COL_GENERIC_PAYLOAD = "p";
 
   static final String ID_REPO_PATH = ID_PROPERTY_NAME + "." + COL_REPO;
   static final String ID_OBJ_ID_PATH = ID_PROPERTY_NAME + "." + COL_OBJ_ID;

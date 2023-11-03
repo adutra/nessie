@@ -19,6 +19,7 @@ import static java.util.Collections.emptyList;
 import static org.projectnessie.versioned.storage.common.indexes.StoreKey.keyFromString;
 import static org.projectnessie.versioned.storage.common.objtypes.CommitObj.commitBuilder;
 import static org.projectnessie.versioned.storage.common.objtypes.ContentValueObj.contentValue;
+import static org.projectnessie.versioned.storage.common.objtypes.GenericObj.genericData;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexObj.index;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj.indexSegments;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexStripe.indexStripe;
@@ -42,6 +43,7 @@ import org.projectnessie.versioned.storage.common.objtypes.CommitObj;
 import org.projectnessie.versioned.storage.common.objtypes.CommitType;
 import org.projectnessie.versioned.storage.common.objtypes.Compression;
 import org.projectnessie.versioned.storage.common.objtypes.ContentValueObj;
+import org.projectnessie.versioned.storage.common.objtypes.GenericObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexStripe;
@@ -57,6 +59,7 @@ import org.projectnessie.versioned.storage.common.proto.StorageTypes.CommitProto
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.CommitTypeProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.CompressionProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.ContentValueProto;
+import org.projectnessie.versioned.storage.common.proto.StorageTypes.GenericProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.HeaderEntry;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.IndexProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.IndexSegmentsProto;
@@ -226,6 +229,8 @@ public final class ProtoSerialization {
         return b.setStringData(serializeStringData((StringObj) obj)).build().toByteArray();
       case TAG:
         return b.setTag(serializeTag((TagObj) obj)).build().toByteArray();
+      case GENERIC:
+        return b.setGeneric(serializeGeneric((GenericObj) obj)).build().toByteArray();
       default:
         throw new UnsupportedOperationException("Unknown object type " + obj.type());
     }
@@ -276,6 +281,9 @@ public final class ProtoSerialization {
     }
     if (obj.hasTag()) {
       return deserializeTag(id, obj.getTag());
+    }
+    if (obj.hasGeneric()) {
+      return deserializeGeneric(id, obj.getGeneric());
     }
     throw new UnsupportedOperationException("Cannot deserialize " + obj);
   }
@@ -481,5 +489,16 @@ public final class ProtoSerialization {
       }
     }
     return tag;
+  }
+
+  private static Obj deserializeGeneric(ObjId id, GenericProto generic) {
+    return genericData(id, generic.getContentType(), generic.getPayload());
+  }
+
+  private static GenericProto serializeGeneric(GenericObj obj) {
+    return GenericProto.newBuilder()
+        .setContentType(obj.contentType())
+        .setPayload(obj.payload())
+        .build();
   }
 }

@@ -26,12 +26,14 @@ import static com.mongodb.client.model.Filters.not;
 import static com.mongodb.client.model.Updates.set;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static org.projectnessie.nessie.relocated.protobuf.UnsafeByteOperations.unsafeWrap;
 import static org.projectnessie.versioned.storage.common.indexes.StoreKey.keyFromString;
 import static org.projectnessie.versioned.storage.common.objtypes.CommitHeaders.newCommitHeaders;
 import static org.projectnessie.versioned.storage.common.objtypes.CommitObj.commitBuilder;
 import static org.projectnessie.versioned.storage.common.objtypes.ContentValueObj.contentValue;
+import static org.projectnessie.versioned.storage.common.objtypes.GenericObj.genericData;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexObj.index;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj.indexSegments;
 import static org.projectnessie.versioned.storage.common.objtypes.IndexStripe.indexStripe;
@@ -51,6 +53,9 @@ import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_C
 import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_COMMIT_SEQ;
 import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_COMMIT_TAIL;
 import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_COMMIT_TYPE;
+import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_GENERIC;
+import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_GENERIC_CONTENT_TYPE;
+import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_GENERIC_PAYLOAD;
 import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_INDEX;
 import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_INDEX_INDEX;
 import static org.projectnessie.versioned.storage.mongodb.MongoDBConstants.COL_OBJ_ID;
@@ -132,6 +137,7 @@ import org.projectnessie.versioned.storage.common.objtypes.CommitObj;
 import org.projectnessie.versioned.storage.common.objtypes.CommitType;
 import org.projectnessie.versioned.storage.common.objtypes.Compression;
 import org.projectnessie.versioned.storage.common.objtypes.ContentValueObj;
+import org.projectnessie.versioned.storage.common.objtypes.GenericObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexStripe;
@@ -983,6 +989,25 @@ public class MongoDBPersist implements Persist {
                 doc.getString(COL_STRING_FILENAME),
                 binaryToObjIds(doc.getList(COL_STRING_PREDECESSORS, Binary.class)),
                 binaryToBytes(doc.get(COL_STRING_TEXT, Binary.class)));
+          }
+        });
+    STORE_OBJ_TYPE.put(
+        ObjType.GENERIC,
+        new StoreObjDesc<GenericObj>(COL_GENERIC) {
+          @Override
+          void objToDoc(
+              GenericObj obj, Document doc, int incrementalIndexLimit, int maxSerializedIndexSize) {
+            String s = obj.contentType();
+            doc.put(COL_GENERIC_CONTENT_TYPE, s);
+            doc.put(COL_GENERIC_PAYLOAD, bytesToBinary(obj.payload()));
+          }
+
+          @Override
+          GenericObj docToObj(ObjId id, Document doc) {
+            return genericData(
+                id,
+                requireNonNull(doc.getString(COL_GENERIC_CONTENT_TYPE)),
+                requireNonNull(binaryToBytes(doc.get(COL_GENERIC_PAYLOAD, Binary.class))));
           }
         });
   }
