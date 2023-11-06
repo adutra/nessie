@@ -2,6 +2,48 @@
 
 **See [Nessie Server upgrade notes](server-upgrade.md) for supported upgrade paths.**
 
+## 0.73.0 Release (October 27, 2023)
+
+See [Release information on GitHub](https://github.com/projectnessie/nessie/releases/tag/nessie-0.73.0).
+
+### Highlights
+
+- Nessie API spec was upgraded to 2.1.3. The only change is that when a commit attempts to create a content
+  inside a non-existing namespace, the server will not only return a `NAMESPACE_ABSENT` conflict for the
+  non-existing namespace itself, but will also return additional `NAMESPACE_ABSENT` conflicts for all the
+  non-existing ancestor namespaces.
+
+### New Features
+
+- Nessie client: the OAuth2 authentication provider is now able to recover from transient failures when
+  refreshing the access token.
+
+### Commits
+* Update CHANGELOG.md (#7674)
+* Expose full set of Bigtable retry settings in BigTableClientsConfig (#7672)
+* Report all missing namespaces at once (#7671)
+* OAuth2Client: implement fault tolerance (#7669)
+* Make Conflict.conflictType non nullable (#7667)
+* OAuth2Client: forbid recursive calls to renewTokens() (#7663)
+
+## 0.72.4 Release (October 24, 2023)
+
+See [Release information on GitHub](https://github.com/projectnessie/nessie/releases/tag/nessie-0.72.4).
+
+### Fixes
+
+- Docker images again honor environment variables such as `JAVA_OPTS_APPEND` that are used to pass
+  additional JVM options to the Nessie server. See the 
+  [ubi8/openjdk-17](https://catalog.redhat.com/software/containers/ubi8/openjdk-17/618bdbf34ae3739687568813)
+  base image documentation for the list of all supported environment variables.
+
+### Commits
+* Docker: re-enable JAVA_OPTS_APPEND env var (#7659)
+* Relax CacheSizing validation rules. (#7660)
+* OAuth2Client: propagate scheduling failures when calling authenticate() (#7656)
+* Remove commit-meta property containing the merge-parent commit-ID (#7646)
+* Enhance released jars (#7651)
+
 ## 0.72.2 Release (October 19, 2023)
 
 See [Release information on GitHub](https://github.com/projectnessie/nessie/releases/tag/nessie-0.72.2).
