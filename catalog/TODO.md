@@ -66,10 +66,21 @@ would automatically be migrated to the Nessie Catalog.
    ```bash
    rm -rf /tmp/nessie-catalog-demo
    mkdir -p /tmp/nessie-catalog-demo
+   ./gradlew publishToMavenLocal
 
-   spark-3.2.2-bin-hadoop3.2/bin/spark-sql \
-     --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.4.0,org.projectnessie.nessie-integrations:nessie-spark-extensions-3.2_2.12:0.71.1 \
-     --jars /home/snazy/devel/projectnessie/nessie/catalog/catalog/util/iceberg-http-fileio/build/libs/nessie-catalog-iceberg-httpfileio-0.72.1-SNAPSHOT.jar \
+   nessieVersion=$(./gradlew properties -q | awk '/^version:/ {print $2}')
+   icebergVersion=1.4.2
+   sparkVersion=3.5
+   scalaVersion=2.12
+
+   packages=$(echo \
+     org.apache.iceberg:iceberg-spark-runtime-${sparkVersion}_${scalaVersion}:${icebergVersion} \
+     org.projectnessie.nessie-integrations:nessie-spark-extensions-${sparkVersion}_${scalaVersion}:$nessieVersion \
+     org.projectnessie.nessie:nessie-catalog-iceberg-httpfileio:$nessieVersion \
+     | sed "s/ /,/g")
+   
+   spark-sql \
+     --packages "${packages}" \
      --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions \
      --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19120/api/v1 \
      --conf spark.sql.catalog.nessie.ref=main \
