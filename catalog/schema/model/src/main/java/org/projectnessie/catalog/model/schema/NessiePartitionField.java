@@ -37,6 +37,7 @@ public interface NessiePartitionField extends Hashable {
 
   String name();
 
+  // FIXME there is already a type() method in NessieField, why do we need it here?
   NessieTypeSpec type();
 
   @JsonSerialize(using = NessieFieldTransformSerializer.class)

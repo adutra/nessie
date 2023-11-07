@@ -35,6 +35,8 @@ import org.projectnessie.catalog.model.manifest.NessieListManifestEntry;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
+import org.projectnessie.model.CommitMeta.InstantDeserializer;
+import org.projectnessie.model.CommitMeta.InstantSerializer;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.DeltaLakeTable;
 import org.projectnessie.model.IcebergTable;
@@ -117,9 +119,14 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
-  // Can be null, if for for example no Iceberg snapshot exists in a table-metadata
+  // Can be null, if for example no Iceberg snapshot exists in a table-metadata
+  @JsonSerialize(using = InstantSerializer.class)
+  @JsonDeserialize(using = InstantDeserializer.class)
   Instant snapshotCreatedTimestamp();
 
+  @JsonSerialize(using = InstantSerializer.class)
+  @JsonDeserialize(using = InstantDeserializer.class)
+  // FIXME is this nullable? The builder method says yes, but the interface says no.
   Instant lastUpdatedTimestamp();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)

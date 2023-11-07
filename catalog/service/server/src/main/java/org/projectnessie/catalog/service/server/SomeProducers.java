@@ -20,9 +20,12 @@ import jakarta.inject.Singleton;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.local.LocalObjectIO;
 import org.projectnessie.catalog.storage.backend.CatalogStorage;
-import org.projectnessie.catalog.storage.inmemory.InMemoryStorage;
+import org.projectnessie.catalog.storage.persist.PersistCatalogStorage;
 import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.api.NessieApiV2;
+import org.projectnessie.versioned.storage.common.config.StoreConfig;
+import org.projectnessie.versioned.storage.common.persist.Backend;
+import org.projectnessie.versioned.storage.inmemory.InmemoryBackend;
 
 /**
  * "Quick and dirty" producers providing connection to Nessie, a "storage" impl and object-store
@@ -39,8 +42,20 @@ public class SomeProducers {
 
   @Produces
   @Singleton
-  public CatalogStorage catalogStorage() {
-    return new InMemoryStorage();
+  public Backend backend() {
+    return new InmemoryBackend();
+  }
+
+  @Produces
+  @Singleton
+  public StoreConfig storeConfig() {
+    return new StoreConfig() {};
+  }
+
+  @Produces
+  @Singleton
+  public CatalogStorage catalogStorage(Backend backend, StoreConfig config) {
+    return new PersistCatalogStorage(backend.createFactory().newPersist(config));
   }
 
   @Produces

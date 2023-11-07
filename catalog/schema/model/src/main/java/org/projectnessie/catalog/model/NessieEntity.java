@@ -15,11 +15,15 @@
  */
 package org.projectnessie.catalog.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.time.Instant;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
+import org.projectnessie.model.CommitMeta.InstantDeserializer;
+import org.projectnessie.model.CommitMeta.InstantSerializer;
 
 public interface NessieEntity {
   NessieId id();
@@ -34,5 +38,9 @@ public interface NessieEntity {
   @jakarta.annotation.Nullable
   TableFormat tableFormat();
 
+  // FIXME move this serializer out of CommitMeta - or add module
+  // com.fasterxml.jackson.datatype:jackson-datatype-jsr310
+  @JsonSerialize(using = InstantSerializer.class)
+  @JsonDeserialize(using = InstantDeserializer.class)
   Instant createdTimestamp();
 }

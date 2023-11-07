@@ -98,6 +98,7 @@ public interface NessieField {
     @CanIgnoreReturnValue
     Builder nullable(boolean nullable);
 
+    @CanIgnoreReturnValue
     Builder metadata(Map<String, ? extends String> metadataMap);
 
     @CanIgnoreReturnValue

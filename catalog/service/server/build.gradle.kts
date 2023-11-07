@@ -42,7 +42,9 @@ dependencies {
   implementation(project(":nessie-catalog-service-impl"))
   implementation(project(":nessie-catalog-service-rest"))
   implementation(project(":nessie-catalog-storage-backend"))
-  implementation(project(":nessie-catalog-storage-inmemory"))
+  implementation(project(":nessie-catalog-storage-persist"))
+  implementation(project(":nessie-versioned-storage-common"))
+  implementation(project(":nessie-versioned-storage-inmemory"))
   implementation(project(":nessie-client"))
 
   implementation(enforcedPlatform(libs.quarkus.bom))

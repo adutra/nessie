@@ -15,7 +15,9 @@
  */
 package org.projectnessie.catalog.storage.backend;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -43,9 +45,24 @@ public interface CatalogStorage {
   void loadObjects(
       Collection<NessieId> ids, BiConsumer<NessieId, Object> loaded, Consumer<NessieId> notFound);
 
-  Collection<Object> loadObjects(Collection<NessieId> ids, Consumer<NessieId> notFound);
+  // FIXME unused
+  default Collection<Object> loadObjects(Collection<NessieId> ids, Consumer<NessieId> notFound) {
+    Collection<Object> result = new ArrayList<>();
+    loadObjects(ids, (id, obj) -> result.add(obj), notFound);
+    return result;
+  }
 
-  Object loadObject(NessieId tableId);
+  default Object loadObject(NessieId id) {
+    return loadObject(id, Object.class);
+  }
+
+  default <T> T loadObject(NessieId id, Class<T> expectedType) {
+    return loadObjects(Collections.singleton(id), i -> {}).stream()
+        .filter(o -> expectedType.isAssignableFrom(o.getClass()))
+        .map(expectedType::cast)
+        .findFirst()
+        .orElse(null);
+  }
 
   /**
    * Persist new objects.
@@ -56,4 +73,8 @@ public interface CatalogStorage {
    * given object. An exception will be thrown when the persisted and given objects are not equal.
    */
   void createObjects(Map<NessieId, Object> objects) throws ObjectMismatchException;
+
+  default void createObject(NessieId id, Object object) throws ObjectMismatchException {
+    createObjects(Collections.singletonMap(id, object));
+  }
 }

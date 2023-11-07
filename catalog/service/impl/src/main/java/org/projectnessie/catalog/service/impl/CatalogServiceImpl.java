@@ -454,6 +454,7 @@ public class CatalogServiceImpl implements CatalogService {
     NessieTableSnapshot snapshot =
         icebergTableSnapshotToNessie(snapshotId, null, table, tableMetadata);
 
+    // FIXME isn't CatalogEntitySnapshot already a shallow version of NessieTableSnapshot?
     NessieTableSnapshot shallowSnapshot =
         NessieTableSnapshot.builder()
             .from(snapshot)

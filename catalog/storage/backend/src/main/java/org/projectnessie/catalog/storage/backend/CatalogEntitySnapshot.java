@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.storage.backend;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import org.projectnessie.catalog.model.id.NessieId;
@@ -55,9 +57,12 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
  * clients.
  */
 @NessieImmutable
+@JsonSerialize(as = ImmutableCatalogEntitySnapshot.class)
+@JsonDeserialize(as = ImmutableCatalogEntitySnapshot.class)
 public interface CatalogEntitySnapshot {
+
   /**
-   * Technical ID of the snapshot.
+   * The ID of the NessieTableSnapshot object that contains the details of this snapshot.
    *
    * <p>The snapshot ID is derived from the contents of a Nessie {@link
    * org.projectnessie.model.Content} object, for example an {@link

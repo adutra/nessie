@@ -25,6 +25,8 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.schema.NessieSchema;
+import org.projectnessie.model.CommitMeta.InstantDeserializer;
+import org.projectnessie.model.CommitMeta.InstantSerializer;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 /** Describes a single data file. */
@@ -56,6 +58,8 @@ public interface DataFileManifest {
   @Nullable
   @jakarta.annotation.Nullable
   @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonSerialize(using = InstantSerializer.class)
+  @JsonDeserialize(using = InstantDeserializer.class)
   Instant modificationTime();
 
   // Supported by: Delta
