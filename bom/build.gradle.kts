@@ -80,8 +80,10 @@ dependencies {
     api(project(":nessie-catalog-files-api"))
     api(project(":nessie-catalog-files-local"))
     api(project(":nessie-catalog-format-iceberg"))
+    api(project(":nessie-catalog-format-iceberg-fixturegen"))
     api(project(":nessie-catalog-schema-model"))
     api(project(":nessie-catalog-service-api"))
+    api(project(":nessie-catalog-service-common"))
     api(project(":nessie-catalog-service-direct"))
     api(project(":nessie-catalog-service-rest"))
     api(project(":nessie-catalog-service-grpc"))
@@ -89,6 +91,7 @@ dependencies {
     api(project(":nessie-catalog-service-server"))
     api(project(":nessie-catalog-storage-backend"))
     api(project(":nessie-catalog-storage-inmemory"))
+    api(project(":nessie-catalog-iceberg-catalog"))
     api(project(":nessie-catalog-iceberg-httpfileio"))
 
     if (!isIncludedInNesQuEIT()) {

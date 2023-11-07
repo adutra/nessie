@@ -16,8 +16,21 @@
 package org.projectnessie.catalog.service.api;
 
 public enum SnapshotFormat {
-  NESSIE_SNAPSHOT,
-  ICEBERG_TABLE_METADATA,
-  ICEBERG_MANIFEST_LIST,
-  ICEBERG_MANIFEST_FILE
+  NESSIE_SNAPSHOT(false),
+  ICEBERG_TABLE_METADATA(false),
+  ICEBERG_TABLE_METADATA_IMPORTED(true),
+  ICEBERG_MANIFEST_LIST(false),
+  ICEBERG_MANIFEST_LIST_IMPORTED(true),
+  ICEBERG_MANIFEST_FILE(true),
+  ;
+
+  private final boolean useOriginalPaths;
+
+  SnapshotFormat(boolean useOriginalPaths) {
+    this.useOriginalPaths = useOriginalPaths;
+  }
+
+  public boolean useOriginalPaths() {
+    return useOriginalPaths;
+  }
 }

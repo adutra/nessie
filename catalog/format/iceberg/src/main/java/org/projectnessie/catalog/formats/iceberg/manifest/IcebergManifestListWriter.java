@@ -33,6 +33,8 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
+// TODO make the writer reusable, so it can memoize Avro schemas.
+//  (see org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.avroSchema)
 @NessieImmutable
 public abstract class IcebergManifestListWriter {
 
@@ -59,6 +61,13 @@ public abstract class IcebergManifestListWriter {
     return 0L;
   }
 
+  public abstract OutputStream output();
+
+  @Value.Default
+  public boolean closeOutput() {
+    return false;
+  }
+
   public interface Builder {
 
     @CanIgnoreReturnValue
@@ -81,6 +90,12 @@ public abstract class IcebergManifestListWriter {
 
     @CanIgnoreReturnValue
     Builder sequenceNumber(long sequenceNumber);
+
+    @CanIgnoreReturnValue
+    Builder output(OutputStream output);
+
+    @CanIgnoreReturnValue
+    Builder closeOutput(boolean closeOutput);
 
     @CanIgnoreReturnValue
     Builder putTableProperty(String key, String value);
@@ -114,7 +129,7 @@ public abstract class IcebergManifestListWriter {
   }
 
   @Value.Lazy
-  public IcebergManifestListEntryWriter entryWriter(OutputStream output) {
+  public IcebergManifestListEntryWriter entryWriter() {
     DataFileWriter<IcebergManifestFile> entryWriter = buildDataFileWriter();
     entryWriter.setMeta("format-version", Integer.toString(spec().version()));
     entryWriter.setMeta("snapshot-id", String.valueOf(snapshotId()));
@@ -126,12 +141,11 @@ public abstract class IcebergManifestListWriter {
     }
     // TODO add 'iceberg.schema', which is the Avro schema as an Iceberg schema
 
-    AvroSerializationContext serializationContext = dataSerializationContext(tableProperties());
-    entryWriter.setCodec(serializationContext.codec());
+    dataSerializationContext(tableProperties()).applyToDataFileWriter(entryWriter);
 
     Schema entryWriteSchema = writerSchema();
 
-    OutputContext outputContext = new OutputContext(output);
+    OutputContext outputContext = new OutputContext(output(), closeOutput());
 
     try {
       entryWriter = entryWriter.create(entryWriteSchema, outputContext);

@@ -39,7 +39,7 @@ public interface DataAccessManifest {
    * If present and non-empty, contains information whether a partition-column in the {@link
    * #dataFiles() referenced data files} contains {@code null}.
    *
-   * <p>List elements correspond to the {@link NessiePartitionDefinition#columns() partition
+   * <p>List elements correspond to the {@link NessiePartitionDefinition#fields() partition
    * definition}. The number of elements for this value might be lower than the total number of
    * partition columns.
    */
@@ -52,7 +52,7 @@ public interface DataAccessManifest {
    * If present and non-empty, contains information whether a partition-column in the {@link
    * #dataFiles() referenced data files} contains NaN.
    *
-   * <p>List elements correspond to the {@link NessiePartitionDefinition#columns() partition
+   * <p>List elements correspond to the {@link NessiePartitionDefinition#fields() partition
    * definition}. The number of elements for this value might be lower than the total number of
    * partition columns.
    */
@@ -65,7 +65,7 @@ public interface DataAccessManifest {
    * If present and non-empty, contains information about the lower-bound of the partition-columns
    * in the {@link #dataFiles() referenced data files}.
    *
-   * <p>List elements correspond to the {@link NessiePartitionDefinition#columns() partition
+   * <p>List elements correspond to the {@link NessiePartitionDefinition#fields() partition
    * definition}. The number of elements for this value might be lower than the total number of
    * partition columns.
    */
@@ -77,7 +77,7 @@ public interface DataAccessManifest {
    * If present and non-empty, contains information about the upper-bound of the partition-columns
    * in the {@link #dataFiles() referenced data files}.
    *
-   * <p>ist elements correspond to the {@link NessiePartitionDefinition#columns() partition
+   * <p>ist elements correspond to the {@link NessiePartitionDefinition#fields() partition
    * definition}. The number of elements for this value might be lower than the total number of
    * partition columns.
    */

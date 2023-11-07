@@ -15,12 +15,12 @@
  */
 package org.projectnessie.catalog.model.id;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Map.Entry.comparingByKey;
 
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -114,7 +114,7 @@ final class IdHasherImpl implements NessieIdHasher {
   @Override
   public NessieIdHasher hash(String value) {
     if (value != null) {
-      hashing.putString(value, StandardCharsets.UTF_8);
+      hashing.putString(value, UTF_8);
     }
     return this;
   }
@@ -156,6 +156,15 @@ final class IdHasherImpl implements NessieIdHasher {
   public NessieIdHasher hashCollection(Collection<? extends Hashable> value) {
     if (value != null) {
       value.forEach(this::hash);
+    }
+    return this;
+  }
+
+  @Override
+  public NessieIdHasher hashUuidCollection(Collection<UUID> value) {
+    if (value != null) {
+      value.forEach(
+          uuid -> hash(uuid.getMostSignificantBits()).hash(uuid.getLeastSignificantBits()));
     }
     return this;
   }

@@ -46,7 +46,7 @@ public class TestNessieSchema {
               NessieField.builder()
                   .from(notNull)
                   .name(notNull.name() + " not null")
-                  .documentation(notNull.documentation() + " not null")
+                  .doc(notNull.doc() + " not null")
                   .nullable(false)
                   .build());
         };
@@ -69,10 +69,9 @@ public class TestNessieSchema {
                 nullNotNull.apply(
                     NessieField.builder()
                         .name(primitiveType.asString())
-                        .fieldId(NessieId.randomNessieId())
                         .type(primitiveType)
-                        .documentation("doc for " + primitiveType.asString())
-                        .icebergColumnId(columnId.incrementAndGet())))
+                        .doc("doc for " + primitiveType.asString())
+                        .icebergId(columnId.incrementAndGet())))
         .forEach(struct::addField);
 
     NessieId schemaId = NessieId.randomNessieId();

@@ -43,7 +43,7 @@ public interface NessieSortField extends Hashable {
   @Override
   default void hash(NessieIdHasher idHasher) {
     idHasher
-        .hash(sourceField().fieldId())
+        .hash(sourceField().id())
         .hash(type())
         .hash(transformSpec())
         .hash(nullOrder())

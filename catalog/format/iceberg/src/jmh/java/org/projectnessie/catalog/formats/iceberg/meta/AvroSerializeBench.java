@@ -326,12 +326,11 @@ public class AvroSerializeBench {
             .sequenceNumber(123456789L)
             .minSequenceNumber(123456789L)
             .tableProperties(param.tableProperties)
+            .output(output)
+            .manifestPath(
+                prefixed("s3:///", param.pathPrefixLength).append(AVRO.fileExtension()).toString())
             .build()
-            .entryWriter(
-                output,
-                prefixed("s3:///", param.pathPrefixLength)
-                    .append(AVRO.fileExtension())
-                    .toString())) {
+            .entryWriter()) {
       for (IcebergDataFile icebergDataFile : param.icebergDataFiles) {
         writer.append(
             icebergDataFile,
@@ -372,8 +371,9 @@ public class AvroSerializeBench {
             .parentSnapshotId(Long.MAX_VALUE)
             .sequenceNumber(123456789L)
             .tableProperties(param.tableProperties)
+            .output(output)
             .build()
-            .entryWriter(output)) {
+            .entryWriter()) {
       param.icebergManifestFiles.forEach(writer::append);
     }
   }

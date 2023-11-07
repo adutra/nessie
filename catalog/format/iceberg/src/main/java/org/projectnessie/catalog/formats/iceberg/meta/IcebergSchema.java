@@ -59,6 +59,9 @@ public interface IcebergSchema {
 
   List<IcebergNestedField> fields();
 
+  // TODO move this elsewhere and memoize the constructed Avro-Schemas, at least temporarily, which
+  //  is useful when generating many manifest-files. See IcebergManifestFileWriter &
+  //  IcebergManifestListWriter
   @JsonIgnore
   default Schema avroSchema(String recordName) {
     // TODO Verify field-id, field generation, etc

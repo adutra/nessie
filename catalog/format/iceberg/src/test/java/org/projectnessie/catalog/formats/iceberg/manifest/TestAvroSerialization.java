@@ -110,20 +110,22 @@ public class TestAvroSerialization {
       long sequenceNumber,
       List<IcebergManifestFile> icebergManifestFiles)
       throws Exception {
-    IcebergManifestListWriter icebergManifestListWriter =
-        IcebergManifestListWriter.builder()
-            .spec(spec)
-            .snapshotId(snapshotId)
-            .parentSnapshotId(parentSnapshotId)
-            .sequenceNumber(sequenceNumber)
-            .schema(schema)
-            .partitionSpec(partitionSpec)
-            .build();
 
     byte[] manifestListData;
     try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+      IcebergManifestListWriter icebergManifestListWriter =
+          IcebergManifestListWriter.builder()
+              .spec(spec)
+              .snapshotId(snapshotId)
+              .parentSnapshotId(parentSnapshotId)
+              .sequenceNumber(sequenceNumber)
+              .schema(schema)
+              .partitionSpec(partitionSpec)
+              .output(output)
+              .build();
+
       try (IcebergManifestListWriter.IcebergManifestListEntryWriter listEntryWriter =
-          icebergManifestListWriter.entryWriter(output)) {
+          icebergManifestListWriter.entryWriter()) {
         icebergManifestFiles.forEach(listEntryWriter::append);
       }
       manifestListData = output.toByteArray();
@@ -396,9 +398,11 @@ public class TestAvroSerialization {
               .addedSnapshotId(42424242L)
               .sequenceNumber(8888L)
               .minSequenceNumber(7777L)
+              .output(output)
+              .manifestPath("file:///foo/foo/bar")
               .build();
       try (IcebergManifestFileWriter.IcebergManifestFileEntryWriter entryWriter =
-          icebergManifestFileWriter.entryWriter(output, "file:///foo/foo/bar")) {
+          icebergManifestFileWriter.entryWriter()) {
         writerSchema = icebergManifestFileWriter.writerSchema();
 
         for (IcebergDataFile dataFile : dataFiles) {

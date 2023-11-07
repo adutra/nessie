@@ -54,7 +54,7 @@ public interface NessieTransaction {
   }
 
   interface NessieCreateBase<U extends NessieCreateBase<U>> {
-    NessieCatalogSnapshot create();
+    NessieTransaction create();
   }
 
   interface NessieCreateProperties<U extends NessieCreateBase<U>> extends NessieCreateBase<U> {
@@ -90,7 +90,7 @@ public interface NessieTransaction {
           NessieCreateBase<NessieCreateNamespace> {}
 
   interface NessieUpdateBase<U extends NessieUpdateBase<U>> {
-    NessieCatalogSnapshot update();
+    NessieTransaction update();
   }
 
   interface NessieUpdateProperties<U extends NessieUpdateBase<U>> extends NessieUpdateBase<U> {

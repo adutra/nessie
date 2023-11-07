@@ -16,16 +16,20 @@
 package org.projectnessie.catalog.model.manifest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.UUID;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.model.id.Hashable;
-import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
+@JsonSerialize(as = ImmutableNessieFieldValue.class)
+@JsonDeserialize(as = ImmutableNessieFieldValue.class)
 public interface NessieFieldValue extends Hashable {
-  NessieId fieldId();
+  UUID fieldId();
 
   @Nullable
   @jakarta.annotation.Nullable
@@ -48,7 +52,7 @@ public interface NessieFieldValue extends Hashable {
     Builder from(NessieFieldValue instance);
 
     @CanIgnoreReturnValue
-    Builder fieldId(NessieId fieldId);
+    Builder fieldId(UUID fieldId);
 
     @CanIgnoreReturnValue
     Builder icebergFieldId(@Nullable Integer icebergFieldId);

@@ -15,13 +15,14 @@
  */
 package org.projectnessie.catalog.model.schema;
 
+import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -44,8 +45,7 @@ public interface NessieSortDefinition {
   static NessieSortDefinition nessieSortDefinition(
       List<NessieSortField> fields, int icebergSortOrderId) {
     return nessieSortDefinition(
-        NessieIdHasher.nessieIdHasher()
-            .hash("NessieSortDefinition")
+        nessieIdHasher("NessieSortDefinition")
             .hashCollection(fields)
             .hash(icebergSortOrderId)
             .generate(),

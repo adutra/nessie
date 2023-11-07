@@ -40,13 +40,17 @@ import org.slf4j.LoggerFactory;
 public class HttpFileIO implements HadoopConfigurable, DelegateFileIO {
   private static final Logger LOG = LoggerFactory.getLogger(HttpFileIO.class);
 
-  private DelegateFileIO delegate;
+  private final DelegateFileIO delegate;
 
   public HttpFileIO() {
-    super();
     // TODO make the delegate configurable - requires changes to the methods implementing
     //  HadoopConfigurable
-    delegate = new ResolvingFileIO();
+    this(new ResolvingFileIO());
+  }
+
+  public HttpFileIO(DelegateFileIO delegate) {
+    super();
+    this.delegate = delegate;
   }
 
   private static boolean isHttp(String path) {
@@ -93,7 +97,7 @@ public class HttpFileIO implements HadoopConfigurable, DelegateFileIO {
 
   @Override
   public InputFile newInputFile(String path, long length) {
-    LOG.info("newInputFile {}", path);
+    LOG.info("newInputFile {} {}", path, length);
     if (isHttp(path)) {
       return new HttpInputFile(path, length);
     }
@@ -112,24 +116,28 @@ public class HttpFileIO implements HadoopConfigurable, DelegateFileIO {
 
   @Override
   public OutputFile newOutputFile(String path) {
+    LOG.info("newOutputFile {}", path);
     failForHttp(path);
     return delegate.newOutputFile(path);
   }
 
   @Override
   public void deleteFile(String path) {
+    LOG.info("deleteFile {}", path, new Exception());
     failForHttp(path);
     delegate.deleteFile(path);
   }
 
   @Override
   public void deleteFile(InputFile file) {
+    LOG.info("deleteFile {}", file.location(), new Exception());
     failForHttp();
     delegate.deleteFile(file);
   }
 
   @Override
   public void deleteFile(OutputFile file) {
+    LOG.info("deleteFile {}", file.location(), new Exception());
     failForHttp();
     delegate.deleteFile(file);
   }
@@ -146,18 +154,21 @@ public class HttpFileIO implements HadoopConfigurable, DelegateFileIO {
 
   @Override
   public Iterable<FileInfo> listPrefix(String path) {
+    LOG.info("listPrefix {}", path);
     failForHttp(path);
     return delegate.listPrefix(path);
   }
 
   @Override
   public void deletePrefix(String path) {
+    LOG.info("deletePrefix {}", path);
     failForHttp(path);
     delegate.deletePrefix(path);
   }
 
   @Override
   public void deleteFiles(Iterable<String> iterable) throws BulkDeletionFailureException {
+    LOG.info("deleteFiles");
     delegate.deleteFiles(iterable);
   }
 }

@@ -15,23 +15,28 @@
  */
 package org.projectnessie.catalog.model.manifest;
 
+import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 // Corresponds to one Iceberg manifest-file entry (aka Iceberg's ManifestEntry)
 @NessieImmutable
-public interface NessieDataFileManifest {
+@JsonSerialize(as = ImmutableNessieFileManifestEntry.class)
+@JsonDeserialize(as = ImmutableNessieFileManifestEntry.class)
+public interface NessieFileManifestEntry {
 
   @Value.Derived
   default NessieId id() {
-    return NessieIdHasher.nessieIdHasher()
+    return nessieIdHasher("NessieFileManifestEntry")
         .hash(status())
         .hash(content())
         .hash(specId())
@@ -160,12 +165,12 @@ public interface NessieDataFileManifest {
   Long icebergSnapshotId();
 
   static Builder builder() {
-    return ImmutableNessieDataFileManifest.builder();
+    return ImmutableNessieFileManifestEntry.builder();
   }
 
   interface Builder {
     @CanIgnoreReturnValue
-    Builder from(NessieDataFileManifest instance);
+    Builder from(NessieFileManifestEntry instance);
 
     @CanIgnoreReturnValue
     Builder status(NessieFileStatus status);
@@ -278,6 +283,6 @@ public interface NessieDataFileManifest {
     @CanIgnoreReturnValue
     Builder icebergSnapshotId(@Nullable Long icebergSnapshotId);
 
-    NessieDataFileManifest build();
+    NessieFileManifestEntry build();
   }
 }

@@ -24,9 +24,18 @@ import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTablePropert
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.avro.file.CodecFactory;
+import org.apache.avro.file.DataFileWriter;
 
 final class AvroSerializationContext {
+
+  void applyToDataFileWriter(DataFileWriter<?> entryWriter) {
+    entryWriter.setCodec(codec());
+    syncInterval().ifPresent(entryWriter::setSyncInterval);
+    flushOnEveryBlock().ifPresent(entryWriter::setFlushOnEveryBlock);
+  }
 
   private enum Codec {
     UNCOMPRESSED,
@@ -104,5 +113,13 @@ final class AvroSerializationContext {
 
   CodecFactory codec() {
     return codec;
+  }
+
+  OptionalInt syncInterval() {
+    return OptionalInt.empty();
+  }
+
+  Optional<Boolean> flushOnEveryBlock() {
+    return Optional.empty();
   }
 }

@@ -17,5 +17,6 @@ package org.projectnessie.catalog.model.snapshot;
 
 public enum TableFormat {
   ICEBERG,
+  ICEBERG_IMPORTED,
   DELTA_LAKE
 }

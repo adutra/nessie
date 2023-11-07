@@ -41,6 +41,7 @@ import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.timeTy
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.timestampType;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.timestamptzType;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.uuidType;
+import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -77,11 +78,11 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergTransform;
 import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.catalog.model.locations.BaseLocation;
 import org.projectnessie.catalog.model.schema.NessieField;
 import org.projectnessie.catalog.model.schema.NessieFieldTransform;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
+import org.projectnessie.catalog.model.schema.NessiePartitionField;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
 import org.projectnessie.catalog.model.schema.types.NessieTypeSpec;
@@ -145,6 +146,7 @@ public class TestNessieModelIceberg {
         .isEqualTo(icebergSchema);
 
     Map<Integer, NessieField> fieldsMap = new HashMap<>();
+    Map<Integer, NessiePartitionField> partitionFieldsMap = new HashMap<>();
     NessieSchema nessieSchema =
         NessieModelIceberg.icebergSchemaToNessieSchema(icebergSchema, fieldsMap);
     soft.assertThat(icebergJsonSerializeDeserialize(nessieSchema, NessieSchema.class))
@@ -154,9 +156,8 @@ public class TestNessieModelIceberg {
 
     soft.assertThat(icebergAgain).isEqualTo(icebergSchema);
 
-    Map<Integer, NessieField> fieldsAgain = new HashMap<>();
     NessieSchema nessieAgain =
-        NessieModelIceberg.icebergSchemaToNessieSchema(icebergAgain, fieldsAgain);
+        NessieModelIceberg.icebergSchemaToNessieSchema(icebergAgain, fieldsMap);
 
     soft.assertThat(nessieAgain).isEqualTo(nessieSchema);
 
@@ -173,7 +174,8 @@ public class TestNessieModelIceberg {
         .isEqualTo(icebergPartitionSpec);
 
     NessiePartitionDefinition nessiePartitionDefinition =
-        NessieModelIceberg.icebergPartitionSpecToNessie(icebergPartitionSpec, fieldsMap);
+        NessieModelIceberg.icebergPartitionSpecToNessie(
+            icebergPartitionSpec, partitionFieldsMap, fieldsMap);
     soft.assertThat(
             icebergJsonSerializeDeserialize(
                 nessiePartitionDefinition, NessiePartitionDefinition.class))
@@ -184,7 +186,8 @@ public class TestNessieModelIceberg {
     soft.assertThat(icebergPartitionSpecConv).isEqualTo(icebergPartitionSpec);
 
     NessiePartitionDefinition nessiePartitionDefinitionAgain =
-        NessieModelIceberg.icebergPartitionSpecToNessie(icebergPartitionSpecConv, fieldsMap);
+        NessieModelIceberg.icebergPartitionSpecToNessie(
+            icebergPartitionSpecConv, partitionFieldsMap, fieldsMap);
     soft.assertThat(nessiePartitionDefinitionAgain).isEqualTo(nessiePartitionDefinition);
 
     // sort-order
@@ -265,7 +268,8 @@ public class TestNessieModelIceberg {
     soft.assertThat(iceberg).isEqualTo(icebergWithCatalogProps);
 
     NessieTableSnapshot nessieAgain =
-        NessieModelIceberg.icebergTableSnapshotToNessie(snapshotId, null, nessie.entity(), iceberg);
+        NessieModelIceberg.icebergTableSnapshotToNessie(
+            snapshotId, nessie, nessie.entity(), iceberg);
     soft.assertThat(icebergJsonSerializeDeserialize(nessieAgain, NessieTableSnapshot.class))
         .isEqualTo(nessieAgain);
   }
@@ -354,9 +358,8 @@ public class TestNessieModelIceberg {
 
     soft.assertThat(icebergAgain).isEqualTo(icebergSchema);
 
-    Map<Integer, NessieField> fieldsAgain = new HashMap<>();
     NessieSchema nessieAgain =
-        NessieModelIceberg.icebergSchemaToNessieSchema(icebergAgain, fieldsAgain);
+        NessieModelIceberg.icebergSchemaToNessieSchema(icebergAgain, fieldsMap);
 
     soft.assertThat(nessieAgain).isEqualTo(nessieSchema);
   }
@@ -367,21 +370,23 @@ public class TestNessieModelIceberg {
     soft.assertThat(icebergJsonSerializeDeserialize(icebergType, IcebergType.class))
         .isEqualTo(icebergType);
 
+    Map<Integer, NessieField> icebergFieldIdToField = new HashMap<>();
+
     NessieTypeSpec nessieType =
-        NessieModelIceberg.icebergTypeToNessieType(icebergType, (field, id) -> {});
+        NessieModelIceberg.icebergTypeToNessieType(icebergType, icebergFieldIdToField);
     soft.assertThat(icebergJsonSerializeDeserialize(nessieType, NessieTypeSpec.class))
         .isEqualTo(nessieType);
 
     IcebergType icebergAgain = NessieModelIceberg.nessieTypeToIcebergType(nessieType);
     soft.assertThat(icebergAgain).isEqualTo(icebergType);
     NessieTypeSpec nessieAgain =
-        NessieModelIceberg.icebergTypeToNessieType(icebergAgain, (field, id) -> {});
+        NessieModelIceberg.icebergTypeToNessieType(icebergAgain, icebergFieldIdToField);
     soft.assertThat(nessieAgain).isEqualTo(nessieType);
 
     // Verify that generated 'NessieId's are deterministic
-    soft.assertThat(NessieIdHasher.nessieIdHasher().hash(nessieType).generate())
-        .isEqualTo(NessieIdHasher.nessieIdHasher().hash(nessieType).generate())
-        .isEqualTo(NessieIdHasher.nessieIdHasher().hash(nessieAgain).generate());
+    soft.assertThat(nessieIdHasher("NessieTypeSpec").hash(nessieType).generate())
+        .isEqualTo(nessieIdHasher("NessieTypeSpec").hash(nessieType).generate())
+        .isEqualTo(nessieIdHasher("NessieTypeSpec").hash(nessieAgain).generate());
   }
 
   private static IcebergSchema icebergSchemaAllTypes() {

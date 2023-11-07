@@ -43,6 +43,8 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
+// TODO make the writer reusable, so it can memoize Avro schemas.
+//  (see org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.avroSchema)
 @NessieImmutable
 public abstract class IcebergManifestFileWriter {
 
@@ -69,6 +71,15 @@ public abstract class IcebergManifestFileWriter {
   @Nullable
   @jakarta.annotation.Nullable
   public abstract byte[] keyMetadata();
+
+  public abstract OutputStream output();
+
+  public abstract String manifestPath();
+
+  @Value.Default
+  public boolean closeOutput() {
+    return false;
+  }
 
   public interface Builder {
 
@@ -98,6 +109,15 @@ public abstract class IcebergManifestFileWriter {
 
     @CanIgnoreReturnValue
     Builder keyMetadata(byte[] keyMetadata);
+
+    @CanIgnoreReturnValue
+    Builder output(OutputStream output);
+
+    @CanIgnoreReturnValue
+    Builder closeOutput(boolean closeOutput);
+
+    @CanIgnoreReturnValue
+    Builder manifestPath(String manifestPath);
 
     @CanIgnoreReturnValue
     Builder putTableProperty(String key, String value);
@@ -137,7 +157,7 @@ public abstract class IcebergManifestFileWriter {
   }
 
   @Value.Lazy
-  public IcebergManifestFileEntryWriter entryWriter(OutputStream output, String manifestPath) {
+  public IcebergManifestFileEntryWriter entryWriter() {
     String schemaJson;
     String specJson;
     // TODO String entrySchemaJson;
@@ -173,11 +193,11 @@ public abstract class IcebergManifestFileWriter {
       default:
         throw new IllegalStateException("Unknown manifest content " + content());
     }
-    entryWriter.setCodec(serializationContext.codec());
+    serializationContext.applyToDataFileWriter(entryWriter);
 
     Schema entryWriteSchema = writerSchema();
 
-    OutputContext outputContext = new OutputContext(output);
+    OutputContext outputContext = new OutputContext(output(), closeOutput());
 
     try {
       entryWriter = entryWriter.create(entryWriteSchema, outputContext);
@@ -191,7 +211,7 @@ public abstract class IcebergManifestFileWriter {
         IcebergManifestFile.builder()
             .sequenceNumber(sequenceNumber())
             .minSequenceNumber(minSequenceNumber())
-            .manifestPath(manifestPath)
+            .manifestPath(manifestPath())
             //
             .content(content())
             .addedSnapshotId(addedSnapshotId())

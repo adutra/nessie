@@ -20,9 +20,11 @@ import java.io.OutputStream;
 
 final class OutputContext extends OutputStream {
   private final OutputStream output;
+  private final boolean closeOutput;
 
-  OutputContext(OutputStream output) {
+  OutputContext(OutputStream output, boolean closeOutput) {
     this.output = output;
+    this.closeOutput = closeOutput;
   }
 
   private long written;
@@ -50,6 +52,8 @@ final class OutputContext extends OutputStream {
 
   @Override
   public void close() throws IOException {
-    output.close();
+    if (closeOutput) {
+      output.close();
+    }
   }
 }

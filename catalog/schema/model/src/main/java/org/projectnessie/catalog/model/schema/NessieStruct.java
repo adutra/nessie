@@ -36,14 +36,14 @@ public interface NessieStruct extends Hashable {
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieField> fields();
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   @Nullable
   @jakarta.annotation.Nullable
   String icebergRecordName();
 
   @Override
   default void hash(NessieIdHasher idHasher) {
-    fields().forEach(f -> idHasher.hash(f.fieldId()));
+    fields().forEach(f -> idHasher.hash(f.id()));
     idHasher.hash(icebergRecordName());
   }
 

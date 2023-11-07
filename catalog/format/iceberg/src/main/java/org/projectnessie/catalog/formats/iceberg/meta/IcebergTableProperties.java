@@ -25,4 +25,27 @@ public final class IcebergTableProperties {
   public static final String AVRO_COMPRESSION_LEVEL = "write.avro.compression-level";
   public static final String DELETE_AVRO_COMPRESSION_LEVEL = "write.delete.avro.compression-level";
   public static final String AVRO_COMPRESSION_LEVEL_DEFAULT = null;
+
+  /**
+   * Iceberg truncates per-column statistics in manifest-files for variable size types (strings,
+   * blobs) to this length by default.
+   *
+   * <p>See {@code org.apache.iceberg.TableProperties#DEFAULT_WRITE_METRICS_MODE_DEFAULT}.
+   */
+  public static final int WRITE_METRICS_DEFAULT_TRUNCATION = 16;
+
+  /**
+   * The default number of columns for which Iceberg includes statistics in metadata-files.
+   *
+   * <p>See {@code org.apache.iceberg.TableProperties#METRICS_MAX_INFERRED_COLUMN_DEFAULTS_DEFAULT}
+   */
+  public static final int WRITE_METRICS_MAX_INFERRED_COLUMNS = 100;
+
+  /**
+   * Split size applied when <em>rewriting</em> files. This value does not prevent you from
+   * generating (new) manifest-files that are bigger.).
+   *
+   * <p>See {@code org.apache.iceberg.TableProperties#METADATA_SPLIT_SIZE}.
+   */
+  public static final long METADATA_SPLIT_SIZE_DEFAULT = 32 * 1024 * 1024; // 32 MB
 }

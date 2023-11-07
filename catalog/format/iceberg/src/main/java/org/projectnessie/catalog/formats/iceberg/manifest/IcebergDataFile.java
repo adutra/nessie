@@ -54,6 +54,15 @@ public interface IcebergDataFile {
   // TODO Iceberg uses the option 'write.metadata.metrics.max-inferred-column-defaults' (default:
   //  100), see org.apache.iceberg.TableProperties.METRICS_MAX_INFERRED_COLUMN_DEFAULTS, to limit
   //  statistics to that amount of columns (first columns by iteration order)
+  // TODO Iceberg has a couple of metrics modes (org.apache.iceberg.MetricsModes):
+  //  `full` (all stats, no min/max truncation), `truncate(N)` (all stats, min/max truncated),
+  //  `counts` (all but min/max), `none` (no stats). Those are applied when writing data files
+  //  (stats from data files go into the stats in a manifest file/manifest list).
+  //  DEFAULT: See org.apache.iceberg.TableProperties#DEFAULT_WRITE_METRICS_MODE_DEFAULT
+  // (`truncate(16)`)
+  //  Configurable via:
+  //   write.metadata.metrics.column.<COL_NAME>
+  //   write.metadata.metrics.default
 
   // TODO Use Agrona-Collections
   Map<Integer, Long> columnSizes();

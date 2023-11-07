@@ -29,7 +29,9 @@ dependencies {
   implementation(project(":nessie-catalog-api-rest"))
   implementation(project(":nessie-catalog-schema-model"))
   implementation(project(":nessie-catalog-service-api"))
+  implementation(project(":nessie-catalog-service-common"))
   implementation(project(":nessie-model"))
+  implementation(project(":nessie-client"))
 
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
@@ -39,6 +41,7 @@ dependencies {
   implementation("com.fasterxml.jackson.core:jackson-annotations")
 
   implementation(libs.slf4j.api)
+  implementation(libs.guava)
 
   // javax/jakarta
   compileOnly(libs.jakarta.ws.rs.api)

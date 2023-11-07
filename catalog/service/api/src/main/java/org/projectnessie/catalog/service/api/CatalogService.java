@@ -19,6 +19,7 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 
@@ -48,7 +49,7 @@ public interface CatalogService {
       throws NessieNotFoundException;
 
   interface CatalogUriResolver {
-    URI icebergManifestList();
+    URI icebergManifestList(NessieTableSnapshot snapshot);
 
     URI icebergManifestFile(NessieId manifestFileId);
   }

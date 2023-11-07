@@ -54,7 +54,12 @@ public abstract class IcebergManifestListReader {
 
         int formatVersion = Integer.parseInt(reader.getMetaString("format-version"));
         long snapshotId = Long.parseLong(reader.getMetaString("snapshot-id"));
-        long parentSnapshotId = Long.parseLong(reader.getMetaString("parent-snapshot-id"));
+        String parentIdString = reader.getMetaString("parent-snapshot-id");
+        long parentSnapshotId =
+            // TODO Iceberg can literally write the string "null" into this Avro metadata property
+            parentIdString != null && !("null".equals(parentIdString))
+                ? Long.parseLong(parentIdString)
+                : -1L;
         long sequenceNumber =
             formatVersion >= 2 ? Long.parseLong(reader.getMetaString("sequence-number")) : 0L;
 

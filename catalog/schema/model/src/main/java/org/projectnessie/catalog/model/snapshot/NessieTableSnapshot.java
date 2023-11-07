@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.manifest.NessieListManifestEntry;
+import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
@@ -74,8 +74,8 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @Value.Lazy
   default Map<Integer, NessiePartitionDefinition> partitionDefinitionByIcebergId() {
     return partitionDefinitions().stream()
-        .filter(p -> p.icebergSpecId() != NO_PARTITION_SPEC_ID)
-        .collect(Collectors.toMap(NessiePartitionDefinition::icebergSpecId, identity()));
+        .filter(p -> p.icebergId() != NO_PARTITION_SPEC_ID)
+        .collect(Collectors.toMap(NessiePartitionDefinition::icebergId, identity()));
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -144,10 +144,17 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   String icebergManifestListLocation();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  // TODO derive this one from manifests() ?
   List<String> icebergManifestFileLocations();
 
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  List<NessieListManifestEntry> manifests();
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  @jakarta.annotation.Nullable
+  // TODO Store manifest-list externally, in a way that we can update the manifest-list w/o touching
+  //  the persisted snapshot.
+  // TODO Can we derive the ID of the manifest list from the ID of the snapshot?
+  // TODO Find a way to put multiple NessieListManifestEntry in a database row.
+  NessieFileManifestGroup fileManifestGroup();
 
   // TODO Iceberg statistics files (stored in TableMetadata - NOT in Snapshot!)
   // TODO Iceberg last updated timestamp (ms since epoch)
@@ -276,16 +283,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder addAllIcebergManifestFileLocations(Iterable<String> elements);
 
     @CanIgnoreReturnValue
-    Builder addManifest(NessieListManifestEntry element);
-
-    @CanIgnoreReturnValue
-    Builder addManifests(NessieListManifestEntry... elements);
-
-    @CanIgnoreReturnValue
-    Builder manifests(Iterable<? extends NessieListManifestEntry> elements);
-
-    @CanIgnoreReturnValue
-    Builder addAllManifests(Iterable<? extends NessieListManifestEntry> elements);
+    Builder fileManifestGroup(NessieFileManifestGroup fileManifestGroup);
 
     NessieTableSnapshot build();
   }

@@ -65,10 +65,6 @@ public interface NessieId extends Hashable {
     return NessieIdGeneric.emptyNessieId();
   }
 
-  static NessieIdHasher hash() {
-    return NessieIdHasher.nessieIdHasher();
-  }
-
   /** Constructs a new ID instance starting with the value of this ID plus the given UUID. */
   NessieId compositeWithUUID(UUID id);
 

@@ -50,6 +50,9 @@ dependencies {
   avroSchemaImplementation(libs.guava)
   avroSchemaImplementation("org.apache.iceberg:iceberg-core:$versionIceberg")
 
+  runtimeOnly(libs.zstd.jni)
+  runtimeOnly(libs.snappy.java)
+
   // javax/jakarta
   implementation(libs.javax.annotation.api) // 'implementation' for smallrye-config
   implementation(libs.jakarta.annotation.api) // 'implementation' for smallrye-config
@@ -59,6 +62,8 @@ dependencies {
 
   compileOnly(libs.errorprone.annotations)
   compileOnly(libs.microprofile.openapi)
+
+  jmhImplementation(project(":nessie-catalog-format-iceberg-fixturegen"))
 
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)

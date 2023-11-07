@@ -15,13 +15,15 @@
  */
 package org.projectnessie.catalog.model.schema;
 
+import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
+import java.util.UUID;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -31,26 +33,25 @@ public interface NessieSchema {
 
   int NO_SCHEMA_ID = -1;
 
-  NessieId schemaId();
+  NessieId id();
 
   NessieStruct struct();
 
   @Value.Default
-  default int icebergSchemaId() {
+  default int icebergId() {
     return NO_SCHEMA_ID;
   }
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  List<NessieId> identifierFieldIds();
+  List<UUID> identifierFields();
 
   static NessieSchema nessieSchema(
-      NessieStruct struct, int icebergSchemaId, List<NessieId> identifierFieldIds) {
+      NessieStruct struct, int icebergSchemaId, List<UUID> identifierFieldIds) {
     return nessieSchema(
-        NessieIdHasher.nessieIdHasher()
-            .hash("NessieSchema")
+        nessieIdHasher("NessieSchema")
             .hash(struct)
             .hash(icebergSchemaId)
-            .hashCollection(identifierFieldIds)
+            .hashUuidCollection(identifierFieldIds)
             .generate(),
         struct,
         icebergSchemaId,
@@ -58,10 +59,7 @@ public interface NessieSchema {
   }
 
   static NessieSchema nessieSchema(
-      NessieId schemaId,
-      NessieStruct struct,
-      int icebergSchemaId,
-      List<NessieId> identifierFieldIds) {
+      NessieId schemaId, NessieStruct struct, int icebergSchemaId, List<UUID> identifierFieldIds) {
     return ImmutableNessieSchema.of(schemaId, struct, icebergSchemaId, identifierFieldIds);
   }
 }

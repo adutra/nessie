@@ -15,10 +15,12 @@
  */
 package org.projectnessie.catalog.storage.backend;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
+import javax.annotation.Nullable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -78,6 +80,7 @@ public interface CatalogEntitySnapshot {
    * Contains the IDs of all schemas, except the {@linkplain #currentPartitionDefinition() ID of the
    * current one}.
    */
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieId> schemas();
 
   NessieId currentPartitionDefinition();
@@ -86,6 +89,7 @@ public interface CatalogEntitySnapshot {
    * Contains the IDs of all partition definitions, except the {@linkplain
    * #currentPartitionDefinition() ID of the current one}.
    */
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieId> partitionDefinitions();
 
   NessieId currentSortDefinition();
@@ -94,9 +98,13 @@ public interface CatalogEntitySnapshot {
    * Contains the IDs of all sort definitions, except the {@linkplain #currentPartitionDefinition()
    * ID of the current one}.
    */
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieId> sortDefinitions();
 
-  List<NessieId> manifests();
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  @jakarta.annotation.Nullable
+  NessieId fileManifestGroup();
 
   static Builder builder() {
     return ImmutableCatalogEntitySnapshot.builder();
@@ -158,16 +166,7 @@ public interface CatalogEntitySnapshot {
     Builder addAllSortDefinitions(Iterable<? extends NessieId> elements);
 
     @CanIgnoreReturnValue
-    Builder addManifest(NessieId element);
-
-    @CanIgnoreReturnValue
-    Builder addManifests(NessieId... elements);
-
-    @CanIgnoreReturnValue
-    Builder manifests(Iterable<? extends NessieId> elements);
-
-    @CanIgnoreReturnValue
-    Builder addAllManifests(Iterable<? extends NessieId> elements);
+    Builder fileManifestGroup(NessieId fileManifestGroup);
 
     CatalogEntitySnapshot build();
   }

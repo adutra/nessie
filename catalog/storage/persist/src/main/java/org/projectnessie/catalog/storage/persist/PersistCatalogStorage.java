@@ -16,11 +16,14 @@
 package org.projectnessie.catalog.storage.persist;
 
 import static java.util.Collections.emptyList;
+import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.smile.databind.SmileMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -29,7 +32,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.catalog.storage.backend.CatalogEntitySnapshot;
 import org.projectnessie.catalog.storage.backend.CatalogStorage;
 import org.projectnessie.catalog.storage.backend.ObjectMismatchException;
@@ -52,18 +54,14 @@ public class PersistCatalogStorage implements CatalogStorage {
 
   @Override
   public CatalogEntitySnapshot loadSnapshot(NessieId snapshotId) {
-    NessieId storeId =
-        NessieIdHasher.nessieIdHasher().hash("CatalogEntitySnapshot").hash(snapshotId).generate();
+    NessieId storeId = nessieIdHasher("CatalogEntitySnapshot").hash(snapshotId).generate();
     return loadObject(storeId, CatalogEntitySnapshot.class);
   }
 
   @Override
   public void createSnapshot(CatalogEntitySnapshot snapshot) throws ObjectMismatchException {
     NessieId storeId =
-        NessieIdHasher.nessieIdHasher()
-            .hash("CatalogEntitySnapshot")
-            .hash(snapshot.snapshotId())
-            .generate();
+        nessieIdHasher("CatalogEntitySnapshot").hash(snapshot.snapshotId()).generate();
     createObject(storeId, snapshot);
   }
 
@@ -145,20 +143,20 @@ public class PersistCatalogStorage implements CatalogStorage {
     }
   }
 
-  private static final ObjectMapper OBJECT_MAPPER =
-      new ObjectMapper().registerModule(new GuavaModule());
+  private static final ObjectMapper SMILE_MAPPER =
+      new SmileMapper().registerModule(new GuavaModule());
 
   private Obj serialize(ObjId id, Object value) {
     try {
       return StringObj.stringData(
           id,
-          "application/json",
+          "application/smile",
           Compression.NONE,
           // FIXME use the interface type instead of the implementation type,
           // or use constant discriminators
           value.getClass().getName(),
           emptyList(),
-          ByteString.copyFrom(OBJECT_MAPPER.writeValueAsBytes(value)));
+          ByteString.copyFrom(SMILE_MAPPER.writeValueAsBytes(value)));
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
@@ -168,7 +166,7 @@ public class PersistCatalogStorage implements CatalogStorage {
     if (!(obj instanceof StringObj)) {
       throw new UnsupportedOperationException("Unknown object type " + obj.type());
     }
-    if (!((StringObj) obj).contentType().equals("application/json")) {
+    if (!((StringObj) obj).contentType().equals("application/smile")) {
       throw new UnsupportedOperationException(
           "Unknown content type " + ((StringObj) obj).contentType());
     }
@@ -184,7 +182,9 @@ public class PersistCatalogStorage implements CatalogStorage {
                 + ", expected instance of "
                 + expectedType.getName());
       }
-      return OBJECT_MAPPER.readValue(payload.toByteArray(), clazz);
+      try (InputStream in = payload.newInput()) {
+        return SMILE_MAPPER.readValue(in, clazz);
+      }
     } catch (ClassNotFoundException | IOException e) {
       throw new RuntimeException(e);
     }

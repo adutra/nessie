@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import org.projectnessie.catalog.api.rest.spec.NessieCatalogService;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
@@ -71,6 +72,17 @@ public class CatalogTransportResource implements NessieCatalogService {
           // TODO Response should respect the JsonView / spec-version
           // TODO Add a check that the original table format was Iceberg (not Delta)
           snapshotFormat = SnapshotFormat.ICEBERG_TABLE_METADATA;
+          if (specVersion != null) {
+            reqVersion = OptionalInt.of(Integer.parseInt(specVersion));
+          }
+          break;
+        case ICEBERG_IMPORTED:
+          // Return the snapshot as an Iceberg table-metadata using either the spec-version given in
+          // the request or the one used when the table-metadata was written.
+          // TODO Does requesting a table-metadata using another spec-version make any sense?
+          // TODO Response should respect the JsonView / spec-version
+          // TODO Add a check that the original table format was Iceberg (not Delta)
+          snapshotFormat = SnapshotFormat.ICEBERG_TABLE_METADATA_IMPORTED;
           if (specVersion != null) {
             reqVersion = OptionalInt.of(Integer.parseInt(specVersion));
           }
@@ -163,8 +175,10 @@ public class CatalogTransportResource implements NessieCatalogService {
           final String keyPathString = key.toPathString();
 
           @Override
-          public URI icebergManifestList() {
-            return baseUri.resolve("manifest-list/" + keyPathString);
+          public URI icebergManifestList(NessieTableSnapshot snapshot) {
+            return snapshotFormat.useOriginalPaths()
+                ? URI.create(snapshot.icebergManifestListLocation())
+                : baseUri.resolve("manifest-list/" + keyPathString);
           }
 
           @Override

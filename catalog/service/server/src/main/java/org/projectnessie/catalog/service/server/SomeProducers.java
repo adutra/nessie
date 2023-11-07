@@ -19,6 +19,8 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.local.LocalObjectIO;
+import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
+import org.projectnessie.catalog.service.common.config.ImmutableCatalogServerConfig;
 import org.projectnessie.catalog.storage.backend.CatalogStorage;
 import org.projectnessie.catalog.storage.persist.PersistCatalogStorage;
 import org.projectnessie.client.NessieClientBuilder;
@@ -32,6 +34,12 @@ import org.projectnessie.versioned.storage.inmemory.InmemoryBackend;
  * I/O.
  */
 public class SomeProducers {
+  @Produces
+  @Singleton
+  public CatalogServerConfig catalogServerConfig() {
+    return ImmutableCatalogServerConfig.builder().sendStacktraceToClient(true).build();
+  }
+
   @Produces
   @Singleton
   public NessieApiV2 nessieApiV2() {

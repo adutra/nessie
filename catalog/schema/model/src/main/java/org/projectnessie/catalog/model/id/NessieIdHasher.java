@@ -21,14 +21,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface NessieIdHasher {
-  static NessieIdHasher nessieIdHasher() {
-    return new IdHasherImpl();
-  }
-
-  static NessieId hashObject(Hashable hashable) {
-    NessieIdHasher hasher = nessieIdHasher();
-    hashable.hash(hasher);
-    return hasher.generate();
+  static NessieIdHasher nessieIdHasher(String typeName) {
+    return new IdHasherImpl().hash(typeName);
   }
 
   NessieIdHasher hash(boolean value);
@@ -64,6 +58,8 @@ public interface NessieIdHasher {
   NessieIdHasher hash(Hashable value);
 
   NessieIdHasher hashCollection(Collection<? extends Hashable> value);
+
+  NessieIdHasher hashUuidCollection(Collection<UUID> value);
 
   NessieIdHasher hashIntCollection(Collection<Integer> value);
 

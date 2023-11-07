@@ -18,9 +18,9 @@ package org.projectnessie.catalog.model.schema;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.UUID;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.Hashable;
-import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.catalog.model.schema.types.NessieTypeSpec;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -31,7 +31,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 public interface NessiePartitionField extends Hashable {
   int NO_FIELD_ID = -1;
 
-  NessieId id();
+  UUID id();
 
   NessieField sourceField();
 
@@ -47,7 +47,7 @@ public interface NessiePartitionField extends Hashable {
   // TODO Iceberg specific
   // TODO do we want to permanently associate a field to an Iceberg column-ID?
   @Value.Default
-  default int icebergFieldId() {
+  default int icebergId() {
     return NO_FIELD_ID;
   }
 
@@ -57,19 +57,12 @@ public interface NessiePartitionField extends Hashable {
   }
 
   static NessiePartitionField nessiePartitionField(
+      UUID id,
       NessieField sourceField,
       String name,
       NessieTypeSpec type,
       NessieFieldTransform transformSpec,
       int icebergFieldId) {
-    NessieId id =
-        NessieIdHasher.nessieIdHasher()
-            .hash(sourceField.fieldId())
-            .hash(name)
-            .hash(type)
-            .hash(transformSpec)
-            .hash(icebergFieldId)
-            .generate();
     return ImmutableNessiePartitionField.of(
         id, sourceField, name, type, transformSpec, icebergFieldId);
   }
@@ -83,7 +76,7 @@ public interface NessiePartitionField extends Hashable {
     Builder from(NessiePartitionField instance);
 
     @CanIgnoreReturnValue
-    Builder id(NessieId id);
+    Builder id(UUID id);
 
     @CanIgnoreReturnValue
     Builder sourceField(NessieField sourceField);
@@ -98,7 +91,7 @@ public interface NessiePartitionField extends Hashable {
     Builder transformSpec(NessieFieldTransform transformSpec);
 
     @CanIgnoreReturnValue
-    Builder icebergFieldId(int icebergFieldId);
+    Builder icebergId(int icebergId);
 
     NessiePartitionField build();
   }

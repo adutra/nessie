@@ -17,6 +17,7 @@
 plugins {
   id("nessie-conventions-server")
   id("nessie-jacoco")
+  alias(libs.plugins.jmh)
 }
 
 extra["maven.name"] = "Nessie - Catalog - Storage Persist"
@@ -33,6 +34,7 @@ dependencies {
   implementation(platform(libs.jackson.bom))
   implementation("com.fasterxml.jackson.core:jackson-databind")
   implementation("com.fasterxml.jackson.core:jackson-annotations")
+  implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-smile")
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
 
   // javax/jakarta
@@ -47,6 +49,16 @@ dependencies {
   compileOnly(libs.errorprone.annotations)
   compileOnly(libs.microprofile.openapi)
 
+  jmhImplementation(project(":nessie-catalog-format-iceberg-fixturegen"))
+  jmhImplementation(project(":nessie-catalog-format-iceberg"))
+  jmhImplementation(platform(libs.jackson.bom))
+  jmhImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-ion")
+  jmhImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor")
+  jmhImplementation(libs.zstd.jni)
+  jmhImplementation(libs.snappy.java)
+
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
 }
+
+jmh { jmhVersion.set(libs.versions.jmh.get()) }

@@ -17,7 +17,6 @@
 plugins {
   id("nessie-conventions-server")
   id("nessie-jacoco")
-  alias(libs.plugins.annotations.stripper)
 }
 
 extra["maven.name"] = "Nessie - Catalog - Service Implementation"
@@ -57,11 +56,4 @@ dependencies {
 
   testFixturesApi(project(":nessie-combined-cs"))
   testFixturesApi(project(":nessie-catalog-storage-inmemory"))
-}
-
-annotationStripper {
-  registerDefault().configure {
-    annotationsToDrop("^jakarta[.].+".toRegex())
-    unmodifiedClassesForJavaVersion.set(11)
-  }
 }

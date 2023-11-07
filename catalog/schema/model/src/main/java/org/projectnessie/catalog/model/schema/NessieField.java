@@ -20,9 +20,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Map;
+import java.util.UUID;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
-import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.schema.types.NessieTypeSpec;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -38,12 +38,12 @@ public interface NessieField {
 
   // TODO Is it possible that the same field/column (with the same Iceberg field/column-ID) is
   //  re-added to a schema? If yes, then the Nessie field ID needs to be deterministic.
-  NessieId fieldId();
+  UUID id();
 
   // TODO Iceberg specific
   // TODO do we want to permanently associate a field to an Iceberg column-ID?
   @Value.Default
-  default int icebergColumnId() {
+  default int icebergId() {
     return NO_COLUMN_ID;
   }
 
@@ -52,6 +52,7 @@ public interface NessieField {
   NessieTypeSpec type();
 
   // TODO Delta specific - can we just ignore metadata-columns entirely??
+  @JsonInclude(JsonInclude.Include.NON_DEFAULT)
   @Value.Default
   default boolean metadataColumn() {
     return false;
@@ -76,15 +77,15 @@ public interface NessieField {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
-  String documentation();
+  String doc();
 
   interface Builder {
 
     @CanIgnoreReturnValue
-    Builder fieldId(NessieId fieldId);
+    Builder id(UUID id);
 
     @CanIgnoreReturnValue
-    Builder icebergColumnId(int icebergColumnId);
+    Builder icebergId(int icebergId);
 
     @CanIgnoreReturnValue
     Builder name(String name);
@@ -102,7 +103,7 @@ public interface NessieField {
     Builder metadata(Map<String, ? extends String> metadataMap);
 
     @CanIgnoreReturnValue
-    Builder documentation(String documentation);
+    Builder doc(String doc);
 
     @CanIgnoreReturnValue
     Builder from(NessieField from);

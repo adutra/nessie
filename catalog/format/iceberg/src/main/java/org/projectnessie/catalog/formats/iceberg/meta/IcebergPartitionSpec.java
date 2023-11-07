@@ -50,6 +50,9 @@ public interface IcebergPartitionSpec {
 
   List<IcebergPartitionField> fields();
 
+  // TODO move this elsewhere and memoize the constructed Avro-Schemas, at least temporarily, which
+  //  is useful when generating many manifest-files. See IcebergManifestFileWriter &
+  //  IcebergManifestListWriter
   default Schema avroSchema(IcebergSchema schema, String recordName) {
     List<IcebergNestedField> partitionFields = new ArrayList<>(fields().size());
     for (IcebergPartitionField partitionField : fields()) {

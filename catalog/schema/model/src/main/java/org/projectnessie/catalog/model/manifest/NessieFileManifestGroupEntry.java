@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.model.manifest;
 
+import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -23,17 +25,37 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 // Corresponds to a manifest-list entry (aka Iceberg's ManifestFile type)
 @NessieImmutable
-@JsonSerialize(as = ImmutableNessieListManifestEntry.class)
-@JsonDeserialize(as = ImmutableNessieListManifestEntry.class)
-public interface NessieListManifestEntry {
+@JsonSerialize(as = ImmutableNessieFileManifestGroupEntry.class)
+@JsonDeserialize(as = ImmutableNessieFileManifestGroupEntry.class)
+public interface NessieFileManifestGroupEntry {
   @Value.Default
   default NessieId id() {
-    return NessieIdHasher.nessieIdHasher()
+    // TODO This can probably go away?!
+    //
+    // For Iceberg this MUST be derived only from the manifest-path.
+    //
+    // Background: Iceberg produces snapshots/manifest-lists/manifests using optimistic concurrency.
+    // If something goes wrong during one attempt, it retries. This can include rewriting the
+    // manifest-list. When `SnapshotProducer.commit()` completes, it deletes all written files, that
+    // are not referenced via TableMetadata's Snapshot.manifestList(). This means, if we tweak the
+    // manifestList attribute to directly point to the Nessie Catalog server (aka return a different
+    // path), Iceberg WILL DELETE the manifest-list and manifest files during the commit.
+    //
+    // To mitigate the above, we make the ID of this type deterministic via the ORIGINAL path. The
+    // Nessie Catalog aware Iceberg Catalog will translate the requests and direct those to the
+    // Nessie Catalog service.
+    //
+    // See `org.apache.iceberg.SnapshotProducer.commit()`
+    if (icebergManifestPath() != null) {
+      return nessieIdHasher("").hash(icebergManifestPath()).generate();
+    }
+
+    // Must derive the ID from the manifest-path.
+    return nessieIdHasher("NessieListManifestEntry")
         .hash(icebergManifestPath())
         .hash(icebergManifestLength())
         .hash(partitionSpecId())
@@ -147,12 +169,12 @@ public interface NessieListManifestEntry {
   List<NessieId> dataFiles();
 
   static Builder builder() {
-    return ImmutableNessieListManifestEntry.builder();
+    return ImmutableNessieFileManifestGroupEntry.builder();
   }
 
   interface Builder {
     @CanIgnoreReturnValue
-    Builder from(NessieListManifestEntry listManifestEntry);
+    Builder from(NessieFileManifestGroupEntry listManifestEntry);
 
     @CanIgnoreReturnValue
     Builder clear();
@@ -226,6 +248,6 @@ public interface NessieListManifestEntry {
     @CanIgnoreReturnValue
     Builder addAllDataFiles(Iterable<? extends NessieId> elements);
 
-    NessieListManifestEntry build();
+    NessieFileManifestGroupEntry build();
   }
 }

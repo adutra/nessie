@@ -53,9 +53,7 @@ protobuf {
 }
 
 // The protobuf-plugin should ideally do this
-tasks.named<Jar>("sourcesJar").configure {
-  dependsOn("generateProto")
-}
+tasks.named<Jar>("sourcesJar").configure { dependsOn("generateProto") }
 
 tasks.withType(ProtobufExtract::class).configureEach {
   when (name) {

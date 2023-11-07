@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.model.schema;
 
 import static java.util.function.Function.identity;
+import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 import static org.projectnessie.catalog.model.schema.NessiePartitionField.NO_FIELD_ID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -26,7 +27,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -36,28 +36,27 @@ public interface NessiePartitionDefinition {
 
   int NO_PARTITION_SPEC_ID = -1;
 
-  NessieId partitionDefinitionId();
+  NessieId id();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  List<NessiePartitionField> columns();
+  List<NessiePartitionField> fields();
 
   @Value.Default
-  default int icebergSpecId() {
+  default int icebergId() {
     return NO_PARTITION_SPEC_ID;
   }
 
   @Value.Lazy
   default Map<Integer, NessiePartitionField> icebergColumnMap() {
-    return columns().stream()
-        .filter(f -> f.icebergFieldId() != NO_FIELD_ID)
-        .collect(Collectors.toMap(NessiePartitionField::icebergFieldId, identity()));
+    return fields().stream()
+        .filter(f -> f.icebergId() != NO_FIELD_ID)
+        .collect(Collectors.toMap(NessiePartitionField::icebergId, identity()));
   }
 
   static NessiePartitionDefinition nessiePartitionDefinition(
       List<NessiePartitionField> fields, int icebergSpecId) {
     return nessiePartitionDefinition(
-        NessieIdHasher.nessieIdHasher()
-            .hash("NessiePartitionDefinition")
+        nessieIdHasher("NessiePartitionDefinition")
             .hashCollection(fields)
             .hash(icebergSpecId)
             .generate(),
