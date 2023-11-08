@@ -53,7 +53,7 @@ public interface NessieStruct extends Hashable {
 
   interface Builder {
     @CanIgnoreReturnValue
-    Builder addFields(NessieField field);
+    Builder addField(NessieField field);
 
     @CanIgnoreReturnValue
     Builder icebergRecordName(String icebergRecordName);

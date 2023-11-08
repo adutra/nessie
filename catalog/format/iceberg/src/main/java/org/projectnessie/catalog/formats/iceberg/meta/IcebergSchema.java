@@ -78,7 +78,7 @@ public interface IcebergSchema {
     Builder schemaId(int schemaId);
 
     @CanIgnoreReturnValue
-    Builder addIdentifierFieldIds(int element);
+    Builder addIdentifierFieldId(int element);
 
     @CanIgnoreReturnValue
     Builder addIdentifierFieldIds(int... elements);
@@ -90,7 +90,7 @@ public interface IcebergSchema {
     Builder addAllIdentifierFieldIds(Iterable<Integer> elements);
 
     @CanIgnoreReturnValue
-    Builder addFields(IcebergNestedField element);
+    Builder addField(IcebergNestedField element);
 
     @CanIgnoreReturnValue
     Builder addFields(IcebergNestedField... elements);

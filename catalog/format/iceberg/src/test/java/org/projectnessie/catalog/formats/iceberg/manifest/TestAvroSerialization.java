@@ -788,9 +788,7 @@ public class TestAvroSerialization {
     partitionKey.put(0, "hello");
     partitionKey.put(1, 42);
     AvroReadWriteContext entryReadContext =
-        AvroReadWriteContext.builder()
-            .putSchemaOverrides("data_file.partition", avroSchema)
-            .build();
+        AvroReadWriteContext.builder().putSchemaOverride("data_file.partition", avroSchema).build();
 
     AvroBundle v1 = Avro.bundleFor(1);
     AvroBundle v2 = Avro.bundleFor(2);

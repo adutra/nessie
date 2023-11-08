@@ -35,7 +35,7 @@ public interface NessieDataFileManifest {
         .hash(status())
         .hash(content())
         .hash(specId())
-        .hashCollection(partition())
+        .hashCollection(partitionElements())
         .hashIntCollection(equalityIds())
         .hash(sortOrderId())
         .hash(fileFormat())
@@ -71,7 +71,7 @@ public interface NessieDataFileManifest {
   @Nullable
   @jakarta.annotation.Nullable
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  List<NessieFieldValue> partition();
+  List<NessieFieldValue> partitionElements();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   // TODO store the NessieId for the fields or both?
@@ -177,19 +177,19 @@ public interface NessieDataFileManifest {
     Builder specId(@Nullable Integer specId);
 
     @CanIgnoreReturnValue
-    Builder addPartition(NessieFieldValue element);
+    Builder addPartitionElement(NessieFieldValue element);
 
     @CanIgnoreReturnValue
-    Builder addPartition(NessieFieldValue... elements);
+    Builder addPartitionElements(NessieFieldValue... elements);
 
     @CanIgnoreReturnValue
-    Builder partition(@Nullable Iterable<? extends NessieFieldValue> elements);
+    Builder partitionElements(@Nullable Iterable<? extends NessieFieldValue> elements);
 
     @CanIgnoreReturnValue
-    Builder addAllPartition(Iterable<? extends NessieFieldValue> elements);
+    Builder addAllPartitionElements(Iterable<? extends NessieFieldValue> elements);
 
     @CanIgnoreReturnValue
-    Builder addEqualityIds(int element);
+    Builder addEqualityId(int element);
 
     @CanIgnoreReturnValue
     Builder addEqualityIds(int... elements);
@@ -219,7 +219,7 @@ public interface NessieDataFileManifest {
     Builder recordCount(@Nullable Long recordCount);
 
     @CanIgnoreReturnValue
-    Builder addSplitOffsets(long element);
+    Builder addSplitOffset(long element);
 
     @CanIgnoreReturnValue
     Builder addSplitOffsets(long... elements);
@@ -234,7 +234,7 @@ public interface NessieDataFileManifest {
     Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
-    Builder addColumns(NessieFieldSummary element);
+    Builder addColumn(NessieFieldSummary element);
 
     @CanIgnoreReturnValue
     Builder addColumns(NessieFieldSummary... elements);
@@ -252,10 +252,10 @@ public interface NessieDataFileManifest {
     Builder dataChange(@Nullable Boolean dataChange);
 
     @CanIgnoreReturnValue
-    Builder putTags(String key, String value);
+    Builder putTag(String key, String value);
 
     @CanIgnoreReturnValue
-    Builder putTags(Map.Entry<String, ? extends String> entry);
+    Builder putTag(Map.Entry<String, ? extends String> entry);
 
     @CanIgnoreReturnValue
     Builder tags(Map<String, ? extends String> entries);

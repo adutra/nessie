@@ -142,7 +142,7 @@ public interface IcebergTableMetadata {
     Builder schema(@Nullable IcebergSchema schema);
 
     @CanIgnoreReturnValue
-    Builder addSchemas(IcebergSchema element);
+    Builder addSchema(IcebergSchema element);
 
     @CanIgnoreReturnValue
     Builder addSchemas(IcebergSchema... elements);
@@ -173,7 +173,7 @@ public interface IcebergTableMetadata {
     //
 
     @CanIgnoreReturnValue
-    Builder addPartitionSpecs(IcebergPartitionSpec element);
+    Builder addPartitionSpec(IcebergPartitionSpec element);
 
     @CanIgnoreReturnValue
     Builder addPartitionSpecs(IcebergPartitionSpec... elements);
@@ -194,7 +194,7 @@ public interface IcebergTableMetadata {
     Builder defaultSortOrderId(Integer defaultSortOrderId);
 
     @CanIgnoreReturnValue
-    Builder addSortOrders(IcebergSortOrder element);
+    Builder addSortOrder(IcebergSortOrder element);
 
     @CanIgnoreReturnValue
     Builder addSortOrders(IcebergSortOrder... elements);
@@ -206,10 +206,10 @@ public interface IcebergTableMetadata {
     Builder addAllSortOrders(Iterable<? extends IcebergSortOrder> elements);
 
     @CanIgnoreReturnValue
-    Builder putProperties(String key, String value);
+    Builder putProperty(String key, String value);
 
     @CanIgnoreReturnValue
-    Builder putProperties(Map.Entry<String, ? extends String> entry);
+    Builder putProperty(Map.Entry<String, ? extends String> entry);
 
     @CanIgnoreReturnValue
     Builder properties(Map<String, ? extends String> entries);
@@ -221,10 +221,10 @@ public interface IcebergTableMetadata {
     Builder currentSnapshotId(long currentSnapshotId);
 
     @CanIgnoreReturnValue
-    Builder putRefs(String key, IcebergSnapshotRef value);
+    Builder putRef(String key, IcebergSnapshotRef value);
 
     @CanIgnoreReturnValue
-    Builder putRefs(Map.Entry<String, ? extends IcebergSnapshotRef> entry);
+    Builder putRef(Map.Entry<String, ? extends IcebergSnapshotRef> entry);
 
     @CanIgnoreReturnValue
     Builder refs(@Nullable Map<String, ? extends IcebergSnapshotRef> entries);
@@ -233,7 +233,7 @@ public interface IcebergTableMetadata {
     Builder putAllRefs(Map<String, ? extends IcebergSnapshotRef> entries);
 
     @CanIgnoreReturnValue
-    Builder addSnapshots(IcebergSnapshot element);
+    Builder addSnapshot(IcebergSnapshot element);
 
     @CanIgnoreReturnValue
     Builder addSnapshots(IcebergSnapshot... elements);
@@ -245,7 +245,7 @@ public interface IcebergTableMetadata {
     Builder addAllSnapshots(Iterable<? extends IcebergSnapshot> elements);
 
     @CanIgnoreReturnValue
-    Builder addStatistics(IcebergStatisticsFile element);
+    Builder addStatistic(IcebergStatisticsFile element);
 
     @CanIgnoreReturnValue
     Builder addStatistics(IcebergStatisticsFile... elements);

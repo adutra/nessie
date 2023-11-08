@@ -34,10 +34,10 @@ public interface AvroReadWriteContext {
     Builder clear();
 
     @CanIgnoreReturnValue
-    Builder putSchemaOverrides(String key, Schema value);
+    Builder putSchemaOverride(String key, Schema value);
 
     @CanIgnoreReturnValue
-    Builder putSchemaOverrides(Map.Entry<String, ? extends Schema> entry);
+    Builder putSchemaOverride(Map.Entry<String, ? extends Schema> entry);
 
     @CanIgnoreReturnValue
     Builder schemaOverrides(Map<String, ? extends Schema> entries);

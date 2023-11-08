@@ -83,10 +83,10 @@ public abstract class IcebergManifestListWriter {
     Builder sequenceNumber(long sequenceNumber);
 
     @CanIgnoreReturnValue
-    Builder putTableProperties(String key, String value);
+    Builder putTableProperty(String key, String value);
 
     @CanIgnoreReturnValue
-    Builder putTableProperties(Map.Entry<String, ? extends String> entry);
+    Builder putTableProperty(Map.Entry<String, ? extends String> entry);
 
     @CanIgnoreReturnValue
     Builder tableProperties(Map<String, ? extends String> entries);

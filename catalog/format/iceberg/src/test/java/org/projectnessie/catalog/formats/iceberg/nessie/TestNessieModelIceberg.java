@@ -286,7 +286,7 @@ public class TestNessieModelIceberg {
                 .currentSchemaId(INITIAL_SCHEMA_ID)
                 .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
                 .defaultSpecId(INITIAL_SPEC_ID)
-                .putProperties("prop", "value"),
+                .putProperty("prop", "value"),
             // just a schema
             IcebergTableMetadata.builder()
                 .tableUuid(UUID.randomUUID())
@@ -299,7 +299,7 @@ public class TestNessieModelIceberg {
                 .currentSchemaId(schemaAllTypes.schemaId())
                 .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
                 .defaultSpecId(INITIAL_SPEC_ID)
-                .putProperties("prop", "value")
+                .putProperty("prop", "value")
                 .addSchemas(schemaAllTypes),
             // snapshot
             IcebergTableMetadata.builder()
@@ -313,7 +313,7 @@ public class TestNessieModelIceberg {
                 .currentSchemaId(schemaAllTypes.schemaId())
                 .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
                 .defaultSpecId(INITIAL_SPEC_ID)
-                .putProperties("prop", "value")
+                .putProperty("prop", "value")
                 .addSchemas(schemaAllTypes)
                 .addSnapshots(
                     IcebergSnapshot.builder()
@@ -323,7 +323,7 @@ public class TestNessieModelIceberg {
                         .sequenceNumber(123L)
                         .timestampMs(12345678L)
                         .build())
-                .putRefs(
+                .putRef(
                     "main",
                     IcebergSnapshotRef.builder().type("branch").snapshotId(snapshotId).build())
                 .addSnapshotLog(

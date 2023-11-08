@@ -131,7 +131,7 @@ public interface IcebergManifestFile {
     Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
-    Builder addPartitions(IcebergPartitionFieldSummary element);
+    Builder addPartition(IcebergPartitionFieldSummary element);
 
     @CanIgnoreReturnValue
     Builder addPartitions(IcebergPartitionFieldSummary... elements);

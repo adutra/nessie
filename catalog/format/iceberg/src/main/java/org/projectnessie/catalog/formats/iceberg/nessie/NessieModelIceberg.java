@@ -753,7 +753,7 @@ public class NessieModelIceberg {
                   nessiePartitionField != null,
                   "No partition field in definition for Iceberg field ID %s",
                   partitionField.fieldId());
-              dataFileManifestBuilder.addPartition(
+              dataFileManifestBuilder.addPartitionElement(
                   NessieFieldValue.builder()
                       .fieldId(nessiePartitionField.id())
                       .value(serializedPartitionField)
@@ -1066,7 +1066,7 @@ public class NessieModelIceberg {
               .sequenceNumber(nessie.icebergSnapshotSequenceNumber());
       metadata.addSnapshots(snapshot.build());
 
-      metadata.putRefs(
+      metadata.putRef(
           "main", IcebergSnapshotRef.builder().snapshotId(snapshotId).type("branch").build());
 
       metadata.addSnapshotLog(
@@ -1109,27 +1109,27 @@ public class NessieModelIceberg {
     for (NessieFieldSummary column : dataFileManifest.columns()) {
       Long v = column.columnSize();
       if (v != null) {
-        dataFile.putColumnSizes(column.fieldId(), v);
+        dataFile.putColumnSize(column.fieldId(), v);
       }
       dataFile
-          .putLowerBounds(column.fieldId(), column.lowerBound())
-          .putUpperBounds(column.fieldId(), column.upperBound());
+          .putLowerBound(column.fieldId(), column.lowerBound())
+          .putUpperBound(column.fieldId(), column.upperBound());
       v = column.nanValueCount();
       if (v != null) {
-        dataFile.putNanValueCounts(column.fieldId(), v);
+        dataFile.putNanValueCount(column.fieldId(), v);
       }
       v = column.nullValueCount();
       if (v != null) {
-        dataFile.putNullValueCounts(column.fieldId(), v);
+        dataFile.putNullValueCount(column.fieldId(), v);
       }
       v = column.valueCount();
       if (v != null) {
-        dataFile.putValueCounts(column.fieldId(), v);
+        dataFile.putValueCount(column.fieldId(), v);
       }
 
       GenericData.Record record = new GenericData.Record(avroPartitionSchema);
-      for (int i = 0; i < dataFileManifest.partition().size(); i++) {
-        NessieFieldValue nessieFieldValue = dataFileManifest.partition().get(i);
+      for (int i = 0; i < dataFileManifest.partitionElements().size(); i++) {
+        NessieFieldValue nessieFieldValue = dataFileManifest.partitionElements().get(i);
         IcebergType partitionFieldType = partitionSpec.fields().get(i).type(icebergSchema);
         Object value = partitionFieldType.deserializeSingleValue(nessieFieldValue.value());
         record.put(i, value);

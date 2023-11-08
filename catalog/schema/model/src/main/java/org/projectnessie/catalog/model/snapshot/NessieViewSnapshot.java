@@ -66,10 +66,10 @@ public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
     Builder snapshotId(NessieId snapshotId);
 
     @CanIgnoreReturnValue
-    Builder putProperties(String key, String value);
+    Builder putProperty(String key, String value);
 
     @CanIgnoreReturnValue
-    Builder putProperties(Map.Entry<String, ? extends String> entry);
+    Builder putProperty(Map.Entry<String, ? extends String> entry);
 
     @CanIgnoreReturnValue
     Builder properties(Map<String, ? extends String> entries);
@@ -84,7 +84,7 @@ public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
     Builder currentSchema(@Nullable NessieSchema currentSchema);
 
     @CanIgnoreReturnValue
-    Builder addDependencies(NessieViewDependency element);
+    Builder addDependency(NessieViewDependency element);
 
     @CanIgnoreReturnValue
     Builder addDependencies(NessieViewDependency... elements);

@@ -116,7 +116,7 @@ public interface CatalogEntitySnapshot {
     Builder currentSchema(NessieId currentSchema);
 
     @CanIgnoreReturnValue
-    Builder addSchemas(NessieId element);
+    Builder addSchema(NessieId element);
 
     @CanIgnoreReturnValue
     Builder addSchemas(NessieId... elements);
@@ -131,7 +131,7 @@ public interface CatalogEntitySnapshot {
     Builder currentPartitionDefinition(NessieId currentPartitionDefinition);
 
     @CanIgnoreReturnValue
-    Builder addPartitionDefinitions(NessieId element);
+    Builder addPartitionDefinition(NessieId element);
 
     @CanIgnoreReturnValue
     Builder addPartitionDefinitions(NessieId... elements);
@@ -146,7 +146,7 @@ public interface CatalogEntitySnapshot {
     Builder currentSortDefinition(NessieId currentSortDefinition);
 
     @CanIgnoreReturnValue
-    Builder addSortDefinitions(NessieId element);
+    Builder addSortDefinition(NessieId element);
 
     @CanIgnoreReturnValue
     Builder addSortDefinitions(NessieId... elements);
@@ -158,7 +158,7 @@ public interface CatalogEntitySnapshot {
     Builder addAllSortDefinitions(Iterable<? extends NessieId> elements);
 
     @CanIgnoreReturnValue
-    Builder addManifests(NessieId element);
+    Builder addManifest(NessieId element);
 
     @CanIgnoreReturnValue
     Builder addManifests(NessieId... elements);

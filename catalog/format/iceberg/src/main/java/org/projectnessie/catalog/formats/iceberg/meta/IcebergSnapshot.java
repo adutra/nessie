@@ -134,7 +134,7 @@ public interface IcebergSnapshot {
     Builder putAllSummary(Map<String, ? extends String> entries);
 
     @CanIgnoreReturnValue
-    Builder addManifests(String element);
+    Builder addManifest(String element);
 
     @CanIgnoreReturnValue
     Builder addManifests(String... elements);

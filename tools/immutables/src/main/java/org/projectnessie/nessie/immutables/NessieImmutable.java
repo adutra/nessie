@@ -31,5 +31,7 @@ import org.immutables.value.Value;
     defaults = @Value.Immutable(lazyhash = true),
     allParameters = true,
     forceJacksonPropertyNames = false,
-    clearBuilder = true)
+    clearBuilder = true,
+    depluralize = true,
+    get = {"get*", "is*"})
 public @interface NessieImmutable {}

@@ -167,10 +167,10 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder snapshotId(NessieId snapshotId);
 
     @CanIgnoreReturnValue
-    Builder putProperties(String key, String value);
+    Builder putProperty(String key, String value);
 
     @CanIgnoreReturnValue
-    Builder putProperties(Map.Entry<String, ? extends String> entry);
+    Builder putProperty(Map.Entry<String, ? extends String> entry);
 
     @CanIgnoreReturnValue
     Builder properties(Map<String, ? extends String> entries);
@@ -191,7 +191,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder currentSortDefinition(@Nullable NessieId currentSortDefinition);
 
     @CanIgnoreReturnValue
-    Builder addSchemas(NessieSchema element);
+    Builder addSchema(NessieSchema element);
 
     @CanIgnoreReturnValue
     Builder addSchemas(NessieSchema... elements);
@@ -203,7 +203,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder addAllSchemas(Iterable<? extends NessieSchema> elements);
 
     @CanIgnoreReturnValue
-    Builder addPartitionDefinitions(NessiePartitionDefinition element);
+    Builder addPartitionDefinition(NessiePartitionDefinition element);
 
     @CanIgnoreReturnValue
     Builder addPartitionDefinitions(NessiePartitionDefinition... elements);
@@ -215,7 +215,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder addAllPartitionDefinitions(Iterable<? extends NessiePartitionDefinition> elements);
 
     @CanIgnoreReturnValue
-    Builder addSortDefinitions(NessieSortDefinition element);
+    Builder addSortDefinition(NessieSortDefinition element);
 
     @CanIgnoreReturnValue
     Builder addSortDefinitions(NessieSortDefinition... elements);
@@ -264,7 +264,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
         @jakarta.annotation.Nullable String icebergManifestListLocation);
 
     @CanIgnoreReturnValue
-    Builder addIcebergManifestFileLocations(String element);
+    Builder addIcebergManifestFileLocation(String element);
 
     @CanIgnoreReturnValue
     Builder addIcebergManifestFileLocations(String... elements);
@@ -276,7 +276,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder addAllIcebergManifestFileLocations(Iterable<String> elements);
 
     @CanIgnoreReturnValue
-    Builder addManifests(NessieListManifestEntry element);
+    Builder addManifest(NessieListManifestEntry element);
 
     @CanIgnoreReturnValue
     Builder addManifests(NessieListManifestEntry... elements);

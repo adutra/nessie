@@ -98,7 +98,7 @@ public class TestJsonSerialization {
                     emptyList(),
                     "file:///blah/blah/manifest-list",
                     42))
-            .putRefs("main", snapshotRef(123456L, "branch", null, null, null))
+            .putRef("main", snapshotRef(123456L, "branch", null, null, null))
             .build());
   }
 }

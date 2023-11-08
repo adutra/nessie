@@ -136,10 +136,10 @@ public interface IcebergDataFile {
     Builder blockSizeInBytes(@Nullable Long blockSizeInBytes);
 
     @CanIgnoreReturnValue
-    Builder putColumnSizes(int key, long value);
+    Builder putColumnSize(int key, long value);
 
     @CanIgnoreReturnValue
-    Builder putColumnSizes(Map.Entry<Integer, ? extends Long> entry);
+    Builder putColumnSize(Map.Entry<Integer, ? extends Long> entry);
 
     @CanIgnoreReturnValue
     Builder columnSizes(Map<Integer, ? extends Long> entries);
@@ -148,10 +148,10 @@ public interface IcebergDataFile {
     Builder putAllColumnSizes(Map<Integer, ? extends Long> entries);
 
     @CanIgnoreReturnValue
-    Builder putValueCounts(int key, long value);
+    Builder putValueCount(int key, long value);
 
     @CanIgnoreReturnValue
-    Builder putValueCounts(Map.Entry<Integer, ? extends Long> entry);
+    Builder putValueCount(Map.Entry<Integer, ? extends Long> entry);
 
     @CanIgnoreReturnValue
     Builder valueCounts(Map<Integer, ? extends Long> entries);
@@ -160,10 +160,10 @@ public interface IcebergDataFile {
     Builder putAllValueCounts(Map<Integer, ? extends Long> entries);
 
     @CanIgnoreReturnValue
-    Builder putNullValueCounts(int key, long value);
+    Builder putNullValueCount(int key, long value);
 
     @CanIgnoreReturnValue
-    Builder putNullValueCounts(Map.Entry<Integer, ? extends Long> entry);
+    Builder putNullValueCount(Map.Entry<Integer, ? extends Long> entry);
 
     @CanIgnoreReturnValue
     Builder nullValueCounts(Map<Integer, ? extends Long> entries);
@@ -172,10 +172,10 @@ public interface IcebergDataFile {
     Builder putAllNullValueCounts(Map<Integer, ? extends Long> entries);
 
     @CanIgnoreReturnValue
-    Builder putNanValueCounts(int key, long value);
+    Builder putNanValueCount(int key, long value);
 
     @CanIgnoreReturnValue
-    Builder putNanValueCounts(Map.Entry<Integer, ? extends Long> entry);
+    Builder putNanValueCount(Map.Entry<Integer, ? extends Long> entry);
 
     @CanIgnoreReturnValue
     Builder nanValueCounts(Map<Integer, ? extends Long> entries);
@@ -184,10 +184,10 @@ public interface IcebergDataFile {
     Builder putAllNanValueCounts(Map<Integer, ? extends Long> entries);
 
     @CanIgnoreReturnValue
-    Builder putLowerBounds(int key, byte[] value);
+    Builder putLowerBound(int key, byte[] value);
 
     @CanIgnoreReturnValue
-    Builder putLowerBounds(Map.Entry<Integer, ? extends byte[]> entry);
+    Builder putLowerBound(Map.Entry<Integer, ? extends byte[]> entry);
 
     @CanIgnoreReturnValue
     Builder lowerBounds(Map<Integer, ? extends byte[]> entries);
@@ -196,10 +196,10 @@ public interface IcebergDataFile {
     Builder putAllLowerBounds(Map<Integer, ? extends byte[]> entries);
 
     @CanIgnoreReturnValue
-    Builder putUpperBounds(int key, byte[] value);
+    Builder putUpperBound(int key, byte[] value);
 
     @CanIgnoreReturnValue
-    Builder putUpperBounds(Map.Entry<Integer, ? extends byte[]> entry);
+    Builder putUpperBound(Map.Entry<Integer, ? extends byte[]> entry);
 
     @CanIgnoreReturnValue
     Builder upperBounds(Map<Integer, ? extends byte[]> entries);
@@ -211,7 +211,7 @@ public interface IcebergDataFile {
     Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
-    Builder addSplitOffsets(long element);
+    Builder addSplitOffset(long element);
 
     @CanIgnoreReturnValue
     Builder addSplitOffsets(long... elements);
@@ -223,7 +223,7 @@ public interface IcebergDataFile {
     Builder addAllSplitOffsets(Iterable<Long> elements);
 
     @CanIgnoreReturnValue
-    Builder addEqualityIds(int element);
+    Builder addEqualityId(int element);
 
     @CanIgnoreReturnValue
     Builder addEqualityIds(int... elements);

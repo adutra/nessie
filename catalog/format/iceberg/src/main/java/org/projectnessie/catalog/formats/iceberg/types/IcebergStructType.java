@@ -98,7 +98,7 @@ public interface IcebergStructType extends IcebergComplexType {
     Builder type(String type);
 
     @CanIgnoreReturnValue
-    Builder addFields(IcebergNestedField element);
+    Builder addField(IcebergNestedField element);
 
     @CanIgnoreReturnValue
     Builder addFields(IcebergNestedField... elements);
@@ -109,6 +109,6 @@ public interface IcebergStructType extends IcebergComplexType {
     @CanIgnoreReturnValue
     Builder addAllFields(Iterable<? extends IcebergNestedField> elements);
 
-    org.projectnessie.catalog.formats.iceberg.types.IcebergStructType build();
+    IcebergStructType build();
   }
 }

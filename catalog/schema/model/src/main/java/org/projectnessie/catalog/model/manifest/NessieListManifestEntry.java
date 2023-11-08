@@ -203,7 +203,7 @@ public interface NessieListManifestEntry {
     Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
-    Builder addPartitions(NessieFieldSummary element);
+    Builder addPartition(NessieFieldSummary element);
 
     @CanIgnoreReturnValue
     Builder addPartitions(NessieFieldSummary... elements);
@@ -215,7 +215,7 @@ public interface NessieListManifestEntry {
     Builder addAllPartitions(Iterable<? extends NessieFieldSummary> elements);
 
     @CanIgnoreReturnValue
-    Builder addDataFiles(NessieId element);
+    Builder addDataFile(NessieId element);
 
     @CanIgnoreReturnValue
     Builder addDataFiles(NessieId... elements);

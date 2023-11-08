@@ -73,7 +73,7 @@ public class TestNessieSchema {
                         .type(primitiveType)
                         .documentation("doc for " + primitiveType.asString())
                         .icebergColumnId(columnId.incrementAndGet())))
-        .forEach(struct::addFields);
+        .forEach(struct::addField);
 
     NessieId schemaId = NessieId.randomNessieId();
     NessieSchema schema = NessieSchema.nessieSchema(schemaId, struct.build(), 42, emptyList());

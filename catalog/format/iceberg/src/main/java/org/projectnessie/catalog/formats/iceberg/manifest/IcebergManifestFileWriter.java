@@ -100,10 +100,10 @@ public abstract class IcebergManifestFileWriter {
     Builder keyMetadata(byte[] keyMetadata);
 
     @CanIgnoreReturnValue
-    Builder putTableProperties(String key, String value);
+    Builder putTableProperty(String key, String value);
 
     @CanIgnoreReturnValue
-    Builder putTableProperties(Map.Entry<String, ? extends String> entry);
+    Builder putTableProperty(Map.Entry<String, ? extends String> entry);
 
     @CanIgnoreReturnValue
     Builder tableProperties(Map<String, ? extends String> entries);
@@ -119,7 +119,7 @@ public abstract class IcebergManifestFileWriter {
     AvroTyped<IcebergManifestEntry> avroManifestEntry = spec().avroBundle().schemaManifestEntry();
     return avroManifestEntry.writeSchema(
         AvroReadWriteContext.builder()
-            .putSchemaOverrides("data_file.partition", partitionSpec().avroSchema(schema(), "r102"))
+            .putSchemaOverride("data_file.partition", partitionSpec().avroSchema(schema(), "r102"))
             .build());
   }
 

@@ -106,7 +106,7 @@ public interface IcebergPartitionSpec {
     Builder specId(int specId);
 
     @CanIgnoreReturnValue
-    Builder addFields(IcebergPartitionField element);
+    Builder addField(IcebergPartitionField element);
 
     @CanIgnoreReturnValue
     Builder addFields(IcebergPartitionField... elements);
