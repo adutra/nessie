@@ -3,7 +3,7 @@
 [versions]
 antlr4 = "4.13.1"
 bouncycastle = "1.70"
-checkstyle = "10.12.4"
+checkstyle = "10.12.5"
 errorprone = "2.23.0"
 errorproneSlf4j = "0.1.20"
 gatling = "3.9.5"
@@ -21,12 +21,12 @@ mavenResolver = "1.9.16"
 mockito="4.11.0"
 nessieClientVersion = "0.71.0" # Must be in sync with Nessie version in the Iceberg release.
 nessieBuildPlugins = "0.2.24"
-opentelemetry = "1.31.0"
+opentelemetry = "1.32.0"
 opentelemetryAlpha = "1.31.0-alpha"
 opentracing = "0.33.0"
 picocli = "4.7.5"
 protobuf = "3.25.0"
-quarkus = "3.5.0"
+quarkus = "3.5.1"
 slf4j = "1.7.36"
 smallryeConfig = "2.13.3"
 undertow = "2.2.28.Final"
@@ -45,7 +45,8 @@ antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "ant
 assertj-core = { module = "org.assertj:assertj-core", version = "3.24.2" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.0" }
-awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.16" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.23" }
+azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.18" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
 bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
 cassandra-driver-bom = { module = "com.datastax.oss:java-driver-bom", version = "4.17.0" }
@@ -59,19 +60,25 @@ errorprone-slf4j = { module = "jp.skypencil.errorprone.slf4j:errorprone-slf4j", 
 findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version = "3.0.2" }
 gatling-charts-highcharts = { module = "io.gatling.highcharts:gatling-charts-highcharts", version.ref = "gatling" }
 google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.29.1" }
+google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.18" }
+google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.7" }
+google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.29.1" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "googleJavaFormat" }
 grpc-bom = { module = "io.grpc:grpc-bom", version = "1.57.1" }
 guava = { module = "com.google.guava:guava", version = "32.1.3-jre" }
 h2 = { module = "com.h2database:h2", version = "2.2.224" }
 hadoop-aws = { module = "org.apache.hadoop:hadoop-aws", version.ref = "hadoop" }
+hadoop-azure = { module = "org.apache.hadoop:hadoop-azure", version.ref = "hadoop" }
 hadoop-client = { module = "org.apache.hadoop:hadoop-client", version.ref = "hadoop" }
 hadoop-common = { module = "org.apache.hadoop:hadoop-common", version.ref = "hadoop" }
 hibernate-validator-cdi = { module = "org.hibernate:hibernate-validator-cdi", version = "6.2.5.Final" }
 iceberg-api = { module = "org.apache.iceberg:iceberg-api", version.ref = "iceberg" }
 iceberg-aws = { module = "org.apache.iceberg:iceberg-aws", version.ref = "iceberg" }
+iceberg-azure = { module = "org.apache.iceberg:iceberg-azure", version.ref = "iceberg" }
 iceberg-bundled-guava = { module = "org.apache.iceberg:iceberg-bundled-guava", version.ref = "iceberg" }
 iceberg-common = { module = "org.apache.iceberg:iceberg-common", version.ref = "iceberg" }
 iceberg-core = { module = "org.apache.iceberg:iceberg-core", version.ref = "iceberg" }
+iceberg-gcp = { module = "org.apache.iceberg:iceberg-gcp", version.ref = "iceberg" }
 iceberg-hive-metastore = { module = "org.apache.iceberg:iceberg-hive-metastore", version.ref = "iceberg" }
 iceberg-nessie = { module = "org.apache.iceberg:iceberg-nessie", version.ref = "iceberg" }
 iceberg-parquet = { module = "org.apache.iceberg:iceberg-parquet", version.ref = "iceberg" }
@@ -113,7 +120,7 @@ javax-ws-rs = { module = "javax.ws.rs:javax.ws.rs-api", version = "2.1.1" }
 javax-ws-rs21 = { module = "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec", version = "2.0.2.Final" }
 jaxb-impl = { module = "com.sun.xml.bind:jaxb-impl", version = "2.3.9" }
 jersey-bom = { module = "org.glassfish.jersey:jersey-bom", version = "2.41" }
-jetbrains-annotations = { module = "org.jetbrains:annotations", version = "24.0.1" }
+jetbrains-annotations = { module = "org.jetbrains:annotations", version = "24.1.0" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -126,12 +133,12 @@ maven-resolver-connector-basic = { module = "org.apache.maven.resolver:maven-res
 maven-resolver-provider = { module = "org.apache.maven:maven-resolver-provider", version.ref = "maven" }
 maven-resolver-transport-file = { module = "org.apache.maven.resolver:maven-resolver-transport-file", version.ref = "mavenResolver" }
 maven-resolver-transport-http = { module = "org.apache.maven.resolver:maven-resolver-transport-http", version.ref = "mavenResolver" }
-micrometer-core = { module = "io.micrometer:micrometer-core", version = "1.11.5" }
+micrometer-core = { module = "io.micrometer:micrometer-core", version = "1.12.0" }
 microprofile-openapi = { module = "org.eclipse.microprofile.openapi:microprofile-openapi-api", version = "3.1.1" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
 mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
-mongodb-driver-sync = { module = "org.mongodb:mongodb-driver-sync", version = "4.11.0" }
-nessie-ui = { module = "org.projectnessie.nessie.ui:nessie-ui", version = "0.63.5" }
+mongodb-driver-sync = { module = "org.mongodb:mongodb-driver-sync", version = "4.11.1" }
+nessie-ui = { module = "org.projectnessie.nessie.ui:nessie-ui", version = "0.63.6" }
 opentelemetry-bom = { module = "io.opentelemetry:opentelemetry-bom", version.ref = "opentelemetry" }
 opentelemetry-bom-alpha = { module = "io.opentelemetry:opentelemetry-bom-alpha", version.ref = "opentelemetryAlpha" }
 opentelemetry-instrumentation-bom-alpha = { module = "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha", version.ref = "opentelemetryAlpha" }
@@ -167,7 +174,7 @@ spark-sql-v34-v212 = { module = "org.apache.spark:spark-sql_2_12", version = { s
 spark-sql-v34-v213 = { module = "org.apache.spark:spark-sql_2_13", version = { strictly = "[3.4, 3.5[", prefer = "3.4.1"}}
 spark-sql-v35-v212 = { module = "org.apache.spark:spark-sql_2_12", version = { strictly = "[3.5, 3.6[", prefer = "3.5.0"}}
 spark-sql-v35-v213 = { module = "org.apache.spark:spark-sql_2_13", version = { strictly = "[3.5, 3.6[", prefer = "3.5.0"}}
-testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version = "1.19.1" }
+testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version = "1.19.2" }
 testcontainers-keycloak = { module = "com.github.dasniko:testcontainers-keycloak", version = "2.6.0" }
 threeten-extra = { module = "org.threeten:threeten-extra", version = "1.7.2" }
 undertow-core = { module = "io.undertow:undertow-core", version.ref = "undertow" }

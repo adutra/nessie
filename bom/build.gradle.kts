@@ -26,7 +26,9 @@ extra["maven.name"] = "Nessie - Bill of Materials (BOM)"
 dependencies {
   constraints {
     api(rootProject)
+    api(project(":nessie-azurite-testcontainer"))
     api(project(":nessie-client"))
+    api(project(":nessie-client-testextension"))
     api(project(":nessie-combined-cs"))
     api(project(":nessie-compatibility-common"))
     api(project(":nessie-compatibility-tests"))
