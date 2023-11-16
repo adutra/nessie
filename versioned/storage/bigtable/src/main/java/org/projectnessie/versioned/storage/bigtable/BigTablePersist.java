@@ -409,7 +409,7 @@ public class BigTablePersist implements Persist {
   }
 
   @Override
-  public void upsertObj(
+  public void storeObj(
       @Nonnull @jakarta.annotation.Nonnull Obj obj, boolean ignoreSoftSizeRestrictions)
       throws ObjTooLargeException {
     ObjId id = obj.id();
@@ -442,7 +442,7 @@ public class BigTablePersist implements Persist {
   }
 
   @Override
-  public void upsertObjs(@Nonnull @jakarta.annotation.Nonnull Obj[] objs)
+  public void storeObjs(@Nonnull @jakarta.annotation.Nonnull Obj[] objs)
       throws ObjTooLargeException {
     if (objs.length == 0) {
       return;
@@ -450,13 +450,17 @@ public class BigTablePersist implements Persist {
 
     if (objs.length == 1) {
       if (objs[0] != null) {
-        upsertObj(objs[0]);
+        storeObj(objs[0]);
       }
       return;
     }
 
     try (Batcher<RowMutationEntry, Void> batcher =
         backend.client().newBulkMutationBatcher(backend.tableObjs)) {
+
+      int incrementalIndexSizeLimit = effectiveIncrementalIndexSizeLimit();
+      int indexSizeLimit = effectiveIndexSegmentSizeLimit();
+
       for (Obj obj : objs) {
         if (obj == null) {
           continue;
@@ -467,9 +471,7 @@ public class BigTablePersist implements Persist {
         ByteString key = dbKey(id);
 
         ByteString serialized =
-            unsafeWrap(
-                serializeObj(
-                    obj, effectiveIncrementalIndexSizeLimit(), effectiveIndexSegmentSizeLimit()));
+            unsafeWrap(serializeObj(obj, incrementalIndexSizeLimit, indexSizeLimit));
 
         batcher.add(
             RowMutationEntry.create(key)
