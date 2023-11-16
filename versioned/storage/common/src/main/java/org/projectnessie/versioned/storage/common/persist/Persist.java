@@ -280,7 +280,7 @@ public interface Persist {
   void deleteObj(@Nonnull @jakarta.annotation.Nonnull ObjId id);
 
   /**
-   * Deletes multiple objects,
+   * Deletes multiple objects.
    *
    * <p>In case an object failed to be deleted, it is undefined whether other objects have been
    * deleted or not.
@@ -290,8 +290,7 @@ public interface Persist {
   void deleteObjs(@Nonnull @jakarta.annotation.Nonnull ObjId[] ids);
 
   /**
-   * Updates an existing object or inserts it as a new object, used only for maintenance operations,
-   * never for production code. The "user facing semantics" of an object <em>must not</em> change.
+   * Updates an existing object or inserts it as a new object.
    *
    * @see #upsertObjs (Obj[])
    * @throws ObjTooLargeException thrown when a hard database row/item size limit has been hit
@@ -299,9 +298,7 @@ public interface Persist {
   void upsertObj(@Nonnull @jakarta.annotation.Nonnull Obj obj) throws ObjTooLargeException;
 
   /**
-   * Updates existing objects or inserts those as a new objects, used only for maintenance
-   * operations, never for production code. The "user facing semantics" of an object <em>must
-   * not</em> change.
+   * Updates existing objects or inserts those as new objects.
    *
    * <p>In case an object failed to be updated, it is undefined whether other objects have been
    * updated or not.
