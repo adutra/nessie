@@ -356,54 +356,6 @@ class RocksDBPersist implements Persist {
   }
 
   @Override
-  public boolean storeObj(
-      @Nonnull @jakarta.annotation.Nonnull Obj obj, boolean ignoreSoftSizeRestrictions)
-      throws ObjTooLargeException {
-    checkArgument(obj.id() != null, "Obj to store must have a non-null ID");
-
-    Lock l = repo.objLock(obj.id());
-    try {
-      RocksDBBackend b = backend;
-      TransactionDB db = b.db();
-      ColumnFamilyHandle cf = b.objs();
-      byte[] key = dbKey(obj.id());
-
-      byte[] existing = db.get(cf, key);
-      if (existing != null) {
-        return false;
-      }
-
-      int incrementalIndexSizeLimit =
-          ignoreSoftSizeRestrictions ? Integer.MAX_VALUE : effectiveIncrementalIndexSizeLimit();
-      int indexSizeLimit =
-          ignoreSoftSizeRestrictions ? Integer.MAX_VALUE : effectiveIndexSegmentSizeLimit();
-      byte[] serialized = serializeObj(obj, incrementalIndexSizeLimit, indexSizeLimit);
-
-      db.put(cf, key, serialized);
-      return true;
-    } catch (RocksDBException e) {
-      throw rocksDbException(e);
-    } finally {
-      l.unlock();
-    }
-  }
-
-  @Override
-  @Nonnull
-  @jakarta.annotation.Nonnull
-  public boolean[] storeObjs(@Nonnull @jakarta.annotation.Nonnull Obj[] objs)
-      throws ObjTooLargeException {
-    boolean[] r = new boolean[objs.length];
-    for (int i = 0; i < objs.length; i++) {
-      Obj o = objs[i];
-      if (o != null) {
-        r[i] = storeObj(o, false);
-      }
-    }
-    return r;
-  }
-
-  @Override
   public void deleteObj(@Nonnull @jakarta.annotation.Nonnull ObjId id) {
     Lock l = repo.objLock(id);
     try {
@@ -430,20 +382,24 @@ class RocksDBPersist implements Persist {
   }
 
   @Override
-  public void upsertObj(@Nonnull @jakarta.annotation.Nonnull Obj obj) throws ObjTooLargeException {
+  public void upsertObj(
+      @Nonnull @jakarta.annotation.Nonnull Obj obj, boolean ignoreSoftSizeRestrictions)
+      throws ObjTooLargeException {
     ObjId id = obj.id();
     checkArgument(id != null, "Obj to store must have a non-null ID");
 
+    byte[] key = dbKey(id);
+
+    int incrementalIndexSizeLimit =
+        ignoreSoftSizeRestrictions ? Integer.MAX_VALUE : effectiveIncrementalIndexSizeLimit();
+    int indexSizeLimit =
+        ignoreSoftSizeRestrictions ? Integer.MAX_VALUE : effectiveIndexSegmentSizeLimit();
+    byte[] serialized = serializeObj(obj, incrementalIndexSizeLimit, indexSizeLimit);
+
     Lock l = repo.objLock(obj.id());
     try {
-      RocksDBBackend b = backend;
-      TransactionDB db = b.db();
-      ColumnFamilyHandle cf = b.objs();
-      byte[] key = dbKey(id);
-
-      byte[] serialized =
-          serializeObj(obj, effectiveIncrementalIndexSizeLimit(), effectiveIndexSegmentSizeLimit());
-
+      TransactionDB db = backend.db();
+      ColumnFamilyHandle cf = backend.objs();
       db.put(cf, key, serialized);
     } catch (RocksDBException e) {
       throw rocksDbException(e);

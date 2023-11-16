@@ -254,7 +254,7 @@ class InmemoryPersist implements ValidatingPersist {
   }
 
   @Override
-  public boolean storeObj(
+  public void upsertObj(
       @Nonnull @jakarta.annotation.Nonnull Obj obj, boolean ignoreSoftSizeRestrictions)
       throws ObjTooLargeException {
     checkArgument(obj.id() != null, "Obj to store must have a non-null ID");
@@ -263,22 +263,17 @@ class InmemoryPersist implements ValidatingPersist {
       verifySoftRestrictions(obj);
     }
 
-    Obj ex = inmemory.objects.putIfAbsent(compositeKey(obj.id()), obj);
-    return ex == null;
+    inmemory.objects.put(compositeKey(obj.id()), obj);
   }
 
   @Override
-  @Nonnull
-  @jakarta.annotation.Nonnull
-  public boolean[] storeObjs(@Nonnull @jakarta.annotation.Nonnull Obj[] objs)
+  public void upsertObjs(@Nonnull @jakarta.annotation.Nonnull Obj[] objs)
       throws ObjTooLargeException {
-    boolean[] r = new boolean[objs.length];
-    for (int i = 0; i < objs.length; i++) {
-      if (objs[i] != null) {
-        r[i] = storeObj(objs[i]);
+    for (Obj obj : objs) {
+      if (obj != null) {
+        upsertObj(obj);
       }
     }
-    return r;
   }
 
   @Override
@@ -291,22 +286,6 @@ class InmemoryPersist implements ValidatingPersist {
     for (ObjId id : ids) {
       if (id != null) {
         deleteObj(id);
-      }
-    }
-  }
-
-  @Override
-  public void upsertObj(@Nonnull @jakarta.annotation.Nonnull Obj obj) throws ObjTooLargeException {
-    verifySoftRestrictions(obj);
-    inmemory.objects.put(compositeKey(obj.id()), obj);
-  }
-
-  @Override
-  public void upsertObjs(@Nonnull @jakarta.annotation.Nonnull Obj[] objs)
-      throws ObjTooLargeException {
-    for (Obj obj : objs) {
-      if (obj != null) {
-        upsertObj(obj);
       }
     }
   }
