@@ -15,11 +15,13 @@
  */
 package org.projectnessie.versioned;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.annotation.Nonnull;
@@ -130,6 +132,20 @@ public class EventsVersionStore implements VersionStore {
   @Override
   public Hash noAncestorHash() {
     return delegate.noAncestorHash();
+  }
+
+  @Nonnull
+  @jakarta.annotation.Nonnull
+  @Override
+  public UUID generateTimeUuid() {
+    return delegate.generateTimeUuid();
+  }
+
+  @Nonnull
+  @jakarta.annotation.Nonnull
+  @Override
+  public Optional<Instant> extractInstant(UUID uuid) {
+    return delegate.extractInstant(uuid);
   }
 
   @Override

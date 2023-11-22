@@ -270,6 +270,8 @@ public interface Persist {
    *
    * <p>In case an object failed to be deleted, it is undefined whether other objects have been
    * deleted or not.
+   *
+   * @param ids array with {@link ObjId}s to delete. {@code null} array elements are legal.
    */
   void deleteObjs(@Nonnull @jakarta.annotation.Nonnull ObjId[] ids);
 

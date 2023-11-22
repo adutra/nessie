@@ -129,6 +129,8 @@ public abstract class BaseApiImpl {
       IntFunction<String> squashMessage) {
     Principal principal = getPrincipal();
     String committer = principal == null ? "" : principal.getName();
-    return new DefaultMetadataRewriter(committer, Instant.now(), commitMeta, squashMessage);
+    UUID nowUuid = getStore().generateTimeUuid();
+    Instant now = getStore().extractInstant(nowUuid).orElseGet(Instant::now);
+    return new DefaultMetadataRewriter(committer, now, nowUuid, commitMeta, squashMessage);
   }
 }

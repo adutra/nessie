@@ -43,6 +43,7 @@ import org.projectnessie.versioned.GetNamedRefsParams;
 import org.projectnessie.versioned.ReferenceInfo;
 import org.projectnessie.versioned.ReferenceNotFoundException;
 import org.projectnessie.versioned.paging.PaginationIterator;
+import org.projectnessie.versioned.storage.common.config.StoreConfig;
 import org.projectnessie.versioned.storage.common.persist.Persist;
 import org.projectnessie.versioned.storage.versionstore.VersionStoreImpl;
 
@@ -145,6 +146,7 @@ public class ErrorTestService {
     }
 
     Persist persist = Mockito.mock(Persist.class);
+    Mockito.when(persist.config()).thenReturn(new StoreConfig() {});
     Mockito.when(persist.fetchReference(any())).thenThrow(ex);
 
     VersionStoreImpl tvs = new VersionStoreImpl(persist);

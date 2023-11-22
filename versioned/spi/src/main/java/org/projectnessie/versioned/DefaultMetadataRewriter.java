@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -33,20 +34,23 @@ import org.projectnessie.model.ImmutableCommitMeta;
 
 public class DefaultMetadataRewriter implements MetadataRewriter<CommitMeta> {
   public static final MetadataRewriter<CommitMeta> DEFAULT_METADATA_REWRITER =
-      new DefaultMetadataRewriter(null, null, null, numCommits -> null);
+      new DefaultMetadataRewriter(null, null, null, null, numCommits -> null);
 
   private final String committer;
   private final Instant now;
+  private final UUID nowUuid;
   private final CommitMeta commitMetaOverride;
   private final IntFunction<String> squashMessage;
 
   public DefaultMetadataRewriter(
       String committer,
       Instant now,
+      UUID nowUuid,
       CommitMeta commitMetaOverride,
       IntFunction<String> squashMessage) {
     this.committer = committer;
     this.now = now;
+    this.nowUuid = nowUuid;
     this.commitMetaOverride = commitMetaOverride;
     this.squashMessage = squashMessage;
   }
@@ -73,9 +77,14 @@ public class DefaultMetadataRewriter implements MetadataRewriter<CommitMeta> {
       metaBuilder.authorTime(now);
     }
 
+    Map<String, List<String>> allProperties;
     if (commitMetaOverride != null && !commitMetaOverride.getAllProperties().isEmpty()) {
-      metaBuilder.allProperties(commitMetaOverride.getAllProperties());
+      allProperties = new HashMap<>(commitMetaOverride.getAllProperties());
+    } else {
+      allProperties = new HashMap<>(pre.getAllProperties());
     }
+    allProperties.remove(CommitMeta.COMMIT_TIME_UUID_KEY);
+    metaBuilder.allProperties(allProperties);
 
     if (commitMetaOverride != null && !commitMetaOverride.getMessage().isEmpty()) {
       metaBuilder.message(commitMetaOverride.getMessage());
@@ -85,6 +94,10 @@ public class DefaultMetadataRewriter implements MetadataRewriter<CommitMeta> {
 
     if (committer != null) {
       metaBuilder.committer(committer);
+    }
+
+    if (nowUuid != null) {
+      metaBuilder.putProperties(CommitMeta.COMMIT_TIME_UUID_KEY, nowUuid.toString());
     }
 
     return metaBuilder.commitTime(now).build();
@@ -118,6 +131,8 @@ public class DefaultMetadataRewriter implements MetadataRewriter<CommitMeta> {
         authorTime = commitMeta.getAuthorTime();
       }
     }
+
+    newProperties.remove(CommitMeta.COMMIT_TIME_UUID_KEY);
 
     ImmutableCommitMeta.Builder newMetaBuilder =
         CommitMeta.builder().properties(newProperties).allAuthors(authors).authorTime(authorTime);

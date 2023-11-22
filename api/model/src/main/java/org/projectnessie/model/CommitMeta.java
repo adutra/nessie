@@ -15,6 +15,7 @@
  */
 package org.projectnessie.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -52,6 +54,9 @@ import org.projectnessie.model.ser.Views;
 @JsonSerialize(as = ImmutableCommitMeta.class)
 @JsonDeserialize(using = CommitMetaDeserializer.class)
 public abstract class CommitMeta {
+
+  /** The property key containing the commit time UUID. */
+  public static final String COMMIT_TIME_UUID_KEY = "nessie.commit-time-uuid";
 
   /**
    * Hash of this commit.
@@ -126,6 +131,17 @@ public abstract class CommitMeta {
   @JsonSerialize(using = InstantSerializer.class)
   @JsonDeserialize(using = InstantDeserializer.class)
   public abstract Instant getCommitTime();
+
+  /** Commit time UUID. Set by the server. */
+  // FIXME include in V3
+  @Nullable
+  @jakarta.annotation.Nullable
+  @JsonIgnore
+  @Value.Lazy
+  public UUID getCommitTimeUuid() {
+    String uuid = getProperties().get(COMMIT_TIME_UUID_KEY);
+    return uuid == null ? null : UUID.fromString(uuid);
+  }
 
   /** Original commit time in UTC. Set by the server. */
   @Nullable

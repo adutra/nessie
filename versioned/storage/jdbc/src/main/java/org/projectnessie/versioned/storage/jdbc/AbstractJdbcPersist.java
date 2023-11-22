@@ -505,8 +505,7 @@ abstract class AbstractJdbcPersist implements Persist {
     // Sadly an INSERT INTO ... ON CONFLICT DO UPDATE SET ... does not work with parameters in the
     // UPDATE SET clause. Since the JDBC connection is configured with auto-commit=false, we can
     // just DELETE the updates to be upserted and INSERT them again.
-    deleteObjs(
-          conn, stream(objs).map(obj -> obj == null ? null : obj.id()).toArray(ObjId[]::new));
+    deleteObjs(conn, stream(objs).map(obj -> obj == null ? null : obj.id()).toArray(ObjId[]::new));
 
     try (PreparedStatement ps = conn.prepareStatement(databaseSpecific.wrapInsert(STORE_OBJ))) {
       boolean[] r = new boolean[objs.length];

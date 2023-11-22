@@ -18,6 +18,7 @@ package org.projectnessie.services.impl;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.projectnessie.model.CommitMeta.COMMIT_TIME_UUID_KEY;
 import static org.projectnessie.model.CommitMeta.fromMessage;
 import static org.projectnessie.model.FetchOption.ALL;
 import static org.projectnessie.model.FetchOption.MINIMAL;
@@ -477,7 +478,7 @@ public abstract class AbstractTestCommitLog extends BaseTestServiceImpl {
               assertThat(c.getOperations()).isNull();
               assertThat(c.getParentCommitHash()).isNotNull();
               assertThat(c.getAdditionalParents()).isEmpty();
-              assertThat(c.getCommitMeta().getProperties()).isEmpty();
+              assertThat(c.getCommitMeta().getProperties()).containsOnlyKeys(COMMIT_TIME_UUID_KEY);
             })
         .extracting(e -> e.getCommitMeta().getHash())
         .containsExactlyElementsOf(hashes);

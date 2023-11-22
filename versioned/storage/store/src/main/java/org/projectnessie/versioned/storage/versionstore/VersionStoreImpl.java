@@ -60,7 +60,12 @@ import static org.projectnessie.versioned.storage.versionstore.TypeMapping.store
 import static org.projectnessie.versioned.storage.versionstore.TypeMapping.toCommitMeta;
 import static org.projectnessie.versioned.store.DefaultStoreWorker.contentTypeForPayload;
 
+import com.github.f4b6a3.uuid.factory.function.TimeFunction;
+import com.github.f4b6a3.uuid.factory.function.impl.DefaultTimeFunction;
+import com.github.f4b6a3.uuid.factory.function.impl.WindowsTimeFunction;
+import com.github.f4b6a3.uuid.factory.rfc4122.TimeBasedFactory;
 import com.google.common.collect.AbstractIterator;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -151,6 +156,7 @@ public class VersionStoreImpl implements VersionStore {
 
   public static final int GET_KEYS_CONTENT_BATCH_SIZE = 50;
   private final Persist persist;
+  private final TimeBasedFactory uuidFactory;
 
   @SuppressWarnings("unused")
   public VersionStoreImpl() {
@@ -159,6 +165,13 @@ public class VersionStoreImpl implements VersionStore {
 
   public VersionStoreImpl(Persist persist) {
     this.persist = persist;
+    String os = System.getProperty("os.name");
+    Clock clock = persist == null ? Clock.systemUTC() : persist.config().clock();
+    TimeFunction timeFunction =
+        os != null && os.toLowerCase().startsWith("win")
+            ? new WindowsTimeFunction(clock)
+            : new DefaultTimeFunction(clock);
+    uuidFactory = TimeBasedFactory.builder().withTimeFunction(timeFunction).build();
   }
 
   @Nonnull
@@ -182,6 +195,13 @@ public class VersionStoreImpl implements VersionStore {
   @Override
   public Hash noAncestorHash() {
     return RefMapping.NO_ANCESTOR;
+  }
+
+  @Nonnull
+  @jakarta.annotation.Nonnull
+  @Override
+  public UUID generateTimeUuid() {
+    return uuidFactory.create();
   }
 
   @Override

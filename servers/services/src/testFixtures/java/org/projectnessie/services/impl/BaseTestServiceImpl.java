@@ -108,6 +108,8 @@ public abstract class BaseTestServiceImpl {
   private Authorizer authorizer = NOOP_AUTHORIZER;
   private Principal principal;
 
+  private VersionStore versionStore;
+
   protected final ConfigApiImpl configApi() {
     return new ConfigApiImpl(config(), versionStore(), authorizer(), this::principal, 2);
   }
@@ -150,14 +152,19 @@ public abstract class BaseTestServiceImpl {
   }
 
   protected VersionStore versionStore() {
+    if (versionStore != null) {
+      return versionStore;
+    }
     if (persist != null) {
       checkState(
           databaseAdapter == null,
           "Either Persist or DatabaseAdapter should be present - never both");
-      return new VersionStoreImpl(persist);
+      versionStore = new VersionStoreImpl(persist);
+      return versionStore;
     }
     if (databaseAdapter != null) {
-      return new PersistVersionStore(databaseAdapter);
+      versionStore = new PersistVersionStore(databaseAdapter);
+      return versionStore;
     }
     throw new IllegalStateException("Neither Persist nor DatabaseAdapter instance present");
   }

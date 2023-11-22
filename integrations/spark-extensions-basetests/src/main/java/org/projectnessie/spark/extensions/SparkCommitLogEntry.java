@@ -62,6 +62,10 @@ abstract class SparkCommitLogEntry {
 
   @SuppressWarnings("unchecked")
   static SparkCommitLogEntry fromShowLog(Object[] row) {
+    Map<String, String> properties = new HashMap<>((Map<String, String>) row[7]);
+    // omit the commit-time-uuid
+    // cannot reference CommitMeta.COMMIT_TIME_UUID_KEY because of older versions of the model
+    properties.remove("nessie.commit-time-uuid");
     return ImmutableSparkCommitLogEntry.builder()
         .author((String) row[0])
         // omit the committer! .committer((String) row[1])
@@ -70,7 +74,7 @@ abstract class SparkCommitLogEntry {
         .signedOffBy((String) row[4])
         .authorTime((Timestamp) row[5])
         // commit-time omitted
-        .properties((Map<String, String>) row[7])
+        .properties(properties)
         .build();
   }
 

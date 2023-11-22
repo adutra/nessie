@@ -39,6 +39,8 @@ dependencies {
 
   implementation(libs.guava)
 
+  implementation(libs.uuid.creator)
+
   // javax/jakarta
   compileOnly(libs.jakarta.validation.api)
   compileOnly(libs.javax.validation.api)

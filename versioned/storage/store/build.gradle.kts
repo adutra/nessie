@@ -53,6 +53,8 @@ dependencies {
   compileOnly(platform(libs.jackson.bom))
   compileOnly("com.fasterxml.jackson.core:jackson-annotations")
 
+  implementation(libs.uuid.creator)
+
   testImplementation(project(":nessie-server-store"))
   testImplementation(project(":nessie-versioned-storage-common-tests"))
   testImplementation(project(":nessie-versioned-storage-inmemory"))

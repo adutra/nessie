@@ -20,10 +20,12 @@ import static java.time.temporal.ChronoUnit.DAYS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.projectnessie.model.CommitMeta.COMMIT_TIME_UUID_KEY;
 import static org.projectnessie.model.CommitMeta.fromMessage;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
@@ -41,31 +43,32 @@ class TestDefaultMetadataRewriter {
   static Instant NOW = now();
   static Instant AUTHOR_TIME = now().minus(30, DAYS);
   static Instant AUTHOR_TIME_OLDER = now().minus(31, DAYS);
+  static UUID NOW_UUID = UUID.randomUUID();
 
   @ParameterizedTest
   @MethodSource("rewriteSingle")
   void rewriteSingle(String committer, CommitMeta inNessie, CommitMeta expected) {
     CommitMeta parameter = null;
     DefaultMetadataRewriter updater =
-        new DefaultMetadataRewriter(committer, NOW, parameter, p -> null);
+        new DefaultMetadataRewriter(committer, NOW, NOW_UUID, parameter, p -> null);
     soft.assertThat(updater.rewriteSingle(inNessie)).isEqualTo(expected);
     soft.assertThat(updater.squash(singletonList(inNessie), 1)).isEqualTo(expected);
 
     parameter = fromMessage("forced message");
-    updater = new DefaultMetadataRewriter(committer, NOW, parameter, p -> null);
+    updater = new DefaultMetadataRewriter(committer, NOW, NOW_UUID, parameter, p -> null);
     CommitMeta expectedUpdated =
         CommitMeta.builder().from(expected).message("forced message").build();
     soft.assertThat(updater.rewriteSingle(inNessie)).isEqualTo(expectedUpdated);
     soft.assertThat(updater.squash(singletonList(inNessie), 1)).isEqualTo(expectedUpdated);
 
     parameter = CommitMeta.builder().message("").authorTime(AUTHOR_TIME_OLDER).build();
-    updater = new DefaultMetadataRewriter(committer, NOW, parameter, p -> null);
+    updater = new DefaultMetadataRewriter(committer, NOW, NOW_UUID, parameter, p -> null);
     expectedUpdated = CommitMeta.builder().from(expected).authorTime(AUTHOR_TIME_OLDER).build();
     soft.assertThat(updater.rewriteSingle(inNessie)).isEqualTo(expectedUpdated);
     soft.assertThat(updater.squash(singletonList(inNessie), 1)).isEqualTo(expectedUpdated);
 
     parameter = CommitMeta.builder().message("").addAllAuthors("myself").build();
-    updater = new DefaultMetadataRewriter(committer, NOW, parameter, p -> null);
+    updater = new DefaultMetadataRewriter(committer, NOW, NOW_UUID, parameter, p -> null);
     expectedUpdated =
         CommitMeta.builder().from(expected).allAuthors(singletonList("myself")).build();
     soft.assertThat(updater.rewriteSingle(inNessie)).isEqualTo(expectedUpdated);
@@ -77,25 +80,29 @@ class TestDefaultMetadataRewriter {
   void squash(String committer, List<CommitMeta> inNessie, CommitMeta expected) {
     CommitMeta parameter = null;
     DefaultMetadataRewriter updater =
-        new DefaultMetadataRewriter(committer, NOW, parameter, p -> "Default message for " + p);
+        new DefaultMetadataRewriter(
+            committer, NOW, NOW_UUID, parameter, p -> "Default message for " + p);
     soft.assertThat(updater.squash(inNessie, inNessie.size())).isEqualTo(expected);
 
     parameter = fromMessage("forced message");
     updater =
-        new DefaultMetadataRewriter(committer, NOW, parameter, p -> "Default message for " + p);
+        new DefaultMetadataRewriter(
+            committer, NOW, NOW_UUID, parameter, p -> "Default message for " + p);
     CommitMeta expectedUpdated =
         CommitMeta.builder().from(expected).message("forced message").build();
     soft.assertThat(updater.squash(inNessie, inNessie.size())).isEqualTo(expectedUpdated);
 
     parameter = CommitMeta.builder().message("").authorTime(AUTHOR_TIME_OLDER).build();
     updater =
-        new DefaultMetadataRewriter(committer, NOW, parameter, p -> "Default message for " + p);
+        new DefaultMetadataRewriter(
+            committer, NOW, NOW_UUID, parameter, p -> "Default message for " + p);
     expectedUpdated = CommitMeta.builder().from(expected).authorTime(AUTHOR_TIME_OLDER).build();
     soft.assertThat(updater.squash(inNessie, inNessie.size())).isEqualTo(expectedUpdated);
 
     parameter = CommitMeta.builder().message("").addAllAuthors("myself").build();
     updater =
-        new DefaultMetadataRewriter(committer, NOW, parameter, p -> "Default message for " + p);
+        new DefaultMetadataRewriter(
+            committer, NOW, NOW_UUID, parameter, p -> "Default message for " + p);
     expectedUpdated =
         CommitMeta.builder().from(expected).allAuthors(singletonList("myself")).build();
     soft.assertThat(updater.squash(inNessie, inNessie.size())).isEqualTo(expectedUpdated);
@@ -113,6 +120,7 @@ class TestDefaultMetadataRewriter {
                 .authorTime(NOW)
                 .addAllAuthors("c1")
                 .message("just a message")
+                .putProperties(COMMIT_TIME_UUID_KEY, NOW_UUID.toString())
                 .build()),
         // 2
         arguments(
@@ -124,6 +132,7 @@ class TestDefaultMetadataRewriter {
                 .authorTime(NOW)
                 .addAllAuthors("author1")
                 .message("just a message")
+                .putProperties(COMMIT_TIME_UUID_KEY, NOW_UUID.toString())
                 .build()),
         // 3
         arguments(
@@ -135,6 +144,7 @@ class TestDefaultMetadataRewriter {
                 .authorTime(AUTHOR_TIME)
                 .addAllAuthors("c3")
                 .message("just a message")
+                .putProperties(COMMIT_TIME_UUID_KEY, NOW_UUID.toString())
                 .build()));
   }
 
@@ -150,6 +160,7 @@ class TestDefaultMetadataRewriter {
                 .authorTime(NOW)
                 .addAllAuthors("c1")
                 .message("Default message for 2")
+                .putProperties(COMMIT_TIME_UUID_KEY, NOW_UUID.toString())
                 .build()),
         // 2
         arguments(
@@ -173,6 +184,7 @@ class TestDefaultMetadataRewriter {
                 .authorTime(AUTHOR_TIME)
                 .addAllAuthors("author1", "author2", "author3")
                 .message("Default message for 4")
+                .putProperties(COMMIT_TIME_UUID_KEY, NOW_UUID.toString())
                 .build()));
   }
 }

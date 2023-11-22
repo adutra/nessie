@@ -945,8 +945,8 @@ public class AbstractBasePersistTests {
   }
 
   /**
-   * Make sure that objects <em>inserted</em> with {@link Persist#upsertObj(Obj)} and {@link
-   * Persist#upsertObjs(Obj[])} can be retrieved with {@link Persist#fetchObjs(ObjId[])} and {@link
+   * Make sure that objects <em>inserted</em> with {@link Persist#storeObj(Obj)} and {@link
+   * Persist#storeObjs(Obj[])} can be retrieved with {@link Persist#fetchObjs(ObjId[])} and {@link
    * Persist#scanAllObjects(Set)}.
    */
   @Test
@@ -955,8 +955,8 @@ public class AbstractBasePersistTests {
 
     persist.erase();
 
-    persist.upsertObj(objs[0]);
-    persist.upsertObjs(stream(objs).skip(1).toArray(Obj[]::new));
+    persist.storeObj(objs[0]);
+    persist.storeObjs(stream(objs).skip(1).toArray(Obj[]::new));
 
     soft.assertThat(persist.fetchObj(objs[0].id())).isEqualTo(objs[0]);
 
@@ -973,14 +973,11 @@ public class AbstractBasePersistTests {
   }
 
   @Test
-  public void nullHandlingInArrays() throws ObjTooLargeException, ObjNotFoundException {
-    soft.assertThat(persist.storeObjs(new Obj[] {null})).containsExactly(false);
-    soft.assertThatCode(() -> persist.upsertObjs(new Obj[] {null})).doesNotThrowAnyException();
+  public void nullHandlingInArrays() throws ObjNotFoundException {
+    soft.assertThatCode(() -> persist.storeObjs(new Obj[] {null})).doesNotThrowAnyException();
     soft.assertThat(persist.fetchObjs(new ObjId[] {null})).containsExactly((Obj) null);
     soft.assertThatCode(() -> persist.deleteObjs(new ObjId[] {null})).doesNotThrowAnyException();
-    soft.assertThat(persist.storeObjs(new Obj[] {null, null})).containsExactly(false, false);
-    soft.assertThatCode(() -> persist.upsertObjs(new Obj[] {null, null}))
-        .doesNotThrowAnyException();
+    soft.assertThatCode(() -> persist.storeObjs(new Obj[] {null, null})).doesNotThrowAnyException();
     soft.assertThat(persist.fetchObjs(new ObjId[] {null, null})).containsExactly(null, null);
     soft.assertThatCode(() -> persist.deleteObjs(new ObjId[] {null, null}))
         .doesNotThrowAnyException();

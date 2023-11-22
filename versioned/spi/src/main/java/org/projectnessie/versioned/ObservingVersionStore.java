@@ -19,11 +19,13 @@ import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import javax.annotation.Nonnull;
 import org.projectnessie.model.CommitMeta;
@@ -74,6 +76,20 @@ public class ObservingVersionStore implements VersionStore {
   @Override
   public Hash noAncestorHash() {
     return delegate.noAncestorHash();
+  }
+
+  @Nonnull
+  @jakarta.annotation.Nonnull
+  @Override
+  public UUID generateTimeUuid() {
+    return delegate.generateTimeUuid();
+  }
+
+  @Nonnull
+  @jakarta.annotation.Nonnull
+  @Override
+  public Optional<Instant> extractInstant(UUID uuid) {
+    return delegate.extractInstant(uuid);
   }
 
   @WithSpan

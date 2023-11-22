@@ -513,10 +513,8 @@ public abstract class AbstractMerge extends AbstractNestedVersionStore {
                                 Put.of(ContentKey.of("t2"), V_2_1),
                                 Put.of(ContentKey.of("t3"), V_3_1)))));
     soft.assertThat(mergeResult.getTargetCommits()).isNull();
-    if (!isNewStorageModel()) {
-      // The branch was fast-forwarded to firstCommit, so no commits added
-      soft.assertThat(mergeResult.getCreatedCommits()).isEmpty();
-    }
+    // The branch was fast-forwarded to firstCommit, so no commits added
+    soft.assertThat(mergeResult.getCreatedCommits()).isEmpty();
     soft.assertThat(mergeResult.getDetails())
         .containsKeys(ContentKey.of("t1"), ContentKey.of("t2"), ContentKey.of("t3"));
     soft.assertThat(mergeResult)

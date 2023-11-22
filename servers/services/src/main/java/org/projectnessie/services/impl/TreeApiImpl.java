@@ -805,6 +805,10 @@ public class TreeApiImpl extends BaseApiImpl implements TreeService {
           commitMeta.getParentCommitHashes() == null
               || commitMeta.getParentCommitHashes().isEmpty(),
           "Cannot set the parent commit hashes on the client side. It is set by the server.");
+      checkArgument(
+          commitMeta.getProperties() == null
+              || commitMeta.getProperties().get(CommitMeta.COMMIT_TIME_UUID_KEY) == null,
+          "Cannot set the commit timeuuid on the client side. It is set by the server.");
     }
   }
 

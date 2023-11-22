@@ -17,11 +17,15 @@ package org.projectnessie.versioned;
 
 import static org.projectnessie.versioned.DefaultMetadataRewriter.DEFAULT_METADATA_REWRITER;
 
+import com.github.f4b6a3.uuid.UuidCreator;
+import com.github.f4b6a3.uuid.util.UuidUtil;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
@@ -78,6 +82,29 @@ public interface VersionStore {
   @Nonnull
   @jakarta.annotation.Nonnull
   Hash noAncestorHash();
+
+  /**
+   * Generate a new time-based UUID. The generated uuid is suitable for use as a commit time uuid,
+   * or an event id.
+   */
+  @Nonnull
+  @jakarta.annotation.Nonnull
+  default UUID generateTimeUuid() {
+    return UuidCreator.getTimeBased();
+  }
+
+  /**
+   * Extract the instant from a time-based UUID. Returns {@link Optional#empty()} if the UUID is not
+   * time-based.
+   */
+  @Nonnull
+  @jakarta.annotation.Nonnull
+  default Optional<Instant> extractInstant(UUID uuid) {
+    if (UuidUtil.isTimeBased(uuid)) {
+      return Optional.of(UuidUtil.getInstant(uuid));
+    }
+    return Optional.empty();
+  }
 
   /**
    * Create a new commit and add to a branch.

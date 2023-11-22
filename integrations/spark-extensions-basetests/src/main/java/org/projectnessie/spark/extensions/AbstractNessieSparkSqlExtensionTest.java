@@ -26,7 +26,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -566,51 +565,28 @@ public abstract class AbstractNessieSparkSqlExtensionTest extends SparkSqlTestBa
   void showLogIn() throws NessieConflictException, NessieNotFoundException, AnalysisException {
     List<SparkCommitLogEntry> resultList = createBranchCommitAndReturnLog();
     // here we are skipping commit time as its variable
-    assertThat(
-            sql("SHOW LOG %s IN nessie", refName).stream()
-                .map(SparkCommitLogEntry::fromShowLog)
-                .filter(e -> !e.getMessage().startsWith("INFRA: "))
-                .collect(Collectors.toList()))
-        .containsExactlyElementsOf(resultList);
+    List<SparkCommitLogEntry> actual =
+        sql("SHOW LOG %s IN nessie", refName).stream()
+            .map(SparkCommitLogEntry::fromShowLog)
+            .filter(e -> !e.getMessage().startsWith("INFRA: "))
+            .collect(Collectors.toList());
+    assertThat(actual).containsExactlyElementsOf(resultList);
 
     // test to ensure property map is correctly encoded by Spark
     spark.sql(String.format("SHOW LOG %s IN nessie", refName)).createTempView("nessie_log");
 
-    assertThat(
-            spark
-                .sql(
-                    "SELECT author, committer, hash, message, signedOffBy, authorTime, committerTime, EXPLODE(properties) from nessie_log")
-                .groupBy(
-                    "author",
-                    "committer",
-                    "hash",
-                    "message",
-                    "signedOffBy",
-                    "authorTime",
-                    "committerTime")
-                .pivot("key")
-                .agg(functions.first("value"))
-                .orderBy(functions.desc("committerTime"))
-                .collectAsList()
-                .stream()
-                .map(AbstractNessieSparkSqlExtensionTest::toJava)
-                .peek(row -> row[7] = Collections.singletonMap("test", (String) row[7]))
-                .map(SparkCommitLogEntry::fromShowLog)
-                .collect(Collectors.toList()))
-        .containsExactlyElementsOf(resultList);
-  }
-
-  @Test
-  void showLog() throws NessieConflictException, NessieNotFoundException {
-    List<SparkCommitLogEntry> resultList = createBranchCommitAndReturnLog();
-
-    // here we are skipping commit time as its variable
-    assertThat(
-            sql("SHOW LOG %s IN nessie", refName).stream()
-                .map(SparkCommitLogEntry::fromShowLog)
-                .filter(e -> !e.getMessage().startsWith("INFRA: "))
-                .collect(Collectors.toList()))
-        .containsExactlyElementsOf(resultList);
+    actual =
+        spark
+            .sql(
+                "SELECT author, committer, hash, message, signedOffBy, authorTime, committerTime, properties from nessie_log")
+            .orderBy(functions.desc("committerTime"))
+            .collectAsList()
+            .stream()
+            .filter(row -> !((String) row.get(3)).startsWith("INFRA"))
+            .map(AbstractNessieSparkSqlExtensionTest::toJava)
+            .map(SparkCommitLogEntry::fromShowLog)
+            .collect(Collectors.toList());
+    assertThat(actual).containsExactlyElementsOf(resultList);
   }
 
   @Test

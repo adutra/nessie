@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -109,6 +108,7 @@ import org.projectnessie.model.ImmutableIcebergTable;
 import org.projectnessie.model.ImmutableReferenceMetadata;
 import org.projectnessie.model.LogResponse;
 import org.projectnessie.model.LogResponse.LogEntry;
+import org.projectnessie.model.MergeResponse;
 import org.projectnessie.model.MergeResponse.ContentKeyConflict;
 import org.projectnessie.model.MergeResponse.ContentKeyDetails;
 import org.projectnessie.model.Namespace;
@@ -684,22 +684,22 @@ public abstract class BaseTestNessieApi {
       main2 = api().getReference().refName(main.getName()).get();
       List<LogEntry> postMergeLog =
           api().getCommitLog().refName(main.getName()).get().getLogEntries();
-      soft.assertThat(postMergeLog)
-          .hasSize(3)
-          .first()
-          .extracting(LogEntry::getCommitMeta)
+      soft.assertThat(postMergeLog).hasSize(3);
+      CommitMeta commitMeta = postMergeLog.get(0).getCommitMeta();
+      soft.assertThat(commitMeta)
           .extracting(
               CommitMeta::getMessage,
               CommitMeta::getAllAuthors,
               CommitMeta::getAllSignedOffBy,
-              CommitMeta::getAuthorTime,
-              CommitMeta::getProperties)
+              CommitMeta::getAuthorTime)
           .containsExactly(
               "My custom merge message",
               singletonList("NessieHerself"),
               singletonList("Arctic"),
-              Instant.EPOCH,
-              singletonMap("property", "value"));
+              Instant.EPOCH);
+      soft.assertThat(commitMeta.getProperties())
+          .containsEntry("property", "value")
+          .containsKey(CommitMeta.COMMIT_TIME_UUID_KEY);
     } else {
       api().mergeRefIntoBranch().fromRef(branch).branch(main).keepIndividualCommits(false).merge();
       main2 = api().getReference().refName(main.getName()).get();
@@ -743,6 +743,39 @@ public abstract class BaseTestNessieApi {
                 .refName(main.getName())
                 .get())
         .containsKeys(ContentKey.of("a", "a"), ContentKey.of("b", "a"), ContentKey.of("b", "b"));
+  }
+
+  // Temporary test demonstrating that it is not possible to fast-forward IRL,
+  // because of commit time (and now commit timeuuid too).
+  @Test
+  public void commitMergeTransplantNoFastForward() throws Exception {
+    Branch main = api().getDefaultBranch();
+    main = prepCommit(main, "common ancestor", dummyPut("a")).commit();
+
+    Branch branch = createReference(Branch.of("branch", main.getHash()), main.getName());
+    branch = prepCommit(branch, "c1", dummyPut("b")).commit();
+
+    MergeResponse response =
+        api()
+            .transplantCommitsIntoBranch()
+            .fromRefName(branch.getName())
+            .hashesToTransplant(Collections.singletonList(branch.getHash()))
+            .branch(main)
+            .transplant();
+
+    LogEntry source =
+        api().getCommitLog().reference(branch).fetch(ALL).get().getLogEntries().get(0);
+    LogEntry target =
+        api()
+            .getCommitLog()
+            .refName(main.getName())
+            .hashOnRef(response.getResultantTargetHash())
+            .fetch(ALL)
+            .get()
+            .getLogEntries()
+            .get(0);
+
+    soft.assertThat(source).isNotEqualTo(target);
   }
 
   @Test
@@ -1327,21 +1360,22 @@ public abstract class BaseTestNessieApi {
     BiConsumer<Reference, String> checkMeta =
         (ref, msg) -> {
           try (Stream<LogEntry> log = api().getCommitLog().reference(ref).maxRecords(1).stream()) {
-            soft.assertThat(log)
-                .first()
-                .extracting(LogEntry::getCommitMeta)
+            CommitMeta commitMeta =
+                log.map(LogEntry::getCommitMeta).findFirst().orElseThrow(AssertionError::new);
+            soft.assertThat(commitMeta)
                 .extracting(
                     CommitMeta::getMessage,
                     CommitMeta::getAllAuthors,
                     CommitMeta::getAuthorTime,
-                    CommitMeta::getAllSignedOffBy,
-                    CommitMeta::getProperties)
+                    CommitMeta::getAllSignedOffBy)
                 .containsExactly(
                     msg + " my namespace with commit meta",
                     singletonList("NessieHerself"),
                     Instant.EPOCH,
-                    singletonList("Arctic"),
-                    singletonMap("property", "value"));
+                    singletonList("Arctic"));
+            soft.assertThat(commitMeta.getProperties())
+                .containsKey(CommitMeta.COMMIT_TIME_UUID_KEY)
+                .containsEntry("property", "value");
           } catch (NessieNotFoundException e) {
             throw new RuntimeException(e);
           }
