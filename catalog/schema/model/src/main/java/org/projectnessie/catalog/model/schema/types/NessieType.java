@@ -186,7 +186,7 @@ public enum NessieType {
   }
 
   public static NessieTimeTypeSpec timeType(boolean withTimeZone) {
-    return withTimeZone ? TIME_TYPE : TIME_WITH_TZ_TYPE;
+    return withTimeZone ? TIME_WITH_TZ_TYPE : TIME_TYPE;
   }
 
   public static NessieTimeTypeSpec timeType(int precision, boolean withTimeZone) {
