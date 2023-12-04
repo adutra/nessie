@@ -15,7 +15,6 @@
  */
 package org.projectnessie.quarkus.config;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
 import io.quarkus.runtime.annotations.StaticInitSafe;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
@@ -26,32 +25,14 @@ import io.smallrye.config.WithName;
 @ConfigMapping(prefix = "nessie.version.store")
 public interface VersionStoreConfig {
 
-  @RegisterForReflection
   enum VersionStoreType {
-    DYNAMO(false),
-    INMEMORY(false),
-    ROCKS(false),
-    MONGO(false),
-    TRANSACTIONAL(false),
-
-    // NEW storage
-    IN_MEMORY(true),
-    ROCKSDB(true),
-    DYNAMODB(true),
-    MONGODB(true),
-    CASSANDRA(true),
-    JDBC(true),
-    BIGTABLE(true);
-
-    private final boolean newStorage;
-
-    VersionStoreType(boolean newStorage) {
-      this.newStorage = newStorage;
-    }
-
-    public boolean isNewStorage() {
-      return newStorage;
-    }
+    IN_MEMORY,
+    ROCKSDB,
+    DYNAMODB,
+    MONGODB,
+    CASSANDRA,
+    JDBC,
+    BIGTABLE
   }
 
   @WithName("type")

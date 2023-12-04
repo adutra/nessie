@@ -16,12 +16,13 @@
 package org.projectnessie.versioned.storage.common.objtypes;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.projectnessie.versioned.storage.common.persist.ObjType.INDEX;
-import static org.projectnessie.versioned.storage.common.persist.ObjType.INDEX_SEGMENTS;
-import static org.projectnessie.versioned.storage.common.persist.ObjType.REF;
-import static org.projectnessie.versioned.storage.common.persist.ObjType.STRING;
-import static org.projectnessie.versioned.storage.common.persist.ObjType.TAG;
-import static org.projectnessie.versioned.storage.common.persist.ObjType.VALUE;
+import static org.projectnessie.versioned.storage.common.objtypes.StandardObjType.INDEX;
+import static org.projectnessie.versioned.storage.common.objtypes.StandardObjType.INDEX_SEGMENTS;
+import static org.projectnessie.versioned.storage.common.objtypes.StandardObjType.REF;
+import static org.projectnessie.versioned.storage.common.objtypes.StandardObjType.STRING;
+import static org.projectnessie.versioned.storage.common.objtypes.StandardObjType.TAG;
+import static org.projectnessie.versioned.storage.common.objtypes.StandardObjType.UNIQUE;
+import static org.projectnessie.versioned.storage.common.objtypes.StandardObjType.VALUE;
 
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
@@ -120,6 +121,15 @@ public final class Hashes {
     }
     predecessors.forEach(id -> hasher.putBytes(id.asByteArray()));
     hasher.putBytes(text.asReadOnlyByteBuffer());
+    return hashAsObjId(hasher);
+  }
+
+  static ObjId uniqueIdHash(String space, ByteString value) {
+    Hasher hasher =
+        newHasher()
+            .putString(UNIQUE.name(), UTF_8)
+            .putString(space, UTF_8)
+            .putBytes(value.asReadOnlyByteBuffer());
     return hashAsObjId(hasher);
   }
 }

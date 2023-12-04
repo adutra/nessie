@@ -75,6 +75,11 @@ message StringProto {
   bytes text = 54;
 }
 
+message UniqueIdProto {
+  string space = 1;
+  bytes value = 2;
+}
+
 enum CommitTypeProto {
   T_UNKNOWN = 0;
   NORMAL = 1;
@@ -88,6 +93,7 @@ enum CompressionProto {
   DEFLATE = 3;
   ZSTD = 4;
   LZ4 = 5;
+  SNAPPY = 6;
 }
 
 message TagProto {
@@ -106,6 +112,8 @@ message ObjProto {
     IndexProto index = 6;
     StringProto string_data = 7;
     TagProto tag = 8;
+    CustomProto custom = 9;
+    UniqueIdProto uniqueId = 10;
   }
 }
 
@@ -130,4 +138,10 @@ message ReferenceProto {
 message ReferencePreviousProto {
   bytes pointer = 1;
   int64 timestamp = 2;;
+}
+
+message CustomProto {
+  string target_class = 1;
+  bytes data = 2;
+  CompressionProto compression = 3;
 }

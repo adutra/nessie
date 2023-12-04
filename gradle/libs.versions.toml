@@ -45,7 +45,7 @@ antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "ant
 assertj-core = { module = "org.assertj:assertj-core", version = "3.24.2" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.0" }
-awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.36" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.37" }
 azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.18" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
 bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
@@ -166,6 +166,7 @@ smallrye-config-core = { module = "io.smallrye.config:smallrye-config-core", ver
 smallrye-config-crypto = { module = "io.smallrye.config:smallrye-config-crypto", version.ref = "smallryeConfig" }
 smallrye-config-source-yaml = { module = "io.smallrye.config:smallrye-config-source-yaml", version.ref = "smallryeConfig" }
 smallrye-config-validator = { module = "io.smallrye.config:smallrye-config-validator", version.ref = "smallryeConfig" }
+snappy-java = { module = "org.xerial.snappy:snappy-java", version = "1.1.10.5" }
 spark-sql-v32-v212 = { module = "org.apache.spark:spark-sql_2_12", version = { strictly = "[3.2, 3.3[", prefer = "3.2.4"}}
 spark-sql-v32-v213 = { module = "org.apache.spark:spark-sql_2_13", version = { strictly = "[3.2, 3.3[", prefer = "3.2.4"}}
 spark-sql-v33-v212 = { module = "org.apache.spark:spark-sql_2_12", version = { strictly = "[3.3, 3.4[", prefer = "3.3.3"}}

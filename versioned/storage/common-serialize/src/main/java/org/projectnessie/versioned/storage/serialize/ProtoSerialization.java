@@ -25,6 +25,7 @@ import static org.projectnessie.versioned.storage.common.objtypes.IndexStripe.in
 import static org.projectnessie.versioned.storage.common.objtypes.RefObj.ref;
 import static org.projectnessie.versioned.storage.common.objtypes.StringObj.stringData;
 import static org.projectnessie.versioned.storage.common.objtypes.TagObj.tag;
+import static org.projectnessie.versioned.storage.common.objtypes.UniqueIdObj.uniqueId;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,8 +47,10 @@ import org.projectnessie.versioned.storage.common.objtypes.IndexObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexSegmentsObj;
 import org.projectnessie.versioned.storage.common.objtypes.IndexStripe;
 import org.projectnessie.versioned.storage.common.objtypes.RefObj;
+import org.projectnessie.versioned.storage.common.objtypes.StandardObjType;
 import org.projectnessie.versioned.storage.common.objtypes.StringObj;
 import org.projectnessie.versioned.storage.common.objtypes.TagObj;
+import org.projectnessie.versioned.storage.common.objtypes.UniqueIdObj;
 import org.projectnessie.versioned.storage.common.persist.ImmutableReference;
 import org.projectnessie.versioned.storage.common.persist.Obj;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
@@ -57,6 +60,7 @@ import org.projectnessie.versioned.storage.common.proto.StorageTypes.CommitProto
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.CommitTypeProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.CompressionProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.ContentValueProto;
+import org.projectnessie.versioned.storage.common.proto.StorageTypes.CustomProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.HeaderEntry;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.IndexProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.IndexSegmentsProto;
@@ -66,8 +70,10 @@ import org.projectnessie.versioned.storage.common.proto.StorageTypes.ReferencePr
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.StringProto;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.Stripe;
 import org.projectnessie.versioned.storage.common.proto.StorageTypes.TagProto;
+import org.projectnessie.versioned.storage.common.proto.StorageTypes.UniqueIdProto;
 
 public final class ProtoSerialization {
+
   private ProtoSerialization() {}
 
   public static byte[] serializeReference(Reference reference) {
@@ -205,29 +211,35 @@ public final class ProtoSerialization {
       return null;
     }
     ObjProto.Builder b = ObjProto.newBuilder();
-    switch (obj.type()) {
-      case COMMIT:
-        return b.setCommit(serializeCommit((CommitObj) obj, incrementalIndexSizeLimit))
-            .build()
-            .toByteArray();
-      case VALUE:
-        return b.setContentValue(serializeContentValue((ContentValueObj) obj))
-            .build()
-            .toByteArray();
-      case REF:
-        return b.setRef(serializeRef((RefObj) obj)).build().toByteArray();
-      case INDEX_SEGMENTS:
-        return b.setIndexSegments(serializeIndexSegments((IndexSegmentsObj) obj))
-            .build()
-            .toByteArray();
-      case INDEX:
-        return b.setIndex(serializeIndex((IndexObj) obj, indexSizeLimit)).build().toByteArray();
-      case STRING:
-        return b.setStringData(serializeStringData((StringObj) obj)).build().toByteArray();
-      case TAG:
-        return b.setTag(serializeTag((TagObj) obj)).build().toByteArray();
-      default:
-        throw new UnsupportedOperationException("Unknown object type " + obj.type());
+    if (obj.type() instanceof StandardObjType) {
+      switch (((StandardObjType) obj.type())) {
+        case COMMIT:
+          return b.setCommit(serializeCommit((CommitObj) obj, incrementalIndexSizeLimit))
+              .build()
+              .toByteArray();
+        case VALUE:
+          return b.setContentValue(serializeContentValue((ContentValueObj) obj))
+              .build()
+              .toByteArray();
+        case REF:
+          return b.setRef(serializeRef((RefObj) obj)).build().toByteArray();
+        case INDEX_SEGMENTS:
+          return b.setIndexSegments(serializeIndexSegments((IndexSegmentsObj) obj))
+              .build()
+              .toByteArray();
+        case INDEX:
+          return b.setIndex(serializeIndex((IndexObj) obj, indexSizeLimit)).build().toByteArray();
+        case STRING:
+          return b.setStringData(serializeStringData((StringObj) obj)).build().toByteArray();
+        case TAG:
+          return b.setTag(serializeTag((TagObj) obj)).build().toByteArray();
+        case UNIQUE:
+          return b.setUniqueId(serializeUniqueId((UniqueIdObj) obj)).build().toByteArray();
+        default:
+          throw new UnsupportedOperationException("Unknown standard object type " + obj.type());
+      }
+    } else {
+      return b.setCustom(serializeCustom(obj)).build().toByteArray();
     }
   }
 
@@ -276,6 +288,12 @@ public final class ProtoSerialization {
     }
     if (obj.hasTag()) {
       return deserializeTag(id, obj.getTag());
+    }
+    if (obj.hasUniqueId()) {
+      return deserializeUniqueId(id, obj.getUniqueId());
+    }
+    if (obj.hasCustom()) {
+      return deserializeCustom(id, obj.getCustom());
     }
     throw new UnsupportedOperationException("Cannot deserialize " + obj);
   }
@@ -481,5 +499,32 @@ public final class ProtoSerialization {
       }
     }
     return tag;
+  }
+
+  private static UniqueIdObj deserializeUniqueId(ObjId id, UniqueIdProto uniqueId) {
+    return uniqueId(id, uniqueId.getSpace(), uniqueId.getValue());
+  }
+
+  private static UniqueIdProto.Builder serializeUniqueId(UniqueIdObj obj) {
+    return UniqueIdProto.newBuilder().setSpace(obj.space()).setValue(obj.value());
+  }
+
+  private static Obj deserializeCustom(ObjId id, CustomProto custom) {
+    return SmileSerialization.deserializeObj(
+        id,
+        custom.getData().toByteArray(),
+        custom.getTargetClass(),
+        custom.getCompression().name());
+  }
+
+  private static CustomProto.Builder serializeCustom(Obj obj) {
+    CustomProto.Builder builder =
+        CustomProto.newBuilder().setTargetClass(obj.type().targetClass().getName());
+    byte[] bytes =
+        SmileSerialization.serializeObj(
+            obj,
+            compression -> builder.setCompression(CompressionProto.valueOf(compression.name())));
+    builder.setData(ByteString.copyFrom(bytes));
+    return builder;
   }
 }

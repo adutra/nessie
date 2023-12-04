@@ -18,8 +18,6 @@ package org.projectnessie.quarkus.providers.storage;
 import static org.projectnessie.versioned.storage.common.logic.Logics.repositoryLogic;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.quarkus.runtime.Startup;
-import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Default;
@@ -45,11 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
-@RegisterForReflection(
-    classNames = {
-      "com.github.benmanes.caffeine.cache.SSSMW",
-      "com.github.benmanes.caffeine.cache.PSMW"
-    })
 public class PersistProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(PersistProvider.class);
 
@@ -75,12 +68,8 @@ public class PersistProvider {
 
   @Produces
   @Singleton
-  @Startup
   public Backend produceBackend() {
     VersionStoreType versionStoreType = versionStoreConfig.getVersionStoreType();
-    if (!versionStoreType.isNewStorage()) {
-      return null;
-    }
 
     if (backendBuilder.isUnsatisfied()) {
       throw new IllegalStateException("No Quarkus backend implementation for " + versionStoreType);
@@ -104,23 +93,15 @@ public class PersistProvider {
   @Singleton
   @WIthInitializedRepository
   public Persist produceWithInitializedRepository(@Default Persist persist) {
-    VersionStoreType versionStoreType = versionStoreConfig.getVersionStoreType();
-    if (!versionStoreType.isNewStorage()) {
-      return null;
-    }
     repositoryLogic(persist).initialize(serverConfig.getDefaultBranch());
     return persist;
   }
 
   @Produces
   @Singleton
-  @Startup
   @NotObserved
   public Persist producePersist(MeterRegistry meterRegistry) {
     VersionStoreType versionStoreType = versionStoreConfig.getVersionStoreType();
-    if (!versionStoreType.isNewStorage()) {
-      return null;
-    }
 
     if (backend.isUnsatisfied()) {
       throw new IllegalStateException("No Quarkus backend for " + versionStoreType);
