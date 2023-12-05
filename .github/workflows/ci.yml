@@ -554,9 +554,6 @@ jobs:
               ['helm/**', '.github/**']));
             core.endGroup();
 
-      - name: Prepare Gradle build cache
-        uses: ./.github/actions/ci-incr-build-cache-prepare
-
 #      - name: Docker images publishing
 #        env:
 #          ARTIFACTS: ../build-artifacts
