@@ -63,57 +63,57 @@ would automatically be migrated to the Nessie Catalog.
    ./gradlew :nessie-catalog-service-server:quarkusBuild && java -jar catalog/service/server/build/quarkus-app/quarkus-run.jar
    ```
 1. **ALTERNATIVE W/ NESSIE CATALOG INTEGRATED**
-  1. Without SQL extensions - but **with Nessie Catalog aware Iceberg**.
-     This approach "integrates better" with Nessie Catalog. It redirects table metadata and manifest lists to the Nessie Catalog.
-     In other words it allows direct use of `INSERT`/`UPDATE`/`DELETE`/`SELECT`/etc working with Nessie Catalog.
-     Since all SQL extensions use _relocated_ classes and the Iceberg catalog implementation for Nessie Catalog relies on non-relocated classes, the SQL extensions cannot be used in this early stage.
-     ```bash
-     rm -rf /tmp/nessie-catalog-demo
-     mkdir -p /tmp/nessie-catalog-demo
-     ./gradlew publishToMavenLocal
+   1. Without SQL extensions - but **with Nessie Catalog aware Iceberg**.
+      This approach "integrates better" with Nessie Catalog. It redirects table metadata and manifest lists to the Nessie Catalog.
+      In other words it allows direct use of `INSERT`/`UPDATE`/`DELETE`/`SELECT`/etc working with Nessie Catalog.
+      Since all SQL extensions use _relocated_ classes and the Iceberg catalog implementation for Nessie Catalog relies on non-relocated classes, the SQL extensions cannot be used in this early stage.
+      ```bash
+      rm -rf /tmp/nessie-catalog-demo
+      mkdir -p /tmp/nessie-catalog-demo
+      ./gradlew publishToMavenLocal
 
-     nessieVersion=$(./gradlew properties -q | awk '/^version:/ {print $2}')
-     icebergVersion=1.4.2
-     sparkVersion=3.5
-     scalaVersion=2.12
+      nessieVersion=$(./gradlew properties -q | awk '/^version:/ {print $2}')
+      icebergVersion=1.4.2
+      sparkVersion=3.5
+      scalaVersion=2.12
 
-     packages=$(echo \
-       org.apache.iceberg:iceberg-spark-${sparkVersion}_${scalaVersion}:${icebergVersion} \
-       org.projectnessie.nessie:nessie-catalog-iceberg-catalog:$nessieVersion \
-       | sed "s/ /,/g")
-  
-     spark-sql \
-       --packages "${packages}" \
-       --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v2 \
-       --conf spark.sql.catalog.nessie.ref=main \
-       --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog \
-       --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
-       --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
-     ```
-     Add the following lines to `$SPARK_HOME/conf/log4j2.properties` to get some more information about what the adopted catalog implementation does:
-     ```bash
-     cp $SPARK_HOME/conf/log4j2.properties.template $SPARK_HOME/conf/log4j2.properties
-     cat <<! >>$SPARK_HOME/conf/log4j2.properties
+      packages=$(echo \
+        org.apache.iceberg:iceberg-spark-${sparkVersion}_${scalaVersion}:${icebergVersion} \
+        org.projectnessie.nessie:nessie-catalog-iceberg-catalog:$nessieVersion \
+        | sed "s/ /,/g")
 
-     logger.iceberg.name = org.apache.iceberg
-     logger.iceberg.level = info
+      spark-sql \
+        --packages "${packages}" \
+        --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v2 \
+        --conf spark.sql.catalog.nessie.ref=main \
+        --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog \
+        --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
+        --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
+      ```
+      Add the following lines to `$SPARK_HOME/conf/log4j2.properties` to get some more information about what the adopted catalog implementation does:
+      ```bash
+      cp $SPARK_HOME/conf/log4j2.properties.template $SPARK_HOME/conf/log4j2.properties
+      cat <<! >>$SPARK_HOME/conf/log4j2.properties
 
-     logger.nessie.name = org.projectnessie
-     logger.nessie.level = info
-     !
-     ```
-     Then, in Spark SQL:
-     ```sql
-     CREATE NAMESPACE nessie.testing;
+      logger.iceberg.name = org.apache.iceberg
+      logger.iceberg.level = info
 
-     CREATE TABLE nessie.testing.city (
-       C_CITYKEY BIGINT, C_NAME STRING, N_NATIONKEY BIGINT, C_COMMENT STRING
-     ) USING iceberg PARTITIONED BY (bucket(16, N_NATIONKEY));
+      logger.nessie.name = org.projectnessie
+      logger.nessie.level = info
+      !
+      ```
+      Then, in Spark SQL:
+      ```sql
+      CREATE NAMESPACE nessie.testing;
 
-     INSERT INTO nessie.testing.city VALUES (1, 'a', 1, 'comment');
+      CREATE TABLE nessie.testing.city (
+        C_CITYKEY BIGINT, C_NAME STRING, N_NATIONKEY BIGINT, C_COMMENT STRING
+      ) USING iceberg PARTITIONED BY (bucket(16, N_NATIONKEY));
+
+      INSERT INTO nessie.testing.city VALUES (1, 'a', 1, 'comment');
      
-     -- and so on...
-     ```
+      -- and so on...
+      ```
    1. The functionality to inspect responses discussed below (curl + wget examples), work as well.
 1. **ALTERNATIVE W/O NESSIE CATALOG INTEGRATED**
    1. In a third terminal
