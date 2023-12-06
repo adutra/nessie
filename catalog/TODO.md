@@ -84,7 +84,7 @@ would automatically be migrated to the Nessie Catalog.
 
       spark-sql \
         --packages "${packages}" \
-        --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v2 \
+        --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v1 \
         --conf spark.sql.catalog.nessie.ref=main \
         --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog \
         --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
