@@ -54,7 +54,7 @@ protobuf {
 
 // The protobuf-plugin should ideally do this
 tasks.named<Jar>("sourcesJar").configure {
-  dependsOn(tasks.named("generateProto"), tasks.named("generateReflectionConfig"))
+  dependsOn("generateProto")
 }
 
 tasks.withType(ProtobufExtract::class).configureEach {
