@@ -60,7 +60,7 @@ import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListRea
 public class IcebergManifestListSerializationBench {
   @State(Scope.Benchmark)
   public static class BenchmarkParam {
-    /** Format: number of long partitions, number of string partitions */
+    /** Format: number of long partitions, number of string partitions. */
     @Param({"4:0", "0:4"})
     public String columns;
 

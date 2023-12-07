@@ -195,13 +195,16 @@ public class NessieModelIceberg {
                       partitionSpec.specId());
                   NessiePartitionField existing = icebergPartitionFields.get(p.fieldId());
                   UUID id = existing != null ? existing.id() : UUID.randomUUID();
-                  return NessiePartitionField.nessiePartitionField(
-                      id,
-                      sourceField,
-                      p.name(),
-                      transform.transformedType(sourceField.type()),
-                      transform,
-                      p.fieldId());
+                  NessiePartitionField partitionField =
+                      NessiePartitionField.nessiePartitionField(
+                          id,
+                          sourceField,
+                          p.name(),
+                          transform.transformedType(sourceField.type()),
+                          transform,
+                          p.fieldId());
+                  icebergPartitionFields.put(p.fieldId(), partitionField);
+                  return partitionField;
                 })
             .collect(Collectors.toList());
 

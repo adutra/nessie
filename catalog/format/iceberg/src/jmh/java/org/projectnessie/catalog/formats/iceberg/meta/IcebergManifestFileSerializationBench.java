@@ -53,7 +53,7 @@ import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFileRea
 public class IcebergManifestFileSerializationBench {
   @State(Scope.Benchmark)
   public static class BenchmarkParam {
-    /** Format: number of long columns, number of string columns */
+    /** Format: number of long columns, number of string columns. */
     @Param({"100:0", "0:100"}) // "1000:0", "0:1000"
     public String columns;
 
