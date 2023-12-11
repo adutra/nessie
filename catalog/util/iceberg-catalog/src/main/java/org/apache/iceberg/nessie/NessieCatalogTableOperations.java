@@ -103,9 +103,9 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
 
       // TODO Ugly way to set the private `table` field
       try {
-        Field fTable = NessieTableOperations.class.getDeclaredField("table");
-        fTable.setAccessible(true);
-        fTable.set(this, table);
+        Field field = NessieTableOperations.class.getDeclaredField("table");
+        field.setAccessible(true);
+        field.set(this, table);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

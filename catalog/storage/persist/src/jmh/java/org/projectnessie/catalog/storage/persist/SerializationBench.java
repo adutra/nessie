@@ -81,7 +81,7 @@ public class SerializationBench {
 
   @State(Scope.Benchmark)
   public static class BenchmarkParam {
-    /** Format: number of long partitions, number of string partitions */
+    /** Format: number of long partitions, number of string partitions. */
     @Param({"250:250"})
     public String columns;
 
