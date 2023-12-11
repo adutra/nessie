@@ -19,6 +19,7 @@ import static java.util.Collections.emptyList;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -68,6 +69,7 @@ public class TestNessieSchema {
             primitiveType ->
                 nullNotNull.apply(
                     NessieField.builder()
+                        .id(UUID.randomUUID())
                         .name(primitiveType.asString())
                         .type(primitiveType)
                         .doc("doc for " + primitiveType.asString())
