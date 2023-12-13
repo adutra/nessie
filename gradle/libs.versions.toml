@@ -5,7 +5,7 @@ antlr4 = "4.13.1"
 bouncycastle = "1.70"
 checkstyle = "10.12.5"
 errorprone = "2.23.0"
-errorproneSlf4j = "0.1.20"
+errorproneSlf4j = "0.1.21"
 gatling = "3.9.5"
 googleJavaFormat = "1.18.1"
 hadoop = "3.3.6"
@@ -20,12 +20,12 @@ maven = "3.9.6"
 mavenResolver = "1.9.18"
 mockito="4.11.0"
 nessieClientVersion = "0.71.0" # Must be in sync with Nessie version in the Iceberg release.
-opentelemetry = "1.32.0"
+opentelemetry = "1.33.0"
 opentelemetryAlpha = "1.31.0-alpha"
 opentracing = "0.33.0"
 picocli = "4.7.5"
 protobuf = "3.25.1"
-quarkus = "3.6.1"
+quarkus = "3.6.3"
 slf4j = "1.7.36"
 smallryeConfig = "2.13.3"
 undertow = "2.2.28.Final"
@@ -44,8 +44,8 @@ antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "ant
 assertj-core = { module = "org.assertj:assertj-core", version = "3.24.2" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.0" }
-awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.40" }
-azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.18" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.21.44" }
+azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.19" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
 bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
 cassandra-driver-bom = { module = "com.datastax.oss:java-driver-bom", version = "4.17.0" }
@@ -132,7 +132,7 @@ maven-resolver-connector-basic = { module = "org.apache.maven.resolver:maven-res
 maven-resolver-provider = { module = "org.apache.maven:maven-resolver-provider", version.ref = "maven" }
 maven-resolver-transport-file = { module = "org.apache.maven.resolver:maven-resolver-transport-file", version.ref = "mavenResolver" }
 maven-resolver-transport-http = { module = "org.apache.maven.resolver:maven-resolver-transport-http", version.ref = "mavenResolver" }
-micrometer-core = { module = "io.micrometer:micrometer-core", version = "1.12.0" }
+micrometer-core = { module = "io.micrometer:micrometer-core", version = "1.12.1" }
 microprofile-openapi = { module = "org.eclipse.microprofile.openapi:microprofile-openapi-api", version = "3.1.1" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
 mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
@@ -154,7 +154,7 @@ quarkus-bom = { module = "io.quarkus.platform:quarkus-bom", version.ref = "quark
 quarkus-cassandra-bom = { module = "io.quarkus.platform:quarkus-cassandra-bom", version.ref = "quarkus" }
 quarkus-google-cloud-services-bom = { module = "io.quarkus.platform:quarkus-google-cloud-services-bom", version.ref = "quarkus" }
 quarkus-logging-sentry = { module = "io.quarkiverse.loggingsentry:quarkus-logging-sentry", version = "2.0.4" }
-rest-assured = { module = "io.rest-assured:rest-assured", version = "5.3.2" }
+rest-assured = { module = "io.rest-assured:rest-assured", version = "5.4.0" }
 rocksdb-jni = { module = "org.rocksdb:rocksdbjni", version = "8.8.1" }
 scala-library-v212 = { module = "org.scala-lang:scala-library", version = { strictly = "[2.12, 2.13[", prefer = "2.12.18" }}
 scala-library-v213 = { module = "org.scala-lang:scala-library", version = { strictly = "[2.13, 2.14[", prefer = "2.13.12"}}
