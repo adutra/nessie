@@ -50,10 +50,8 @@ dependencies {
 
   implementation(enforcedPlatform(libs.quarkus.bom))
   implementation("io.quarkus:quarkus-reactive-routes")
-  implementation("io.quarkus:quarkus-resteasy")
-  implementation("io.quarkus:quarkus-resteasy-jackson")
-  // TODO implementation("io.quarkus:quarkus-resteasy-reactive")
-  // TODO implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+  implementation("io.quarkus:quarkus-resteasy-reactive")
+  implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
   implementation("io.quarkus:quarkus-hibernate-validator")
   implementation("io.smallrye:smallrye-open-api-jaxrs")
   implementation("io.quarkus:quarkus-smallrye-health")
