@@ -28,14 +28,9 @@ dependencies {
 
   implementation(libs.guava)
 
-  // javax/jakarta
   compileOnly(libs.jakarta.ws.rs.api)
-  compileOnly(libs.javax.ws.rs)
   compileOnly(libs.jakarta.enterprise.cdi.api)
-  compileOnly(libs.javax.enterprise.cdi.api)
   compileOnly(libs.jakarta.validation.api)
-  compileOnly(libs.javax.validation.api)
-  compileOnly(libs.findbugs.jsr305)
 
   compileOnly(libs.errorprone.annotations)
   compileOnly(libs.microprofile.openapi)
