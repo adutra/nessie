@@ -36,8 +36,10 @@ val openapiSource by
 dependencies {
   implementation(project(":nessie-model"))
   implementation(project(":nessie-services"))
+  implementation(project(":nessie-quarkus-auth"))
   implementation(project(":nessie-quarkus-common"))
   implementation(project(":nessie-events-quarkus"))
+  implementation(project(":nessie-rest-common"))
   implementation(project(":nessie-rest-services"))
   implementation(project(":nessie-versioned-spi"))
   implementation(libs.nessie.ui)
@@ -77,6 +79,7 @@ dependencies {
   testFixturesApi(project(":nessie-client"))
   testFixturesApi(project(":nessie-client-testextension"))
   testFixturesApi(project(":nessie-jaxrs-tests"))
+  testFixturesApi(project(":nessie-quarkus-auth"))
   testFixturesApi(project(":nessie-quarkus-common"))
   testFixturesApi(project(":nessie-quarkus-tests"))
   testFixturesApi(project(":nessie-events-api"))

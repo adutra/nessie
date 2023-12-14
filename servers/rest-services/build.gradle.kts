@@ -23,7 +23,9 @@ extra["maven.name"] = "Nessie - REST Services"
 
 dependencies {
   implementation(project(":nessie-model"))
+  implementation(project(":nessie-rest-common"))
   implementation(project(":nessie-services"))
+  implementation(project(":nessie-services-config"))
   implementation(project(":nessie-versioned-spi"))
   implementation(libs.slf4j.api)
   implementation(libs.guava)
