@@ -23,9 +23,9 @@ plugins {
   id("nessie-jacoco")
 }
 
-extra["maven.name"] = "Nessie - Catalog - Server"
+extra["maven.name"] = "Nessie - Catalog - Server with Nessie Core"
 
-description = "Nessie Catalog Server (Quarkus)"
+description = "Nessie Catalog Server with Nessie Core (Quarkus)"
 
 val quarkusRunner by
   configurations.creating {
@@ -36,18 +36,22 @@ val openapiSource by
   configurations.creating { description = "Used to reference OpenAPI spec files" }
 
 dependencies {
+  // Nessie Catalog
   implementation(project(":nessie-catalog-service-server-base"))
-  implementation(project(":nessie-catalog-service-core-proxy"))
 
+  // Nessie Core
   implementation(project(":nessie-client"))
+  implementation(project(":nessie-combined-cs"))
+  implementation(project(":nessie-services"))
+  implementation(project(":nessie-quarkus-auth"))
+  implementation(project(":nessie-quarkus-common"))
+  implementation(project(":nessie-rest-common"))
+  implementation(project(":nessie-rest-services"))
+  implementation(project(":nessie-versioned-spi"))
   implementation(project(":nessie-versioned-storage-common"))
-  implementation(project(":nessie-versioned-storage-inmemory"))
-  implementation(project(":nessie-services-config"))
-
-  compileOnly(libs.jakarta.enterprise.cdi.api)
 
   implementation(enforcedPlatform(libs.quarkus.bom))
-  implementation("io.quarkus:quarkus-core")
+  implementation("io.quarkus:quarkus-security")
 
   openapiSource(project(":nessie-catalog-api-rest", "openapiSource"))
 

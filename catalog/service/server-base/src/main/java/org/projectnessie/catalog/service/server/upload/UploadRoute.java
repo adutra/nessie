@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.server;
+package org.projectnessie.catalog.service.server.upload;
 
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.buffer.Buffer;

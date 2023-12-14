@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.server;
+package org.projectnessie.catalog.service.server.base;
 
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
@@ -23,11 +23,8 @@ import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
 import org.projectnessie.catalog.service.common.config.ImmutableCatalogServerConfig;
 import org.projectnessie.catalog.storage.backend.CatalogStorage;
 import org.projectnessie.catalog.storage.persist.PersistCatalogStorage;
-import org.projectnessie.client.NessieClientBuilder;
-import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.versioned.storage.common.config.StoreConfig;
 import org.projectnessie.versioned.storage.common.persist.Backend;
-import org.projectnessie.versioned.storage.inmemory.InmemoryBackend;
 
 /**
  * "Quick and dirty" producers providing connection to Nessie, a "storage" impl and object-store
@@ -38,26 +35,6 @@ public class SomeProducers {
   @Singleton
   public CatalogServerConfig catalogServerConfig() {
     return ImmutableCatalogServerConfig.builder().sendStacktraceToClient(true).build();
-  }
-
-  @Produces
-  @Singleton
-  public NessieApiV2 nessieApiV2() {
-    return NessieClientBuilder.createClientBuilderFromSystemSettings()
-        .withUri("http://127.0.0.1:19120/api/v2")
-        .build(NessieApiV2.class);
-  }
-
-  @Produces
-  @Singleton
-  public Backend backend() {
-    return new InmemoryBackend();
-  }
-
-  @Produces
-  @Singleton
-  public StoreConfig storeConfig() {
-    return new StoreConfig() {};
   }
 
   @Produces

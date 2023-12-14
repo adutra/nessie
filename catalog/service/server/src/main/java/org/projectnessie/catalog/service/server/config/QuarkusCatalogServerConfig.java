@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Dremio
+ * Copyright (C) 2023 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.server;
+package org.projectnessie.catalog.service.server.config;
 
 import io.quarkus.runtime.annotations.StaticInitSafe;
 import io.smallrye.config.ConfigMapping;
@@ -23,8 +23,8 @@ import org.projectnessie.services.config.ExceptionConfig;
 
 /** Nessie catalog server config for Quarkus. */
 @StaticInitSafe
-@ConfigMapping(prefix = "nessie.catalog")
-public interface CatalogServerConfig extends ExceptionConfig {
+@ConfigMapping(prefix = "nessie.server")
+public interface QuarkusCatalogServerConfig extends ExceptionConfig {
 
   @Override
   @WithName("send-stacktrace-to-client")
