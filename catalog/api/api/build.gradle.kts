@@ -40,6 +40,7 @@ dependencies {
   compileOnly("com.fasterxml.jackson.core:jackson-annotations")
 
   // javax/jakarta
+  implementation(libs.javax.annotation.api) // 'implementation' for smallrye-config
   implementation(libs.jakarta.annotation.api) // 'implementation' for smallrye-config
   compileOnly(libs.jakarta.validation.api)
   compileOnly(libs.javax.validation.api)
