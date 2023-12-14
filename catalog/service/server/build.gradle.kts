@@ -42,6 +42,7 @@ dependencies {
   implementation(project(":nessie-catalog-service-common"))
   implementation(project(":nessie-catalog-service-impl"))
   implementation(project(":nessie-catalog-service-rest"))
+  implementation(project(":nessie-catalog-service-core-proxy"))
   implementation(project(":nessie-catalog-storage-backend"))
   implementation(project(":nessie-catalog-storage-persist"))
   implementation(project(":nessie-versioned-storage-common"))

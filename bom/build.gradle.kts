@@ -88,6 +88,7 @@ dependencies {
     api(project(":nessie-catalog-service-rest"))
     api(project(":nessie-catalog-service-grpc"))
     api(project(":nessie-catalog-service-impl"))
+    api(project(":nessie-catalog-service-core-proxy"))
     api(project(":nessie-catalog-service-server"))
     api(project(":nessie-catalog-storage-backend"))
     api(project(":nessie-catalog-storage-inmemory"))
