@@ -48,6 +48,7 @@ dependencies {
   implementation(project(":nessie-versioned-storage-common"))
   implementation(project(":nessie-versioned-storage-inmemory"))
   implementation(project(":nessie-client"))
+  implementation(project(":nessie-services-config"))
 
   implementation(enforcedPlatform(libs.quarkus.bom))
   implementation("io.quarkus:quarkus-reactive-routes")

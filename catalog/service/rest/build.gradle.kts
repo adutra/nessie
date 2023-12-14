@@ -25,6 +25,7 @@ extra["maven.name"] = "Nessie - Catalog - REST Service"
 description = "Nessie Catalog service implementation providing REST endpoints."
 
 dependencies {
+  implementation(project(":nessie-rest-common"))
   implementation(project(":nessie-catalog-api-base"))
   implementation(project(":nessie-catalog-api-rest"))
   implementation(project(":nessie-catalog-schema-model"))
