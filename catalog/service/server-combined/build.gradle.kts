@@ -21,6 +21,7 @@ plugins {
   alias(libs.plugins.quarkus)
   id("nessie-conventions-quarkus")
   id("nessie-jacoco")
+  alias(libs.plugins.nessie.run)
 }
 
 extra["maven.name"] = "Nessie - Catalog - Server with Nessie Core"
@@ -143,4 +144,61 @@ listOf("checkstyleTest", "compileTestJava").forEach { name ->
 // Testcontainers is not supported on Windows :(
 if (Os.isFamily(Os.FAMILY_WINDOWS)) {
   tasks.withType<Test>().configureEach { this.enabled = false }
+}
+
+val sparkScala = useSparkScalaVersionsForProject("3.5", "2.13")
+
+testing {
+  suites {
+    register<JvmTestSuite>("sparkIntTest") {
+      useJUnitJupiter(libsRequiredVersion("junit"))
+
+      testType.set("spark-test")
+
+      dependencies {
+        implementation("org.apache.spark:spark-sql_${sparkScala.scalaMajorVersion}") {
+          forSpark(sparkScala.sparkVersion)
+        }
+        implementation("org.apache.spark:spark-core_${sparkScala.scalaMajorVersion}") {
+          forSpark(sparkScala.sparkVersion)
+        }
+        implementation("org.apache.spark:spark-hive_${sparkScala.scalaMajorVersion}") {
+          forSpark(sparkScala.sparkVersion)
+        }
+
+        implementation(libs.assertj.core)
+
+        implementation(
+          "org.apache.iceberg:iceberg-spark-${sparkScala.sparkMajorVersion}_${sparkScala.scalaMajorVersion}:${libs.versions.iceberg.get()}"
+        )
+        implementation(project(":nessie-catalog-iceberg-catalog"))
+      }
+
+      targets.all {
+        testTask.configure {
+          usesService(
+            gradle.sharedServices.registrations.named("intTestParallelismConstraint").get().service
+          )
+
+          dependsOn("quarkusBuild")
+
+          shouldRunAfter("test")
+
+          forceJavaVersion(sparkScala.runtimeJavaVersion)
+        }
+
+        tasks.named("check").configure { dependsOn(testTask) }
+      }
+    }
+  }
+}
+
+nessieQuarkusApp {
+  includeTask(tasks.named<Test>("sparkIntTest"))
+  executableJar.convention {
+    project.layout.buildDirectory.file("quarkus-app/quarkus-run.jar").get().asFile
+  }
+  environmentNonInput.put("HTTP_ACCESS_LOG_LEVEL", testLogLevel())
+  jvmArgumentsNonInput.add("-XX:SelfDestructTimer=30")
+  systemProperties.put("nessie.server.send-stacktrace-to-client", "true")
 }
