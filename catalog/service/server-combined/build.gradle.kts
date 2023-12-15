@@ -65,6 +65,8 @@ dependencies {
   testFixturesApi("io.quarkus:quarkus-junit5")
   testFixturesApi("io.quarkus:quarkus-jacoco")
 
+  testFixturesApi(project(":nessie-catalog-service-server-tests"))
+
   testFixturesCompileOnly(libs.microprofile.openapi)
 
   testFixturesImplementation(platform(libs.junit.bom))

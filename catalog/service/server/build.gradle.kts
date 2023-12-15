@@ -21,6 +21,7 @@ plugins {
   alias(libs.plugins.quarkus)
   id("nessie-conventions-quarkus")
   id("nessie-jacoco")
+  alias(libs.plugins.nessie.run)
 }
 
 extra["maven.name"] = "Nessie - Catalog - Server"
@@ -60,10 +61,14 @@ dependencies {
   testFixturesApi("io.quarkus:quarkus-junit5")
   testFixturesApi("io.quarkus:quarkus-jacoco")
 
+  testFixturesApi(project(":nessie-catalog-service-server-tests"))
+
   testFixturesCompileOnly(libs.microprofile.openapi)
 
   testFixturesImplementation(platform(libs.junit.bom))
   testFixturesImplementation(libs.bundles.junit.testing)
+
+  nessieQuarkusServer(nessieQuarkusServerRunner())
 }
 
 val pullOpenApiSpec by tasks.registering(Sync::class)
@@ -139,4 +144,13 @@ listOf("checkstyleTest", "compileTestJava").forEach { name ->
 // Testcontainers is not supported on Windows :(
 if (Os.isFamily(Os.FAMILY_WINDOWS)) {
   tasks.withType<Test>().configureEach { this.enabled = false }
+}
+
+nessieQuarkusApp {
+  includeTask(tasks.named<Test>("intTest"))
+  environmentNonInput.put("HTTP_ACCESS_LOG_LEVEL", testLogLevel())
+  jvmArgumentsNonInput.add("-XX:SelfDestructTimer=30")
+  systemProperties.put("nessie.server.send-stacktrace-to-client", "true")
+  httpListenPortProperty.set("nessie-core.port")
+  httpListenUrlProperty.set("nessie-core.url")
 }

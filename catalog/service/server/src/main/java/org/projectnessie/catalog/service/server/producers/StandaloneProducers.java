@@ -15,12 +15,15 @@
  */
 package org.projectnessie.catalog.service.server.producers;
 
+import static java.lang.String.format;
+
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.versioned.storage.common.config.StoreConfig;
 import org.projectnessie.versioned.storage.common.persist.Backend;
+import org.projectnessie.versioned.storage.common.persist.Persist;
 import org.projectnessie.versioned.storage.inmemory.InmemoryBackend;
 
 /**
@@ -37,6 +40,12 @@ public class StandaloneProducers {
 
   @Produces
   @Singleton
+  public Persist persist(Backend backend, StoreConfig config) {
+    return backend.createFactory().newPersist(config);
+  }
+
+  @Produces
+  @Singleton
   public StoreConfig storeConfig() {
     return new StoreConfig() {};
   }
@@ -44,8 +53,9 @@ public class StandaloneProducers {
   @Produces
   @Singleton
   public NessieApiV2 nessieApiV2() {
+    int port = Integer.getInteger("nessie-core.port", 19120);
     return NessieClientBuilder.createClientBuilderFromSystemSettings()
-        .withUri("http://127.0.0.1:19120/api/v2")
+        .withUri(format("http://127.0.0.1:%d/api/v2", port))
         .build(NessieApiV2.class);
   }
 }
