@@ -179,6 +179,20 @@ would automatically be migrated to the Nessie Catalog.
       curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
       curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
       ```
+1. **ALTERNATIVE W/ NESSIE CATALOG INTEGRATED AND LOCAL JARS**
+   1. This approach may be easy when the catalog code changes ofter (e.g. for debugging / exploration)
+   1. Run `./gradlew :nessie-catalog-iceberg-catalog:shadowJar`
+   1. Run Spark SQL:
+      ```bash
+      spark-sql \
+        --jars "$PATH_TO_PROJECT_DIR/catalog/util/iceberg-catalog/build/libs/nessie-catalog-iceberg-catalog-*-all.jar,$PATH_TO_ICEBERG_JARS/iceberg-spark-runtime-3.5_2.12-1.4.2.jar" \
+        --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v1 \
+        --conf spark.sql.catalog.nessie.ref=main \
+        --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog \
+        --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
+        --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
+      ```
+   1. Run SQL as above.
 1. Inspect an Iceberg manifest list:
    ```
    wget --content-disposition 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-list/testing.city'
