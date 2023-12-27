@@ -82,6 +82,7 @@ dependencies {
     api(project(":nessie-catalog-api-grpc"))
     api(project(":nessie-catalog-files-api"))
     api(project(":nessie-catalog-files-local"))
+    api(project(":nessie-catalog-files-s3"))
     api(project(":nessie-catalog-format-iceberg"))
     api(project(":nessie-catalog-format-iceberg-fixturegen"))
     api(project(":nessie-catalog-schema-model"))
