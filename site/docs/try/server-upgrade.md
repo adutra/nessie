@@ -14,7 +14,7 @@ are not supported and must be avoided.
 
 | Rolling Upgrade Supported | _From_ Nessie version | _To_ Nessie version |
 |---------------------------|-----------------------|---------------------|
-| :heavy_check_mark:        | 0.61.0 or newer       | 0.74.0 or newer     |
+| :heavy_check_mark:        | 0.61.0 or newer       | 0.75.0 or newer     |
 | :x:                       | 0.40.0 or newer       | 0.61.0 or newer     |
 | :heavy_check_mark:        | 0.40.0 or newer       | 0.60.0 or newer     |
 | :x:                       | < 0.40.0              | 0.40.0 or newer     |
@@ -39,12 +39,7 @@ and have been removed!**
 If you are using one of these version types migrate to one of the supported version store type mentioned above
 **before** upgrading to Nessie 0.75.0 or newer.
 
-Migration steps:
-1. shutdown Nessie
-2. export the Nessie repository using the `nessie-quarkus-cli` tool's export functionality using the old repository settings
-3. configure Nessie to use one of the new version store types
-4. export the Nessie repository using the `nessie-quarkus-cli` tool's import functionality using the new repository settings
-5. startup Nessie
+The migration process is described in the [migration guide](../tools/migration.md).
 
 ### Nessie 0.61.0
 

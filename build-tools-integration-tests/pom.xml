@@ -28,7 +28,7 @@
     <maven.compiler.release>8</maven.compiler.release>
     <versionMavenResolver>1.9.18</versionMavenResolver>
     <versionMaven>3.9.6</versionMaven>
-    <nessie.version>0.74.0</nessie.version>
+    <nessie.version>0.75.0</nessie.version>
   </properties>
 
   <dependencyManagement>
@@ -137,7 +137,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.11.0</version>
+          <version>3.12.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

@@ -109,6 +109,27 @@ class TestUriBuilder {
   }
 
   @Test
+  void slashesInPaths() {
+    URI expected = URI.create("http://localhost/a/b/c");
+    assertThat(new UriBuilder(URI.create("http://localhost")).path("a/b/c").build())
+        .isEqualTo(expected);
+    assertThat(new UriBuilder(URI.create("http://localhost/")).path("a/b/c").build())
+        .isEqualTo(expected);
+    assertThat(new UriBuilder(URI.create("http://localhost")).path("/a/b/c").build())
+        .isEqualTo(expected);
+    assertThat(new UriBuilder(URI.create("http://localhost/")).path("/a/b/c").build())
+        .isEqualTo(expected);
+    assertThat(new UriBuilder(URI.create("http://localhost")).path("a/b/c/").build())
+        .isEqualTo(expected);
+    assertThat(new UriBuilder(URI.create("http://localhost/")).path("a/b/c/").build())
+        .isEqualTo(expected);
+    assertThat(new UriBuilder(URI.create("http://localhost")).path("/a/b/c/").build())
+        .isEqualTo(expected);
+    assertThat(new UriBuilder(URI.create("http://localhost/")).path("/a/b/c/").build())
+        .isEqualTo(expected);
+  }
+
+  @Test
   void adjacentTemplates() {
     UriBuilder builder =
         new UriBuilder(URI.create("http://localhost/foo/bar/"))

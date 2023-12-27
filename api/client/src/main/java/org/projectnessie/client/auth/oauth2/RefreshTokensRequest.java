@@ -22,7 +22,7 @@ import org.immutables.value.Value;
 
 /**
  * A <a href="https://datatracker.ietf.org/doc/html/rfc6749#section-6">Token Request</a> that uses
- * the {@value #GRANT_TYPE} grant type to refresh an existing access token.
+ * the "refresh_tokens" grant type to refresh an existing access token.
  *
  * <p>Example:
  *
@@ -42,14 +42,12 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableRefreshTokensRequest.class)
 interface RefreshTokensRequest extends TokensRequestBase {
 
-  String GRANT_TYPE = "refresh_token";
-
   /** REQUIRED. Value MUST be set to "refresh_token". */
   @Value.Default
   @JsonProperty("grant_type")
   @Override
-  default String getGrantType() {
-    return GRANT_TYPE;
+  default GrantType getGrantType() {
+    return GrantType.REFRESH_TOKEN;
   }
 
   /** REQUIRED. The refresh token issued to the client. */
