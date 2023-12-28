@@ -15,15 +15,8 @@
  */
 package org.projectnessie.catalog.storage.persist;
 
-import static java.util.Collections.emptyList;
 import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.smile.databind.SmileMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -35,11 +28,9 @@ import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.storage.backend.CatalogEntitySnapshot;
 import org.projectnessie.catalog.storage.backend.CatalogStorage;
 import org.projectnessie.catalog.storage.backend.ObjectMismatchException;
-import org.projectnessie.nessie.relocated.protobuf.ByteString;
 import org.projectnessie.versioned.storage.common.exceptions.ObjNotFoundException;
 import org.projectnessie.versioned.storage.common.exceptions.ObjTooLargeException;
-import org.projectnessie.versioned.storage.common.objtypes.Compression;
-import org.projectnessie.versioned.storage.common.objtypes.StringObj;
+import org.projectnessie.versioned.storage.common.objtypes.JsonObj;
 import org.projectnessie.versioned.storage.common.persist.Obj;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
 import org.projectnessie.versioned.storage.common.persist.Persist;
@@ -102,7 +93,7 @@ public class PersistCatalogStorage implements CatalogStorage {
   public void createObject(NessieId id, Object object) throws ObjectMismatchException {
     try {
       ObjId objId = ObjId.objIdFromByteArray(id.idAsBytes());
-      Obj obj = serialize(objId, object);
+      Obj obj = JsonObj.json(objId, object);
       boolean stored = persist.storeObj(obj);
       if (!stored) {
         Obj previousObj = persist.fetchObj(objId);
@@ -120,7 +111,12 @@ public class PersistCatalogStorage implements CatalogStorage {
     try {
       Obj[] objs =
           objects.entrySet().stream()
-              .map(e -> serialize(ObjId.objIdFromByteArray(e.getKey().idAsBytes()), e.getValue()))
+              .map(
+                  e -> {
+                    ObjId id = ObjId.objIdFromByteArray(e.getKey().idAsBytes());
+                    // FIXME use the interface type instead of the implementation type
+                    return JsonObj.json(id, e.getValue());
+                  })
               .toArray(Obj[]::new);
       boolean[] stored = persist.storeObjs(objs);
       Obj[] existingObjs =
@@ -143,50 +139,10 @@ public class PersistCatalogStorage implements CatalogStorage {
     }
   }
 
-  private static final ObjectMapper SMILE_MAPPER =
-      new SmileMapper().registerModule(new GuavaModule());
-
-  private Obj serialize(ObjId id, Object value) {
-    try {
-      return StringObj.stringData(
-          id,
-          "application/smile",
-          Compression.NONE,
-          // FIXME use the interface type instead of the implementation type,
-          // or use constant discriminators
-          value.getClass().getName(),
-          emptyList(),
-          ByteString.copyFrom(SMILE_MAPPER.writeValueAsBytes(value)));
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   private <T> T deserialize(Obj obj, Class<T> expectedType) {
-    if (!(obj instanceof StringObj)) {
+    if (!(obj instanceof JsonObj)) {
       throw new UnsupportedOperationException("Unknown object type " + obj.type());
     }
-    if (!((StringObj) obj).contentType().equals("application/smile")) {
-      throw new UnsupportedOperationException(
-          "Unknown content type " + ((StringObj) obj).contentType());
-    }
-    String className = ((StringObj) obj).filename();
-    ByteString payload = ((StringObj) obj).text();
-    try {
-      @SuppressWarnings("unchecked")
-      Class<T> clazz = (Class<T>) Class.forName(className);
-      if (!expectedType.isAssignableFrom(clazz)) {
-        throw new UnsupportedOperationException(
-            "Unexpected JSON payload type "
-                + clazz.getName()
-                + ", expected instance of "
-                + expectedType.getName());
-      }
-      try (InputStream in = payload.newInput()) {
-        return SMILE_MAPPER.readValue(in, clazz);
-      }
-    } catch (ClassNotFoundException | IOException e) {
-      throw new RuntimeException(e);
-    }
+    return ((JsonObj) obj).bean(expectedType);
   }
 }
