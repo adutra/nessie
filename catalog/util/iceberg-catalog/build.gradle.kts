@@ -19,7 +19,9 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 plugins {
   id("nessie-conventions-client")
   id("nessie-jacoco")
-  id("com.github.johnrengelman.shadow")
+  // FIXME see https://github.com/johnrengelman/shadow/pull/876
+  // id("com.github.johnrengelman.shadow")
+  id("io.github.goooler.shadow")
 }
 
 description = "Nessie - Catalog - Iceberg Client"
