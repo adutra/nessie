@@ -54,26 +54,56 @@ public final class NessieConfigConstants {
   public static final String CONF_NESSIE_AUTH_TOKEN = "nessie.authentication.token";
 
   /**
+   * Config property name ({@value #CONF_NESSIE_OAUTH2_ISSUER_URL}) for the OAuth2 authentication
+   * provider. The root URL of the OpenID Connect identity issuer provider, which will be used for
+   * discovering supported endpoints and their locations. For Keycloak, this is typically the realm
+   * URL: {@code https://<keycloak-server>/realms/<realm-name>}.
+   *
+   * <p>Endpoint discovery is performed using the OpenID Connect Discovery metadata published by the
+   * issuer. See <a href="https://openid.net/specs/openid-connect-discovery-1_0.html">OpenID Connect
+   * Discovery 1.0</a> for more information.
+   *
+   * <p>Either this property or {@link #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT} must be set.
+   */
+  public static final String CONF_NESSIE_OAUTH2_ISSUER_URL =
+      "nessie.authentication.oauth2.issuer-url";
+
+  /**
    * Config property name ({@value #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT}) for the OAuth2
-   * authentication provider. The URL of the OAuth2 token endpoint; this should include not only the
-   * OAuth2 server's address, but also the path to the token REST resource, if any. For Keycloak,
-   * this is typically {@code
-   * https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/token}. Required if using
-   * OAuth2 authentication, ignored otherwise.
+   * authentication provider. The URL of the OAuth2 token endpoint. For Keycloak, this is typically
+   * {@code https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/token}.
+   *
+   * <p>Either this property or {@link #CONF_NESSIE_OAUTH2_ISSUER_URL} must be set. In case it is
+   * not set, the token endpoint will be discovered from the {@link #CONF_NESSIE_OAUTH2_ISSUER_URL
+   * issuer URL}, using the OpenID Connect Discovery metadata published by the issuer.
    */
   public static final String CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT =
       "nessie.authentication.oauth2.token-endpoint";
 
   /**
    * Config property name ({@value #CONF_NESSIE_OAUTH2_AUTH_ENDPOINT}) for the OAuth2 authentication
-   * provider. The URL of the OAuth2 authorization endpoint; this should include not only the OAuth2
-   * server's address, but also the path to the authorization REST resource, if any. For Keycloak,
-   * this is typically {@code
-   * https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/auth}. Required if using
-   * OAuth2 authentication and the "authorization_code" grant type, ignored otherwise.
+   * provider. The URL of the OAuth2 authorization endpoint. For Keycloak, this is typically {@code
+   * https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/auth}.
+   *
+   * <p>If using the "authorization_code" grant type, either this property or {@link
+   * #CONF_NESSIE_OAUTH2_ISSUER_URL} must be set. In case it is not set, the authorization endpoint
+   * will be discovered from the {@link #CONF_NESSIE_OAUTH2_ISSUER_URL issuer URL}, using the OpenID
+   * Connect Discovery metadata published by the issuer.
    */
   public static final String CONF_NESSIE_OAUTH2_AUTH_ENDPOINT =
       "nessie.authentication.oauth2.auth-endpoint";
+
+  /**
+   * Config property name ({@value #CONF_NESSIE_OAUTH2_DEVICE_AUTH_ENDPOINT}) for the OAuth2
+   * authentication provider. The URL of the OAuth2 device authorization endpoint. For Keycloak,
+   * this is typically {@code
+   * http://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/auth/device}.
+   *
+   * <p>If using the "Device Code" grant type, either this property or {@link
+   * #CONF_NESSIE_OAUTH2_ISSUER_URL} must be set.
+   */
+  public static final String CONF_NESSIE_OAUTH2_DEVICE_AUTH_ENDPOINT =
+      "nessie.authentication.oauth2.device-auth-endpoint";
 
   public static final String CONF_NESSIE_OAUTH2_GRANT_TYPE_CLIENT_CREDENTIALS =
       "client_credentials";
@@ -82,6 +112,8 @@ public final class NessieConfigConstants {
 
   public static final String CONF_NESSIE_OAUTH2_GRANT_TYPE_AUTHORIZATION_CODE =
       "authorization_code";
+
+  public static final String CONF_NESSIE_OAUTH2_GRANT_TYPE_DEVICE_CODE = "device_code";
 
   /**
    * Config property name ({@value #CONF_NESSIE_OAUTH2_GRANT_TYPE}) for the OAuth2 authentication
@@ -92,6 +124,7 @@ public final class NessieConfigConstants {
    *   <li>{@value #CONF_NESSIE_OAUTH2_GRANT_TYPE_CLIENT_CREDENTIALS}
    *   <li>{@value #CONF_NESSIE_OAUTH2_GRANT_TYPE_PASSWORD}
    *   <li>{@value #CONF_NESSIE_OAUTH2_GRANT_TYPE_AUTHORIZATION_CODE}
+   *   <li>{@value #CONF_NESSIE_OAUTH2_GRANT_TYPE_DEVICE_CODE}
    * </ul>
    *
    * Optional, defaults to {@value #CONF_NESSIE_OAUTH2_GRANT_TYPE_CLIENT_CREDENTIALS}.
@@ -101,7 +134,8 @@ public final class NessieConfigConstants {
    * <p>For the "client_credentials" grant type, the following properties must be provided:
    *
    * <ul>
-   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT token endpoint}
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT token endpoint} or {@linkplain
+   *       #CONF_NESSIE_OAUTH2_ISSUER_URL issuer URL}
    *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_ID client ID}
    *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_SECRET client secret}
    * </ul>
@@ -109,7 +143,8 @@ public final class NessieConfigConstants {
    * <p>For the "password" grant type, the following properties must be provided:
    *
    * <ul>
-   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT token endpoint}
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT token endpoint} or {@linkplain
+   *       #CONF_NESSIE_OAUTH2_ISSUER_URL issuer URL}
    *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_ID client ID}
    *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_SECRET client secret}
    *   <li>{@linkplain #CONF_NESSIE_OAUTH2_USERNAME username}
@@ -119,8 +154,21 @@ public final class NessieConfigConstants {
    * <p>For the "authorization_code" grant type, the following properties must be provided:
    *
    * <ul>
-   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT token endpoint}
-   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_AUTH_ENDPOINT authorization endpoint}
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT token endpoint} or {@linkplain
+   *       #CONF_NESSIE_OAUTH2_ISSUER_URL issuer URL}
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_AUTH_ENDPOINT authorization endpoint} or {@linkplain
+   *       #CONF_NESSIE_OAUTH2_ISSUER_URL issuer URL}
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_ID client ID}
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_SECRET client secret}
+   * </ul>
+   *
+   * <p>For the "device_code" grant type, the following properties must be provided:
+   *
+   * <ul>
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT token endpoint} or {@linkplain
+   *       #CONF_NESSIE_OAUTH2_ISSUER_URL issuer URL}
+   *   <li>{@linkplain #CONF_NESSIE_OAUTH2_DEVICE_AUTH_ENDPOINT device authorization endpoint} or
+   *       {@linkplain #CONF_NESSIE_OAUTH2_ISSUER_URL issuer URL}
    *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_ID client ID}
    *   <li>{@linkplain #CONF_NESSIE_OAUTH2_CLIENT_SECRET client secret}
    * </ul>
@@ -274,6 +322,30 @@ public final class NessieConfigConstants {
       "nessie.authentication.oauth2.auth-code-flow.timeout";
 
   public static final String DEFAULT_AUTHORIZATION_CODE_FLOW_TIMEOUT = "PT5M";
+
+  /**
+   * Config property name ({@value #CONF_NESSIE_OAUTH2_DEVICE_CODE_FLOW_TIMEOUT}) for the OAuth2
+   * authentication provider. How long the client should wait for the device code flow to complete.
+   * This is only used if the grant type to use is {@value
+   * #CONF_NESSIE_OAUTH2_GRANT_TYPE_DEVICE_CODE}. Optional, defaults to {@value
+   * #DEFAULT_DEVICE_CODE_FLOW_TIMEOUT}.
+   */
+  public static final String CONF_NESSIE_OAUTH2_DEVICE_CODE_FLOW_TIMEOUT =
+      "nessie.authentication.oauth2.device-code-flow.timeout";
+
+  public static final String DEFAULT_DEVICE_CODE_FLOW_TIMEOUT = "PT5M";
+
+  /**
+   * Config property name ({@value #CONF_NESSIE_OAUTH2_DEVICE_CODE_FLOW_POLL_INTERVAL}) for the
+   * OAuth2 authentication provider. How often the client should poll the OAuth2 server for the
+   * device code flow to complete. This is only used if the grant type to use is {@value
+   * #CONF_NESSIE_OAUTH2_GRANT_TYPE_DEVICE_CODE}. Optional, defaults to {@value
+   * #DEFAULT_DEVICE_CODE_FLOW_POLL_INTERVAL}.
+   */
+  public static final String CONF_NESSIE_OAUTH2_DEVICE_CODE_FLOW_POLL_INTERVAL =
+      "nessie.authentication.oauth2.device-code-flow.poll-interval";
+
+  public static final String DEFAULT_DEVICE_CODE_FLOW_POLL_INTERVAL = "PT5S";
 
   /**
    * Config property name ({@value #CONF_NESSIE_AWS_REGION}) for the region used for AWS

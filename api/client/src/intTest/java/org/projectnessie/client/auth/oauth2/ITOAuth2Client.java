@@ -15,13 +15,18 @@
  */
 package org.projectnessie.client.auth.oauth2;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
+import static org.projectnessie.client.auth.oauth2.GrantType.AUTHORIZATION_CODE;
+import static org.projectnessie.client.auth.oauth2.GrantType.DEVICE_CODE;
+import static org.projectnessie.client.auth.oauth2.GrantType.PASSWORD;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import dasniko.testcontainers.keycloak.KeycloakContainer;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
@@ -67,17 +72,19 @@ public class ITOAuth2Client {
       new KeycloakContainer().withFeaturesEnabled("preview", "token-exchange");
 
   private static RealmResource master;
+  private static URI issuerUrl;
   private static URI tokenEndpoint;
   private static URI authEndpoint;
+  private static URI deviceAuthEndpoint;
 
   @InjectSoftAssertions private SoftAssertions soft;
 
   @BeforeAll
   static void setUpKeycloak() {
-    tokenEndpoint =
-        URI.create(KEYCLOAK.getAuthServerUrl() + "/realms/master/protocol/openid-connect/token");
-    authEndpoint =
-        URI.create(KEYCLOAK.getAuthServerUrl() + "/realms/master/protocol/openid-connect/auth");
+    issuerUrl = URI.create(KEYCLOAK.getAuthServerUrl() + "/realms/master/");
+    tokenEndpoint = issuerUrl.resolve("protocol/openid-connect/token");
+    authEndpoint = issuerUrl.resolve("protocol/openid-connect/auth");
+    deviceAuthEndpoint = issuerUrl.resolve("protocol/openid-connect/auth/device");
     Keycloak keycloakAdmin = KEYCLOAK.getKeycloakAdminClient();
     master = keycloakAdmin.realms().realm("master");
     updateMasterRealm(10, 15);
@@ -110,16 +117,19 @@ public class ITOAuth2Client {
    */
   @Test
   void testOAuth2ClientWithBackgroundRefresh() throws Exception {
-    OAuth2ClientParams params1 = clientParams("Client1").build();
-    OAuth2ClientParams params2 = clientParams("Client2").grantType(GrantType.PASSWORD).build();
-    OAuth2ClientParams params3 =
-        clientParams("Client2").grantType(GrantType.AUTHORIZATION_CODE).build();
+    OAuth2ClientConfig config1 = clientConfig("Client1", false).build();
+    OAuth2ClientConfig config2 = clientConfig("Client2", false).grantType(PASSWORD).build();
+    OAuth2ClientConfig config3 =
+        clientConfig("Client2", false).grantType(AUTHORIZATION_CODE).build();
     ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    try (OAuth2Client client1 = new OAuth2Client(params1);
-        OAuth2Client client2 = new OAuth2Client(params2);
-        OAuth2Client client3 = new OAuth2Client(params3);
-        ResourceOwnerEmulator resourceOwner = new ResourceOwnerEmulator("Alice", "s3cr3t");
+    try (OAuth2Client client1 = new OAuth2Client(config1);
+        OAuth2Client client2 = new OAuth2Client(config2);
+        OAuth2Client client3 = new OAuth2Client(config3);
+        ResourceOwnerEmulator resourceOwner =
+            new ResourceOwnerEmulator(AUTHORIZATION_CODE, "Alice", "s3cr3t");
         HttpClient validatingClient = validatingHttpClient("Client1").build()) {
+      resourceOwner.replaceSystemOut();
+      resourceOwner.setAuthServerBaseUri(URI.create(KEYCLOAK.getAuthServerUrl()));
       resourceOwner.setErrorListener(e -> executor.shutdownNow());
       client1.start();
       client2.start();
@@ -151,8 +161,9 @@ public class ITOAuth2Client {
    * <p>This test exercises the OAuth2 client with the following steps:
    *
    * <ul>
-   *   <li>client_credentials, password or authorization_code grant type for obtaining the initial
-   *       access token;
+   *   <li>endpoint discovery on;
+   *   <li>client_credentials, password, authorization_code or device_code grant type for obtaining
+   *       the initial access token;
    *   <li>refresh token sent on the initial response;
    *   <li>refresh_token grant type for refreshing the access token.
    * </ul>
@@ -160,10 +171,10 @@ public class ITOAuth2Client {
   @ParameterizedTest
   @EnumSource(
       value = GrantType.class,
-      names = {"CLIENT_CREDENTIALS", "PASSWORD", "AUTHORIZATION_CODE"})
+      names = {"CLIENT_CREDENTIALS", "PASSWORD", "AUTHORIZATION_CODE", "DEVICE_CODE"})
   void testOAuth2ClientInitialRefreshToken(GrantType initialGrantType) throws Exception {
-    OAuth2ClientParams params = clientParams("Client2").grantType(initialGrantType).build();
-    try (OAuth2Client client = new OAuth2Client(params);
+    OAuth2ClientConfig config = clientConfig("Client2", true).grantType(initialGrantType).build();
+    try (OAuth2Client client = new OAuth2Client(config);
         AutoCloseable ignored = newTestSetup(initialGrantType, client);
         HttpClient validatingClient = validatingHttpClient("Client2").build()) {
       // first request: client credentials grant
@@ -194,8 +205,8 @@ public class ITOAuth2Client {
    */
   @Test
   void testOAuth2ClientTokenExchange() {
-    OAuth2ClientParams params = clientParams("Client1").build();
-    try (OAuth2Client client = new OAuth2Client(params);
+    OAuth2ClientConfig config = clientConfig("Client1", false).build();
+    try (OAuth2Client client = new OAuth2Client(config);
         HttpClient validatingClient = validatingHttpClient("Client1").build()) {
       // first request: client credentials grant
       Tokens firstTokens = client.fetchNewTokens();
@@ -231,8 +242,8 @@ public class ITOAuth2Client {
    */
   @Test
   void testOAuth2ClientNoRefreshToken() {
-    OAuth2ClientParams params = clientParams("Client1").tokenExchangeEnabled(false).build();
-    try (OAuth2Client client = new OAuth2Client(params);
+    OAuth2ClientConfig config = clientConfig("Client1", false).tokenExchangeEnabled(false).build();
+    try (OAuth2Client client = new OAuth2Client(config);
         HttpClient validatingClient = validatingHttpClient("Client1").build()) {
       // first request: client credentials grant
       Tokens firstTokens = client.fetchNewTokens();
@@ -253,8 +264,8 @@ public class ITOAuth2Client {
 
   @Test
   void testOAuth2ClientUnauthorizedBadClientSecret() {
-    OAuth2ClientParams params = clientParams("Client1").clientSecret("BAD SECRET").build();
-    try (OAuth2Client client = new OAuth2Client(params)) {
+    OAuth2ClientConfig config = clientConfig("Client1", false).clientSecret("BAD SECRET").build();
+    try (OAuth2Client client = new OAuth2Client(config)) {
       client.start();
       soft.assertThatThrownBy(client::authenticate)
           .asInstanceOf(type(OAuth2Exception.class))
@@ -265,9 +276,9 @@ public class ITOAuth2Client {
 
   @Test
   void testOAuth2ClientUnauthorizedBadPassword() {
-    OAuth2ClientParams params =
-        clientParams("Client2").grantType(GrantType.PASSWORD).password("BAD PASSWORD").build();
-    try (OAuth2Client client = new OAuth2Client(params)) {
+    OAuth2ClientConfig config =
+        clientConfig("Client2", false).grantType(PASSWORD).password("BAD PASSWORD").build();
+    try (OAuth2Client client = new OAuth2Client(config)) {
       client.start();
       soft.assertThatThrownBy(client::authenticate)
           .asInstanceOf(type(OAuth2Exception.class))
@@ -278,10 +289,13 @@ public class ITOAuth2Client {
 
   @Test
   void testOAuth2ClientUnauthorizedBadAuthorizationCode() throws Exception {
-    OAuth2ClientParams params =
-        clientParams("Client2").grantType(GrantType.AUTHORIZATION_CODE).build();
-    try (OAuth2Client client = new OAuth2Client(params);
-        ResourceOwnerEmulator resourceOwner = new ResourceOwnerEmulator("Alice", "s3cr3t")) {
+    OAuth2ClientConfig config =
+        clientConfig("Client2", false).grantType(AUTHORIZATION_CODE).build();
+    try (OAuth2Client client = new OAuth2Client(config);
+        ResourceOwnerEmulator resourceOwner =
+            new ResourceOwnerEmulator(AUTHORIZATION_CODE, "Alice", "s3cr3t")) {
+      resourceOwner.replaceSystemOut();
+      resourceOwner.setAuthServerBaseUri(URI.create(KEYCLOAK.getAuthServerUrl()));
       resourceOwner.setErrorListener(e -> client.close());
       resourceOwner.overrideAuthorizationCode("BAD_CODE", Status.UNAUTHORIZED);
       client.start();
@@ -293,9 +307,28 @@ public class ITOAuth2Client {
   }
 
   @Test
+  void testOAuth2ClientDeviceCodeAccessDenied() throws Exception {
+    OAuth2ClientConfig config = clientConfig("Client2", false).grantType(DEVICE_CODE).build();
+    try (OAuth2Client client = new OAuth2Client(config);
+        ResourceOwnerEmulator resourceOwner =
+            new ResourceOwnerEmulator(DEVICE_CODE, "Alice", "s3cr3t")) {
+      resourceOwner.replaceSystemOut();
+      resourceOwner.setAuthServerBaseUri(URI.create(KEYCLOAK.getAuthServerUrl()));
+      resourceOwner.setErrorListener(e -> client.close());
+      resourceOwner.denyConsent();
+      client.start();
+      soft.assertThatThrownBy(client::authenticate)
+          .asInstanceOf(type(OAuth2Exception.class))
+          .extracting(OAuth2Exception::getStatus, OAuth2Exception::getErrorCode)
+          .containsExactly(
+              Status.BAD_REQUEST, "access_denied"); // Keycloak replies with 400 instead of 401
+    }
+  }
+
+  @Test
   void testOAuth2ClientExpiredToken() {
-    OAuth2ClientParams params = clientParams("Client1").build();
-    try (OAuth2Client client = new OAuth2Client(params);
+    OAuth2ClientConfig config = clientConfig("Client1", false).build();
+    try (OAuth2Client client = new OAuth2Client(config);
         HttpClient validatingClient = validatingHttpClient("Client1").build()) {
       Tokens tokens = client.fetchNewTokens();
       // Emulate a token expiration; we don't want to wait 10 seconds just for the token to really
@@ -350,19 +383,31 @@ public class ITOAuth2Client {
         .isEqualTo(clientId);
   }
 
-  private static ImmutableOAuth2ClientParams.Builder clientParams(String clientId) {
-    return ImmutableOAuth2ClientParams.builder()
-        .tokenEndpoint(tokenEndpoint)
-        .authEndpoint(authEndpoint)
-        .clientId(clientId)
-        .clientSecret("s3cr3t")
-        .username("Alice")
-        .password("s3cr3t")
-        // Otherwise Keycloak complains about missing scope, but still issues tokens
-        .scope("openid")
-        .defaultAccessTokenLifespan(Duration.ofSeconds(10))
-        .defaultRefreshTokenLifespan(Duration.ofSeconds(15))
-        .refreshSafetyWindow(Duration.ofSeconds(5));
+  private static OAuth2ClientConfig.Builder clientConfig(String clientId, boolean discovery) {
+    OAuth2ClientConfig.Builder builder =
+        OAuth2ClientConfig.builder()
+            .clientId(clientId)
+            .clientSecret("s3cr3t")
+            .username("Alice")
+            .password("s3cr3t")
+            // Otherwise Keycloak complains about missing scope, but still issues tokens
+            .scope("openid")
+            .defaultAccessTokenLifespan(Duration.ofSeconds(10))
+            .defaultRefreshTokenLifespan(Duration.ofSeconds(15))
+            .refreshSafetyWindow(Duration.ofSeconds(5))
+            // Exercise the code path where Keycloak will request client to slow down
+            .ignoreDeviceCodeFlowServerPollInterval(true)
+            .minDeviceCodeFlowPollInterval(Duration.ofSeconds(1))
+            .deviceCodeFlowPollInterval(Duration.ofSeconds(1));
+    if (discovery) {
+      builder.issuerUrl(issuerUrl);
+    } else {
+      builder
+          .tokenEndpoint(tokenEndpoint)
+          .authEndpoint(authEndpoint)
+          .deviceAuthEndpoint(deviceAuthEndpoint);
+    }
+    return builder;
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -394,11 +439,14 @@ public class ITOAuth2Client {
     client.setAttributes(
         ImmutableMap.of(
             "client_credentials.use_refresh_token",
-            String.valueOf(sendRefreshTokenOnClientCredentialsRequest)));
+            String.valueOf(sendRefreshTokenOnClientCredentialsRequest),
+            "oauth2.device.authorization.grant.enabled",
+            "true"));
     ResourceServerRepresentation settings = new ResourceServerRepresentation();
     settings.setPolicyEnforcementMode(PolicyEnforcementMode.DISABLED);
     client.setAuthorizationSettings(settings);
-    master.clients().create(client);
+    Response response = master.clients().create(client);
+    assertThat(response.getStatus()).isEqualTo(201);
   }
 
   @SuppressWarnings("resource")
@@ -411,7 +459,8 @@ public class ITOAuth2Client {
     credential.setTemporary(false);
     user.setCredentials(ImmutableList.of(credential));
     user.setEnabled(true);
-    master.users().create(user);
+    Response response = master.users().create(user);
+    assertThat(response.getStatus()).isEqualTo(201);
   }
 
   private static HttpClient.Builder validatingHttpClient(String clientId) {
@@ -434,6 +483,8 @@ public class ITOAuth2Client {
         return PasswordTokensResponse.class;
       case AUTHORIZATION_CODE:
         return AuthorizationCodeTokensResponse.class;
+      case DEVICE_CODE:
+        return DeviceCodeTokensResponse.class;
       default:
         throw new IllegalArgumentException("Unexpected initial grant type: " + initialGrantType);
     }
@@ -446,8 +497,12 @@ public class ITOAuth2Client {
       case PASSWORD:
         return () -> {};
       case AUTHORIZATION_CODE:
-        ResourceOwnerEmulator resourceOwner = new ResourceOwnerEmulator("Alice", "s3cr3t");
+      case DEVICE_CODE:
+        ResourceOwnerEmulator resourceOwner =
+            new ResourceOwnerEmulator(initialGrantType, "Alice", "s3cr3t");
+        resourceOwner.replaceSystemOut();
         resourceOwner.setErrorListener(e -> client.close());
+        resourceOwner.setAuthServerBaseUri(URI.create(KEYCLOAK.getAuthServerUrl()));
         return resourceOwner;
       default:
         throw new IllegalArgumentException("Unexpected initial grant type: " + initialGrantType);

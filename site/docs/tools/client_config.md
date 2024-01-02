@@ -147,30 +147,69 @@ the `application.properties` file of the Nessie server:
 nessie.server.authentication.enabled=true
 quarkus.oidc.auth-server-url=https://<keycloak-server>/realms/<realm-name>
 ```
+The most important property is `authentication.oauth2.grant-type`, which defines the grant type to
+use when authenticating against the OAuth2 server. Valid values are: 
 
-The following properties are available for the `OAUTH2` authentication type:
+* `client_credentials` : enables the [Client Credentials grant] (default);
+* `password` : enables the [Resource Owner Password Credentials grant];
+* `authorization_code` : enables the [Authorization Code grant];
+* `device_code` : enables the [Device Authorization grant].
 
-* `authentication.oauth2.token-endpoint`: the URL of the OAuth2 token endpoint; this should include
-  not only the OAuth2 server's address, but also the path to the token REST resource, if any. For
-  Keycloak, this is typically
-  `https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/token`. Required.
+[Client Credentials grant]: https://datatracker.ietf.org/doc/html/rfc6749#section-4.4
+[Resource Owner Password Credentials grant]: https://datatracker.ietf.org/doc/html/rfc6749#section-4.3
+[Authorization Code grant]: https://datatracker.ietf.org/doc/html/rfc6749#section-4.1
+[Device Authorization grant]: https://datatracker.ietf.org/doc/html/rfc8628
 
-* `authentication.oauth2.grant-type`: the grant type to use when authenticating against the OAuth2
-  server. Valid values are: `client_credentials`, `password` or `authorization_code`. Optional,
-  defaults to `client_credentials`. Depending on the grant type, additional properties must be
-  provided:
-  * For the "client_credentials" grant type, the following properties must be provided:
-    * `authentication.oauth2.client-id`
-    * `authentication.oauth2.client-secret`
-  * For the "password" grant type, the following properties must be provided:
-    * `authentication.oauth2.client-id`
-    * `authentication.oauth2.client-secret`
-    * `authentication.oauth2.username`
-    * `authentication.oauth2.password`
-  * For the "authorization_code" grant type, the following properties must be provided:
-    * `authentication.oauth2.client-id`
-    * `authentication.oauth2.client-secret`
-    * `authentication.oauth2.auth-endpoint`
+The full list of available properties is shown hereafter. Depending on the grant type, some of them 
+must be provided:
+
+* For the "client_credentials" grant type, at least the following properties must be provided:
+  * `authentication.oauth2.issuer-url` or `authentication.oauth2.token-endpoint`
+  * `authentication.oauth2.client-id`
+  * `authentication.oauth2.client-secret`
+* For the "password" grant type, at least the following properties must be provided:
+  * `authentication.oauth2.issuer-url` or `authentication.oauth2.token-endpoint`
+  * `authentication.oauth2.client-id`
+  * `authentication.oauth2.client-secret`
+  * `authentication.oauth2.username`
+  * `authentication.oauth2.password`
+* For the "authorization_code" grant type, at least the following properties must be provided:
+  * `authentication.oauth2.issuer-url`, or both `authentication.oauth2.token-endpoint` 
+    and `authentication.oauth2.auth-endpoint`
+  * `authentication.oauth2.client-id`
+  * `authentication.oauth2.client-secret`
+  * `authentication.oauth2.auth-endpoint`
+* For the "device_code" grant type, at least the following properties must be provided:
+  * `authentication.oauth2.issuer-url`, or both `authentication.oauth2.token-endpoint` 
+    and `authentication.oauth2.deivce-auth-endpoint`
+  * `authentication.oauth2.client-id`
+  * `authentication.oauth2.client-secret`
+  * `authentication.oauth2.auth-endpoint`
+
+Here are the available properties for the `OAUTH2` authentication type:
+
+* `authentication.oauth2.issuer-url`: The root URL of the OpenID Connect identity issuer provider,
+  which will be used for discovering supported endpoints and their locations. For Keycloak, this is 
+  typically the realm URL: `https://<keycloak-server>/realms/<realm-name>`. Optional. Either this 
+  property or the `authentication.oauth2.token-endpoint` property must be provided. Endpoint 
+  discovery is performed using the OpenID Connect Discovery metadata published by the issuer. 
+  See [OpenID Connect Discovery 1.0] for more information.
+
+* `authentication.oauth2.token-endpoint`: the URL of the OAuth2 token endpoint. For Keycloak, this 
+  is typically `https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/token`. 
+  Optional. Either this property or the `authentication.oauth2.issuer-url` property must be 
+  provided.
+
+* `authentication.oauth2.auth-endpoint`: the URL of the OAuth2 auth endpoint. For Keycloak, this is 
+  typically `https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/auth`. If using 
+  the "authorization_code" grant type, either this property or the 
+  `authentication.oauth2.issuer-url` property must be provided.
+
+* `authentication.oauth2.device-auth-endpoint`: the URL of the OAuth2 device auth endpoint. For 
+  Keycloak, this is typically 
+  `https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/auth/device`. If using 
+  the "device_code" grant type, either this property or the `authentication.oauth2.issuer-url` 
+  property must be provided.
 
 * `authentication.oauth2.client-id`: the client ID to use when authenticating against the OAuth2
   server. Required.
@@ -183,12 +222,6 @@ The following properties are available for the `OAUTH2` authentication type:
 
 * `authentication.oauth2.password`: the password to use when authenticating against the OAuth2
   server. Required if using the "password" grant type.
-
-* `authentication.oauth2.auth-endpoint`: the URL of the OAuth2 auth endpoint; this should include
-  not only the OAuth2 server's address, but also the path to the authorization REST resource, if 
-  any. For Keycloak, this is typically
-  `https://<keycloak-server>/realms/<realm-name>/protocol/openid-connect/auth`. Required if using
-  the "authorization_code" grant type.
 
 * `authentication.oauth2.default-access-token-lifespan`: the default access token lifespan; if the
   OAuth2 server returns an access token without specifying its expiration time, this value will be
@@ -212,32 +245,64 @@ The following properties are available for the `OAUTH2` authentication type:
   recent versions of Keycloak support token exchange, but it is disabled by default. See [Using
   token exchange] for more information and how to enable this feature.
 
-* `nessie.authentication.oauth2.preemptive-token-refresh-idle-timeout`: for how long the Nessie 
+* `authentication.oauth2.preemptive-token-refresh-idle-timeout`: for how long the Nessie 
   client should keep the tokens fresh, if the client is not being actively used. Setting this value 
   too high may cause an excessive usage of network I/O and thread resources; conversely, when 
   setting it too low, if the client is used again, the calling thread may block if the tokens are 
   expired and need to be renewed synchronously. Optional, defaults to `PT30S` (30 seconds). Must be 
   a valid [ISO-8601 duration].
 
-* `nessie.authentication.oauth2.background-thread-idle-timeout`: how long the Nessie client should 
+* `authentication.oauth2.background-thread-idle-timeout`: how long the Nessie client should 
   keep a background thread alive, if the client is not being actively used, or no token refreshes 
   are being executed. Setting this value too high will cause the background thread to keep running 
   even if the client is not used anymore, potentially leaking thread and memory resources; 
   conversely, setting it too low could cause the background thread to be restarted too often.
   Optional, defaults to `PT30S` (30 seconds). Must be a valid [ISO-8601 duration].
 
-* `nessie.authentication.oauth2.auth-code-flow.web-port`: The port used for the embedded web server 
+* `authentication.oauth2.auth-code-flow.web-port`: The port used for the embedded web server 
   that listens for the authorization code callback. This is only used if the grant type to use is 
   "authorization_code". Optional; if not present, a random port will be used.
 
-* `nessie.authentication.oauth2.auth-code-flow.timeout`: How long the client should wait for the
+* `authentication.oauth2.auth-code-flow.timeout`: How long the client should wait for the
   authorization code flow to complete. This is only used if the grant type to use is
   "authorization_code". Optional, defaults to `PT5M` (5 minutes). Must be a valid 
   [ISO-8601 duration].
 
+* `authentication.oauth2.device-code-flow.timeout`: How long the client should wait for the
+  device code flow to complete. This is only used if the grant type to use is
+  "device_code". Optional, defaults to `PT5M` (5 minutes). Must be a valid [ISO-8601 duration].
+
+* `authentication.oauth2.device-code-flow.poll-interval`: How often the client should poll the 
+  device authorization endpoint for a token. This is only used if the grant type to use is
+  "device_code". Optional, defaults to `PT5S` (5 seconds). Must be a valid [ISO-8601 duration].
+
 [ISO-8601 duration]: https://en.wikipedia.org/wiki/ISO_8601#Durations
 [RFC 6749 Section 3.3]: https://datatracker.ietf.org/doc/html/rfc6749#section-3.3
 [Using token exchange]: https://www.keycloak.org/docs/latest/securing_apps/index.html#internal-token-to-internal-token-exchange
+[OpenID Connect Discovery 1.0]: https://openid.net/specs/openid-connect-discovery-1_0.html
+
+### Which grant type to use?
+
+The "client_credentials" grant type is the simplest one, but it requires the client to be granted
+enough permissions to access the Nessie server on behalf of the user. This is not always possible,
+and should be avoided if the resource owner (the user) is a human.
+
+The "password" grant type is also simple, but it requires passing the user's password to the client,
+which may not be acceptable in some cases for security reasons.
+
+For real users trying to authenticate within a terminal session, such as a Spark shell, the
+"authorization_code" grant type is recommended. It requires the user to authenticate in a browser
+window, thus sparing the need to provide the user's password directly to the client. The user will 
+be prompted to authenticate in a separate browser window, and the Nessie client will be notified 
+when the authentication is complete.
+
+If the terminal session is running remotely however, on inside an embedded device, then the
+"authorization_code" grant type may not be suitable, as the browser and the terminal session must 
+be running on the same machine. In this case, the "device_code" grant type is recommended. Similar 
+to the "authorization_code" grant type, it requires the user to authenticate in a browser window, 
+but it does not require the browser and the terminal session to be running on the same machine. The 
+user will be prompted to authenticate in a local browser window, and the remote Nessie client will
+poll the OAuth2 server for the authentication status, until the authentication is complete.
 
 ## Authentication Type `AWS`
 

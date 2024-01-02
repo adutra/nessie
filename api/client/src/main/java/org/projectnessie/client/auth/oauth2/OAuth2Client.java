@@ -15,13 +15,10 @@
  */
 package org.projectnessie.client.auth.oauth2;
 
-import static org.projectnessie.client.auth.oauth2.OAuth2ClientParams.MIN_REFRESH_DELAY;
 import static org.projectnessie.client.auth.oauth2.TokenTypeIdentifiers.ACCESS_TOKEN;
 import static org.projectnessie.client.auth.oauth2.TokenTypeIdentifiers.REFRESH_TOKEN;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -39,8 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.projectnessie.client.http.HttpClient;
 import org.projectnessie.client.http.HttpClientException;
 import org.projectnessie.client.http.HttpResponse;
-import org.projectnessie.client.http.ResponseContext;
-import org.projectnessie.client.http.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,11 +55,11 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
   static final Logger LOGGER = LoggerFactory.getLogger(OAuth2Client.class);
   private static final Duration MIN_WARN_INTERVAL = Duration.ofSeconds(10);
 
-  private final OAuth2ClientParams params;
+  private final OAuth2ClientConfig config;
   private final String username;
   private final byte[] password;
   private final String scope;
-  private final HttpClient httpClient;
+  private final HttpClient tokenEndpointClient;
   private final ScheduledExecutorService executor;
   private final CompletableFuture<Void> started = new CompletableFuture<>();
   /* Visible for testing. */ final AtomicBoolean sleeping = new AtomicBoolean();
@@ -75,14 +70,20 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
   private volatile Instant lastAccess;
   private volatile Instant lastWarn;
 
-  OAuth2Client(OAuth2ClientParams params) {
-    this.params = params;
-    username = params.getUsername().orElse(null);
-    password = params.getPassword().map(s -> s.getBytes(StandardCharsets.UTF_8)).orElse(null);
-    scope = params.getScope().orElse(null);
-    httpClient = params.getHttpClient().addResponseFilter(this::checkErrorResponse).build();
-    executor = params.getExecutor();
-    lastAccess = params.getClock().get();
+  OAuth2Client(OAuth2ClientConfig config) {
+    this.config = config;
+    username = config.getUsername().orElse(null);
+    password =
+        config.getPassword().map(s -> s.getBytesAndClear(StandardCharsets.UTF_8)).orElse(null);
+    scope = config.getScope().orElse(null);
+    tokenEndpointClient =
+        config
+            .newHttpClientBuilder()
+            .setBaseUri(config.getResolvedTokenEndpoint())
+            .setAuthentication(config.getBasicAuthentication())
+            .build();
+    executor = config.getExecutor();
+    lastAccess = config.getClock().get();
     currentTokensStage = started.thenApplyAsync((v) -> fetchNewTokens(), executor);
     currentTokensStage
         .whenComplete((tokens, error) -> log(error))
@@ -91,7 +92,7 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
 
   @Override
   public AccessToken authenticate() {
-    Instant now = params.getClock().get();
+    Instant now = config.getClock().get();
     lastAccess = now;
     if (sleeping.compareAndSet(true, false)) {
       wakeUp(now);
@@ -126,14 +127,7 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
     return null;
   }
 
-  /**
-   * Starts the client.
-   *
-   * <p>Calling this method will trigger a first access token fetch. It will also schedule a refresh
-   * of the access token when needed.
-   *
-   * <p>Calling this method twice or more is a no-op.
-   */
+  @Override
   public void start() {
     started.complete(null);
   }
@@ -157,6 +151,7 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
             }
           }
         }
+        tokenEndpointClient.close();
         if (password != null) {
           Arrays.fill(password, (byte) 0);
         }
@@ -173,7 +168,7 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
     LOGGER.debug("Waking up...");
     Tokens currentTokens = getCurrentTokensIfAvailable();
     Duration delay = nextTokenRefresh(currentTokens, now, Duration.ZERO);
-    if (delay.compareTo(MIN_REFRESH_DELAY) < 0) {
+    if (delay.compareTo(config.getMinRefreshSafetyWindow()) < 0) {
       LOGGER.debug("Refreshing tokens immediately");
       renewTokens();
     } else {
@@ -183,13 +178,13 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
   }
 
   private void maybeScheduleTokensRenewal(Tokens currentTokens) {
-    Instant now = params.getClock().get();
-    if (Duration.between(lastAccess, now).compareTo(params.getPreemptiveTokenRefreshIdleTimeout())
+    Instant now = config.getClock().get();
+    if (Duration.between(lastAccess, now).compareTo(config.getPreemptiveTokenRefreshIdleTimeout())
         > 0) {
       sleeping.set(true);
       LOGGER.debug("Sleeping...");
     } else {
-      Duration delay = nextTokenRefresh(currentTokens, now, MIN_REFRESH_DELAY);
+      Duration delay = nextTokenRefresh(currentTokens, now, config.getMinRefreshSafetyWindow());
       scheduleTokensRenewal(delay);
     }
   }
@@ -242,28 +237,30 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
 
   Tokens fetchNewTokens() {
     LOGGER.debug("Fetching new tokens");
-    if (params.getGrantType() == GrantType.CLIENT_CREDENTIALS) {
+    if (config.getGrantType() == GrantType.CLIENT_CREDENTIALS) {
       ClientCredentialsTokensRequest body =
           ImmutableClientCredentialsTokensRequest.builder().scope(scope).build();
-      HttpResponse httpResponse =
-          httpClient.newRequest().path(params.getTokenEndpoint().getPath()).postForm(body);
+      HttpResponse httpResponse = tokenEndpointClient.newRequest().postForm(body);
       return httpResponse.readEntity(ClientCredentialsTokensResponse.class);
-    } else if (params.getGrantType() == GrantType.PASSWORD) {
+    } else if (config.getGrantType() == GrantType.PASSWORD) {
       PasswordTokensRequest body =
           ImmutablePasswordTokensRequest.builder()
               .username(username)
               .password(new String(password, StandardCharsets.UTF_8))
               .scope(scope)
               .build();
-      HttpResponse httpResponse =
-          httpClient.newRequest().path(params.getTokenEndpoint().getPath()).postForm(body);
+      HttpResponse httpResponse = tokenEndpointClient.newRequest().postForm(body);
       return httpResponse.readEntity(PasswordTokensResponse.class);
-    } else if (params.getGrantType() == GrantType.AUTHORIZATION_CODE) {
-      try (AuthorizationCodeFlow flow = new AuthorizationCodeFlow(params, httpClient)) {
+    } else if (config.getGrantType() == GrantType.AUTHORIZATION_CODE) {
+      try (AuthorizationCodeFlow flow = new AuthorizationCodeFlow(config, tokenEndpointClient)) {
+        return flow.fetchNewTokens();
+      }
+    } else if (config.getGrantType() == GrantType.DEVICE_CODE) {
+      try (DeviceCodeFlow flow = new DeviceCodeFlow(config, tokenEndpointClient)) {
         return flow.fetchNewTokens();
       }
     }
-    throw new IllegalStateException("Unsupported grant type: " + params.getGrantType());
+    throw new IllegalStateException("Unsupported grant type: " + config.getGrantType());
   }
 
   Tokens refreshTokens(Tokens currentTokens) {
@@ -284,13 +281,12 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
             .refreshToken(currentTokens.getRefreshToken().getPayload())
             .scope(scope)
             .build();
-    HttpResponse httpResponse =
-        httpClient.newRequest().path(params.getTokenEndpoint().getPath()).postForm(body);
+    HttpResponse httpResponse = tokenEndpointClient.newRequest().postForm(body);
     return httpResponse.readEntity(RefreshTokensResponse.class);
   }
 
   Tokens exchangeTokens(Tokens currentToken) {
-    if (!params.getTokenExchangeEnabled()) {
+    if (!config.getTokenExchangeEnabled()) {
       throw new MustFetchNewTokensException("Token exchange is disabled");
     }
     LOGGER.debug("Exchanging tokens");
@@ -301,15 +297,14 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
             .requestedTokenType(REFRESH_TOKEN)
             .scope(scope)
             .build();
-    HttpResponse httpResponse =
-        httpClient.newRequest().path(params.getTokenEndpoint().getPath()).postForm(body);
+    HttpResponse httpResponse = tokenEndpointClient.newRequest().postForm(body);
     return httpResponse.readEntity(TokensExchangeResponse.class);
   }
 
   private boolean isAboutToExpire(Token token) {
-    Instant now = params.getClock().get();
-    return tokenExpirationTime(now, token, params.getDefaultRefreshTokenLifespan())
-        .isBefore(now.plus(params.getRefreshSafetyWindow()));
+    Instant now = config.getClock().get();
+    return tokenExpirationTime(now, token, config.getDefaultRefreshTokenLifespan())
+        .isBefore(now.plus(config.getRefreshSafetyWindow()));
   }
 
   /**
@@ -322,15 +317,15 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
     }
     Instant accessExpirationTime =
         tokenExpirationTime(
-            now, currentTokens.getAccessToken(), params.getDefaultAccessTokenLifespan());
+            now, currentTokens.getAccessToken(), config.getDefaultAccessTokenLifespan());
     Instant refreshExpirationTime =
         tokenExpirationTime(
-            now, currentTokens.getRefreshToken(), params.getDefaultRefreshTokenLifespan());
+            now, currentTokens.getRefreshToken(), config.getDefaultRefreshTokenLifespan());
     return shortestDelay(
         now,
         accessExpirationTime,
         refreshExpirationTime,
-        params.getRefreshSafetyWindow(),
+        config.getRefreshSafetyWindow(),
         minRefreshDelay);
   }
 
@@ -370,33 +365,8 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
     return expirationTime;
   }
 
-  private void checkErrorResponse(ResponseContext responseContext) {
-    try {
-      Status status = responseContext.getResponseCode();
-      if (status.getCode() >= 400) {
-        if (!responseContext.isJsonCompatibleResponse()) {
-          throw genericError(status);
-        }
-        InputStream is = responseContext.getErrorStream();
-        if (is != null) {
-          try {
-            ErrorResponse errorResponse =
-                params.getObjectMapper().readValue(is, ErrorResponse.class);
-            throw new OAuth2Exception(status, errorResponse);
-          } catch (IOException ignored) {
-            throw genericError(status);
-          }
-        }
-      }
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new HttpClientException(e);
-    }
-  }
-
   private void maybeWarn(String message, Throwable error) {
-    Instant now = params.getClock().get();
+    Instant now = config.getClock().get();
     boolean shouldWarn =
         lastWarn == null || Duration.between(lastWarn, now).compareTo(MIN_WARN_INTERVAL) > 0;
     if (shouldWarn) {
@@ -409,11 +379,6 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
     } else {
       LOGGER.debug(message, error);
     }
-  }
-
-  private static HttpClientException genericError(Status status) {
-    return new HttpClientException(
-        "OAuth2 server replied with HTTP status code: " + status.getCode());
   }
 
   static class MustFetchNewTokensException extends RuntimeException {
