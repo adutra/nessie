@@ -18,7 +18,7 @@ package org.projectnessie.catalog.service.server.base;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 import org.projectnessie.catalog.files.api.ObjectIO;
-import org.projectnessie.catalog.files.s3.S3ObjectIO;
+import org.projectnessie.catalog.files.local.LocalObjectIO;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
 import org.projectnessie.catalog.service.common.config.ImmutableCatalogServerConfig;
 import org.projectnessie.catalog.storage.backend.CatalogStorage;
@@ -45,6 +45,6 @@ public class SomeProducers {
   @Produces
   @Singleton
   public ObjectIO objectIO() {
-    return new S3ObjectIO();
+    return new LocalObjectIO();
   }
 }

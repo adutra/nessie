@@ -173,6 +173,7 @@ testing {
         implementation(
           "org.apache.iceberg:iceberg-spark-${sparkScala.sparkMajorVersion}_${sparkScala.scalaMajorVersion}:${libs.versions.iceberg.get()}"
         )
+        implementation("org.apache.iceberg:iceberg-nessie:${libs.versions.iceberg.get()}")
         implementation(project(":nessie-catalog-iceberg-catalog"))
       }
 
