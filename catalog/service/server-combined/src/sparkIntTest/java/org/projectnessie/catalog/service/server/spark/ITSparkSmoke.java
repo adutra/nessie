@@ -17,16 +17,21 @@ package org.projectnessie.catalog.service.server.spark;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.errorprone.annotations.FormatMethod;
 import java.nio.file.Path;
 import java.util.List;
 import org.apache.spark.SparkConf;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class ITSparkSmoke {
 
@@ -66,26 +71,47 @@ public class ITSparkSmoke {
     }
   }
 
-  @Test
-  public void foo() {
-    spark.sql("""
-        CREATE NAMESPACE nessie.testing;
-        """);
-    spark.sql(
-        """
-         CREATE TABLE nessie.testing.city (
-           C_CITYKEY BIGINT, C_NAME STRING, N_NATIONKEY BIGINT, C_COMMENT STRING
-         ) USING iceberg PARTITIONED BY (bucket(16, N_NATIONKEY));
-         """);
-    spark.sql(
-        """
-         INSERT INTO nessie.testing.city VALUES (1, 'a', 1, 'comment');
-         """);
+  static final String NAMESPACE = "nessie.testing";
 
-    List<Row> rows =
-        spark.sql("""
-      SELECT * FROM nessie.testing.city;
-      """).collectAsList();
+  static String table(String name) {
+    return String.format("%s.%s", NAMESPACE, name);
+  }
+
+  @FormatMethod
+  Dataset<Row> sql(String sql, Object... args) {
+    return spark.sql(String.format(sql, args));
+  }
+
+  @Test
+  @Order(1)
+  public void prepareNamespace() {
+    sql("""
+        CREATE NAMESPACE %s;
+        """, NAMESPACE);
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {1, 2})
+  @Order(10)
+  public void icebergSpecs(int specVersion) {
+    String tableName = table("smoke_spec_" + specVersion);
+
+    sql(
+        """
+         CREATE TABLE %s (
+           C_CITYKEY BIGINT, C_NAME STRING, N_NATIONKEY BIGINT, C_COMMENT STRING
+         ) USING iceberg
+         PARTITIONED BY (bucket(16, N_NATIONKEY))
+         TBLPROPERTIES ('format-version' = '%d');
+         """,
+        tableName, specVersion);
+    sql("""
+         INSERT INTO %s VALUES (1, 'a', 1, 'comment');
+         """, tableName);
+
+    List<Row> rows = sql("""
+      SELECT * FROM %s;
+      """, tableName).collectAsList();
 
     assertThat(rows)
         .hasSize(1)

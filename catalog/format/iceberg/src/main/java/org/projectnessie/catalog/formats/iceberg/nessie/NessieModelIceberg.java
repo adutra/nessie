@@ -876,6 +876,8 @@ public class NessieModelIceberg {
 
     // TODO unify with code used by importManifestListFromList()
 
+    // TODO do "the same" as org.apache.iceberg.BaseSnapshot.cacheManifests()
+
     for (String manifest : manifests) {
 
       try (SeekableInput avroFileInput =

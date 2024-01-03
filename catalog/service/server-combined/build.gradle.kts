@@ -169,6 +169,7 @@ testing {
         }
 
         implementation(libs.assertj.core)
+        compileOnly(libs.errorprone.annotations)
 
         implementation(
           "org.apache.iceberg:iceberg-spark-${sparkScala.sparkMajorVersion}_${sparkScala.scalaMajorVersion}:${libs.versions.iceberg.get()}"
