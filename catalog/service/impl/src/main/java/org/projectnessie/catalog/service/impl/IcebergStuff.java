@@ -86,7 +86,7 @@ public class IcebergStuff {
    * Fetch the Nessie table snapshot from the given {@linkplain Content Nessie content object}, the
    * Nessie table snapshot does not exist in the Nessie Data Catalog database.
    */
-  private NessieTableSnapshot importTableSnapshot(NessieId snapshotId, Content content) {
+  NessieTableSnapshot importTableSnapshot(NessieId snapshotId, Content content) {
     if (content instanceof IcebergTable) {
       try {
         return importIcebergTableSnapshot(snapshotId, (IcebergTable) content);
@@ -103,7 +103,7 @@ public class IcebergStuff {
    * the data lake into the Nessie Data Catalog's database, the Nessie table snapshot does not exist
    * in the Nessie Data Catalog database.
    */
-  private NessieTableSnapshot importIcebergTableSnapshot(NessieId snapshotId, IcebergTable content)
+  NessieTableSnapshot importIcebergTableSnapshot(NessieId snapshotId, IcebergTable content)
       throws IOException, ObjectMismatchException {
     // TODO debug level
     LOGGER.info(
@@ -223,7 +223,7 @@ public class IcebergStuff {
   }
 
   /** Fetch requested metadata from the database, the snapshot already exists. */
-  private NessieTableSnapshot loadTableSnapshot(CatalogEntitySnapshot catalogSnapshot) {
+  NessieTableSnapshot loadTableSnapshot(CatalogEntitySnapshot catalogSnapshot) {
     // TODO debug level
     LOGGER.info(
         "Fetching table snapshot from database for snapshot ID {} - {} {}",

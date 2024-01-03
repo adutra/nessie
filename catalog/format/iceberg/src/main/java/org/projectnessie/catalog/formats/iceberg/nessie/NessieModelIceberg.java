@@ -475,6 +475,7 @@ public class NessieModelIceberg {
 
     IcebergPartitionSpec partitionSpecV1;
     if (formatVersion == 1 && defaultSpecId != -1 && !iceberg.partitionSpec().isEmpty()) {
+      // TODO add test(s) for this case
       partitionSpecV1 =
           IcebergPartitionSpec.builder()
               .specId(defaultSpecId)
@@ -487,6 +488,7 @@ public class NessieModelIceberg {
     partsWithV1DefaultPart(iceberg.partitionSpecs(), partitionSpecV1, IcebergPartitionSpec::specId)
         .forEach(
             partitionSpec -> {
+              // TODO add test(s) for this case
               boolean isCurrent = partitionSpec.specId() == defaultSpecId;
 
               NessiePartitionDefinition partitionDefinition =
@@ -502,6 +504,7 @@ public class NessieModelIceberg {
     partsWithV1DefaultPart(iceberg.sortOrders(), null, IcebergSortOrder::orderId)
         .forEach(
             sortOrder -> {
+              // TODO add test(s) for this case
               boolean isCurrent = sortOrder.orderId() == defaultSortOrderId;
 
               NessieSortDefinition sortDefinition =
@@ -551,7 +554,8 @@ public class NessieModelIceberg {
     }
 
     for (IcebergStatisticsFile statisticsFile : iceberg.statistics()) {
-      // TODO ??
+      // TODO needed??
+      // TODO add test(s) for this case??
       statisticsFile.snapshotId();
       statisticsFile.statisticsPath();
       statisticsFile.fileSizeInBytes();
@@ -574,7 +578,8 @@ public class NessieModelIceberg {
         Math.max(iceberg.lastPartitionId(), table.icebergLastPartitionId()));
 
     for (IcebergHistoryEntry historyEntry : iceberg.metadataLog()) {
-      // TODO ??
+      // TODO needed??
+      // TODO add test(s) for this case??
       historyEntry.metadataFile();
       historyEntry.timestampMs();
     }
@@ -608,21 +613,19 @@ public class NessieModelIceberg {
 
   public static NessieTable newNessieTable(
       IcebergTable content, NessieId tableId, IcebergTableMetadata tableMetadata) {
-    NessieTable table;
-    table =
-        NessieTable.builder()
-            .id(tableId)
-            .createdTimestamp(Instant.ofEpochMilli(tableMetadata.lastUpdatedMs()))
-            .tableFormat(TableFormat.ICEBERG)
-            .icebergUuid(tableMetadata.tableUuid())
-            .icebergLastColumnId(tableMetadata.lastColumnId())
-            .icebergLastPartitionId(tableMetadata.lastPartitionId())
-            .nessieContentId(content.getId())
-            .baseLocation(
-                BaseLocation.baseLocation(
-                    NessieId.emptyNessieId(), "dummy", URI.create("dummy://dummy")))
-            .build();
-    return table;
+    // TODO add test(s) for this
+    return NessieTable.builder()
+        .id(tableId)
+        .createdTimestamp(Instant.ofEpochMilli(tableMetadata.lastUpdatedMs()))
+        .tableFormat(TableFormat.ICEBERG)
+        .icebergUuid(tableMetadata.tableUuid())
+        .icebergLastColumnId(tableMetadata.lastColumnId())
+        .icebergLastPartitionId(tableMetadata.lastPartitionId())
+        .nessieContentId(content.getId())
+        .baseLocation(
+            BaseLocation.baseLocation(
+                NessieId.emptyNessieId(), "dummy", URI.create("dummy://dummy")))
+        .build();
   }
 
   public static void importIcebergManifests(
@@ -967,6 +970,7 @@ public class NessieModelIceberg {
    */
   private static <T> Stream<T> partsWithV1DefaultPart(
       List<T> list, T single, ToIntFunction<T> extractId) {
+    // TODO add test(s) for this function
     if (single == null) {
       // no 'single', can short-cut here
       return list != null ? list.stream() : Stream.empty();
@@ -1072,6 +1076,7 @@ public class NessieModelIceberg {
 
     int defaultSpecId = INITIAL_SPEC_ID;
     for (NessiePartitionDefinition partitionDefinition : nessie.partitionDefinitions()) {
+      // TODO add test(s) for this
       IcebergPartitionSpec iceberg = nessiePartitionDefinitionToIceberg(partitionDefinition);
       metadata.addPartitionSpecs(iceberg);
       if (partitionDefinition.id().equals(nessie.currentPartitionDefinition())) {
@@ -1085,6 +1090,7 @@ public class NessieModelIceberg {
 
     int defaultSortOrderId = INITIAL_SORT_ORDER_ID;
     for (NessieSortDefinition sortDefinition : nessie.sortDefinitions()) {
+      // TODO add test(s) for this
       IcebergSortOrder iceberg = nessieSortDefinitionToIceberg(sortDefinition);
       metadata.addSortOrders(iceberg);
       if (sortDefinition.sortDefinitionId().equals(nessie.currentSortDefinition())) {
@@ -1130,6 +1136,8 @@ public class NessieModelIceberg {
       IcebergPartitionSpec partitionSpec,
       NessieFileManifestEntry dataFileManifest,
       Schema avroPartitionSchema) {
+    // TODO add test(s) for this function
+
     IcebergDataFile.Builder dataFile =
         IcebergDataFile.builder()
             .fileFormat(IcebergFileFormat.fromNessieDataFileFormat(dataFileManifest.fileFormat()))
