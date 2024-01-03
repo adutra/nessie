@@ -18,6 +18,7 @@ package org.apache.iceberg.nessie;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.lang.reflect.Field;
 import java.util.Map;
+import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableMetadataParser;
 import org.apache.iceberg.exceptions.NoSuchTableException;
 import org.apache.iceberg.io.FileIO;
@@ -83,11 +84,13 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
               .get();
       JsonNode tableMetadata = response.readEntity(JsonNode.class);
 
-      String contentId = tableMetadata.get("properties").get("nessie.catalog.content-id").asText();
-      long currentSnapshotId = tableMetadata.get("current-snapshot-id").asLong();
-      int currentSchemaId = tableMetadata.get("current-schema-id").asInt();
-      int defaultSpecId = tableMetadata.get("default-spec-id").asInt();
-      int defaultSortOrderId = tableMetadata.get("default-sort-order-id").asInt();
+      TableMetadata icebergMetadata = TableMetadataParser.fromJson(tableMetadata);
+
+      String contentId = icebergMetadata.property("nessie.catalog.content-id", null);
+      long currentSnapshotId = icebergMetadata.propertyAsLong("current-snapshot-id", 0L);
+      int currentSchemaId = icebergMetadata.propertyAsInt("current-schema-id", 0);
+      int defaultSpecId = icebergMetadata.propertyAsInt("default-spec-id", 0);
+      int defaultSortOrderId = icebergMetadata.propertyAsInt("default-sort-order-id", 0);
 
       String metadataLocation = response.getRequestUri().toASCIIString();
 
@@ -110,8 +113,7 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
         throw new RuntimeException(e);
       }
 
-      refreshFromMetadataLocation(
-          metadataLocation, null, 0, location -> TableMetadataParser.fromJson(tableMetadata));
+      refreshFromMetadataLocation(metadataLocation, null, 0, location -> icebergMetadata);
 
     } catch (NessieNotFoundException ex) {
       if (currentMetadataLocation() != null) {
