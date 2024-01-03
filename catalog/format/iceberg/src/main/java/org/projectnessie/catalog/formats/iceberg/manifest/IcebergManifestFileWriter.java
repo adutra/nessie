@@ -15,32 +15,24 @@
  */
 package org.projectnessie.catalog.formats.iceberg.manifest;
 
-import static java.util.Objects.requireNonNull;
 import static org.projectnessie.catalog.formats.iceberg.manifest.AvroSerializationContext.dataSerializationContext;
 import static org.projectnessie.catalog.formats.iceberg.manifest.AvroSerializationContext.deleteSerializationContext;
-import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary.icebergPartitionFieldSummary;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergStructType.FIELD_ID_PROP;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
-import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 // TODO make the writer reusable, so it can memoize Avro schemas.
@@ -244,13 +236,7 @@ public abstract class IcebergManifestFileWriter {
     private final DataFileWriter<IcebergManifestEntry> entryWriter;
     private final OutputContext outputContext;
     private final IcebergManifestFile.Builder manifestFile;
-    private int deletedDataFilesCount;
-    private long deletedRowsCount;
-    private int addedDataFilesCount;
-    private long addedRowsCount;
-    private int existingDataFilesCount;
-    private long existingRowsCount;
-    private PartitionFieldSummaryBuilder[] summary;
+    private final IcebergColumnStatsCollector statsCollector;
 
     FileEntryWriterImpl(
         DataFileWriter<IcebergManifestEntry> entryWriter,
@@ -259,13 +245,7 @@ public abstract class IcebergManifestFileWriter {
       this.entryWriter = entryWriter;
       this.outputContext = outputContext;
       this.manifestFile = manifestFile;
-
-      List<IcebergPartitionField> partitionFields = partitionSpec().fields();
-      summary = new PartitionFieldSummaryBuilder[partitionFields.size()];
-      for (int i = 0; i < summary.length; i++) {
-        IcebergPartitionField field = partitionFields.get(i);
-        summary[i] = new PartitionFieldSummaryBuilder(field.type(schema()));
-      }
+      this.statsCollector = new IcebergColumnStatsCollector(schema(), partitionSpec());
     }
 
     @Override
@@ -295,60 +275,7 @@ public abstract class IcebergManifestFileWriter {
       try {
         entryWriter.append(entry);
 
-        GenericData.Record partition = entry.dataFile().partition();
-        List<Schema.Field> partitionSchemeFields = partition.getSchema().getFields();
-        List<IcebergPartitionField> fields = partitionSpec().fields();
-        for (int i = 0; i < fields.size(); i++) {
-          IcebergPartitionField partitionField = fields.get(i);
-
-          int pos = -1;
-          for (Schema.Field field : partitionSchemeFields) {
-            String fieldId = field.getProp(FIELD_ID_PROP);
-            if (fieldId != null) {
-              if (partitionField.fieldId() == Integer.parseInt(fieldId)) {
-                pos = field.pos();
-                break;
-              }
-            }
-          }
-          Object value = pos == -1 ? partition.get(partitionField.name()) : partition.get(pos);
-          PartitionFieldSummaryBuilder summaryBuilder = summary[i];
-          if (value == null) {
-            summaryBuilder.containsNull = true;
-          } else {
-            Object lowerBound = summaryBuilder.lowerBound;
-            if (lowerBound == null) {
-              summaryBuilder.lowerBound = value;
-            } else if (summaryBuilder.type.compare(lowerBound, value) < 0) {
-              summaryBuilder.lowerBound = value;
-            }
-            Object upperBound = summaryBuilder.upperBound;
-            if (upperBound == null) {
-              summaryBuilder.upperBound = value;
-            } else if (summaryBuilder.type.compare(lowerBound, value) > 0) {
-              summaryBuilder.lowerBound = value;
-            }
-            // TODO partition-summary NaN
-          }
-        }
-
-        long recordCount = requireNonNull(entry.dataFile()).recordCount();
-        switch (entry.status()) {
-          case ADDED:
-            addedDataFilesCount++;
-            addedRowsCount += recordCount;
-            break;
-          case DELETED:
-            deletedDataFilesCount++;
-            deletedRowsCount += recordCount;
-            break;
-          case EXISTING:
-            existingDataFilesCount++;
-            existingRowsCount += recordCount;
-            break;
-          default:
-            throw new IllegalArgumentException("Unknown manifest-entry status " + entry.status());
-        }
+        statsCollector.addManifestEntry(entry);
 
         return this;
       } catch (IOException e) {
@@ -360,45 +287,9 @@ public abstract class IcebergManifestFileWriter {
     public IcebergManifestFile finish() throws IOException {
       entryWriter.flush();
 
-      for (PartitionFieldSummaryBuilder partitionFieldSummaryBuilder : summary) {
-        manifestFile.addPartitions(partitionFieldSummaryBuilder.asSummary());
-      }
+      statsCollector.addToManifestFileBuilder(manifestFile);
 
-      return manifestFile
-          .manifestLength(outputContext.bytesWritten())
-          //
-          .deletedDataFilesCount(deletedDataFilesCount)
-          .deletedRowsCount(deletedRowsCount)
-          .addedRowsCount(addedRowsCount)
-          .addedDataFilesCount(addedDataFilesCount)
-          .existingRowsCount(existingRowsCount)
-          .existingDataFilesCount(existingDataFilesCount)
-          .build();
-    }
-  }
-
-  private static final class PartitionFieldSummaryBuilder {
-    final IcebergType type;
-    boolean containsNull;
-    Object lowerBound;
-    Object upperBound;
-    Boolean containsNan;
-
-    PartitionFieldSummaryBuilder(IcebergType type) {
-      this.type = type;
-    }
-
-    IcebergPartitionFieldSummary asSummary() {
-      // TODO serialize lower-bound and upper-bound to byte-buffer
-      // TODO "If -0.0 is a value of the partition field, the lower_bound must not be +0.0, and if
-      //  +0.0 is a value of the partition field, the upper_bound must not be -0.0."
-      // TODO see https://iceberg.apache.org/spec/#binary-single-value-serialization
-      Object lower = lowerBound;
-      byte[] lowerBoundBytes = lower != null ? type.serializeSingleValue(lower) : null;
-      Object upper = upperBound;
-      byte[] upperBoundBytes = upper != null ? type.serializeSingleValue(upper) : null;
-      return icebergPartitionFieldSummary(
-          containsNull, lowerBoundBytes, upperBoundBytes, containsNan);
+      return manifestFile.manifestLength(outputContext.bytesWritten()).build();
     }
   }
 }

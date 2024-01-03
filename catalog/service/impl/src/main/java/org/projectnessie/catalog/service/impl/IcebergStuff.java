@@ -171,6 +171,7 @@ public class IcebergStuff {
     long icebergSnapshotId = tableMetadata.currentSnapshotId();
     IntFunction<NessiePartitionDefinition> partitionDefinitionBySpecId =
         snapshot.partitionDefinitionByIcebergId()::get;
+    IntFunction<NessieSchema> schemaBySchemaId = snapshot.schemaByIcebergId()::get;
 
     NessieTableSnapshot.Builder snapshotBuilder = NessieTableSnapshot.builder().from(snapshot);
 
@@ -189,7 +190,9 @@ public class IcebergStuff {
                   NessieFileManifestGroup.builder();
 
               importIcebergManifests(
+                  tableMetadata,
                   snap,
+                  schemaBySchemaId,
                   partitionDefinitionBySpecId,
                   fileManifestGroupId,
                   fileManifestGroupBuilder::addManifest,

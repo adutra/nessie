@@ -17,6 +17,7 @@ package org.projectnessie.catalog.model.snapshot;
 
 import static java.util.function.Function.identity;
 import static org.projectnessie.catalog.model.schema.NessiePartitionDefinition.NO_PARTITION_SPEC_ID;
+import static org.projectnessie.catalog.model.schema.NessieSchema.NO_SCHEMA_ID;
 import static org.projectnessie.catalog.model.schema.NessieSortDefinition.NO_SORT_ORDER_ID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -62,6 +63,13 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   NessieId currentSchema();
 
   List<NessieSchema> schemas();
+
+  @Value.Lazy
+  default Map<Integer, NessieSchema> schemaByIcebergId() {
+    return schemas().stream()
+        .filter(s -> s.icebergId() != NO_SCHEMA_ID)
+        .collect(Collectors.toMap(NessieSchema::icebergId, identity()));
+  }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
