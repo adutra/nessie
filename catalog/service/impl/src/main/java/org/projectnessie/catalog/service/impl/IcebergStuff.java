@@ -46,6 +46,7 @@ import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.storage.backend.CatalogEntitySnapshot;
 import org.projectnessie.catalog.storage.backend.CatalogStorage;
 import org.projectnessie.catalog.storage.backend.ObjectMismatchException;
@@ -71,13 +72,14 @@ public class IcebergStuff {
    * either from the Nessie Data Catalog database or imported from the data lake into the Nessie
    * Data Catalog's database.
    */
-  public NessieTableSnapshot retrieveIcebergSnapshot(NessieId snapshotId, Content content) {
+  public NessieTableSnapshot retrieveIcebergSnapshot(
+      NessieId snapshotId, Content content, SnapshotFormat format) {
     NessieTableSnapshot snapshot;
     CatalogEntitySnapshot catalogSnapshot = storage.loadSnapshot(snapshotId);
     if (catalogSnapshot == null) {
-      snapshot = importTableSnapshot(snapshotId, content);
+      snapshot = importTableSnapshot(snapshotId, content, format);
     } else {
-      snapshot = loadTableSnapshot(catalogSnapshot);
+      snapshot = loadTableSnapshot(catalogSnapshot, format);
     }
     return snapshot;
   }
@@ -86,10 +88,11 @@ public class IcebergStuff {
    * Fetch the Nessie table snapshot from the given {@linkplain Content Nessie content object}, the
    * Nessie table snapshot does not exist in the Nessie Data Catalog database.
    */
-  NessieTableSnapshot importTableSnapshot(NessieId snapshotId, Content content) {
+  NessieTableSnapshot importTableSnapshot(
+      NessieId snapshotId, Content content, SnapshotFormat format) {
     if (content instanceof IcebergTable) {
       try {
-        return importIcebergTableSnapshot(snapshotId, (IcebergTable) content);
+        return importIcebergTableSnapshot(snapshotId, (IcebergTable) content, format);
       } catch (Exception e) {
         // TODO need better error handling here
         throw new RuntimeException(e);
@@ -103,7 +106,8 @@ public class IcebergStuff {
    * the data lake into the Nessie Data Catalog's database, the Nessie table snapshot does not exist
    * in the Nessie Data Catalog database.
    */
-  NessieTableSnapshot importIcebergTableSnapshot(NessieId snapshotId, IcebergTable content)
+  NessieTableSnapshot importIcebergTableSnapshot(
+      NessieId snapshotId, IcebergTable content, SnapshotFormat format)
       throws IOException, ObjectMismatchException {
     // TODO debug level
     LOGGER.info(
@@ -207,7 +211,9 @@ public class IcebergStuff {
             fileManifestGroup -> {
               objectsToStore.put(fileManifestGroup.id(), fileManifestGroup);
               catalogSnapshot.fileManifestGroup(fileManifestGroup.id());
-              snapshotBuilder.fileManifestGroup(fileManifestGroup);
+              if (format.includesFileManifestGroup()) {
+                snapshotBuilder.fileManifestGroup(fileManifestGroup);
+              }
             });
 
     LOGGER.info(
@@ -226,7 +232,8 @@ public class IcebergStuff {
   }
 
   /** Fetch requested metadata from the database, the snapshot already exists. */
-  NessieTableSnapshot loadTableSnapshot(CatalogEntitySnapshot catalogSnapshot) {
+  NessieTableSnapshot loadTableSnapshot(
+      CatalogEntitySnapshot catalogSnapshot, SnapshotFormat format) {
     // TODO debug level
     LOGGER.info(
         "Fetching table snapshot from database for snapshot ID {} - {} {}",
@@ -244,7 +251,7 @@ public class IcebergStuff {
     ids.addAll(catalogSnapshot.sortDefinitions());
 
     // TODO only load if needed
-    if (catalogSnapshot.fileManifestGroup() != null) {
+    if (format.includesFileManifestGroup() && catalogSnapshot.fileManifestGroup() != null) {
       ids.add(catalogSnapshot.fileManifestGroup());
     }
 
@@ -273,9 +280,11 @@ public class IcebergStuff {
         .map(NessieSortDefinition.class::cast)
         .forEach(snapshotBuilder::addSortDefinitions);
 
-    NessieFileManifestGroup fileManifestGroup =
-        (NessieFileManifestGroup) loaded.get(catalogSnapshot.fileManifestGroup());
-    snapshotBuilder.fileManifestGroup(fileManifestGroup);
+    if (format.includesFileManifestGroup()) {
+      NessieFileManifestGroup fileManifestGroup =
+          (NessieFileManifestGroup) loaded.get(catalogSnapshot.fileManifestGroup());
+      snapshotBuilder.fileManifestGroup(fileManifestGroup);
+    }
 
     NessieTableSnapshot snapshot;
     snapshot = snapshotBuilder.build();

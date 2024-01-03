@@ -120,7 +120,7 @@ public class CatalogServiceImpl implements CatalogService {
     //  Manifest-list-entries are not required when returning an Iceberg table-metadata JSON.
     //  Other parts are not required when returning only an Iceberg manifest-list.
     NessieTableSnapshot snapshot =
-        new IcebergStuff(objectIO, storage).retrieveIcebergSnapshot(snapshotId, content);
+        new IcebergStuff(objectIO, storage).retrieveIcebergSnapshot(snapshotId, content, format);
     Object result;
     String fileName;
 
