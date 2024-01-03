@@ -21,12 +21,12 @@ import static org.projectnessie.catalog.model.schema.types.NessieType.DEFAULT_TI
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
@@ -712,20 +712,6 @@ public class NessieModelIceberg {
         NessiePartitionDefinition partitionDefinition =
             lookUpPartitionDefinitionBySpecId.apply(manifestListEntry.partitionSpecId());
 
-        // TODO remove collection overhead
-        List<NessieFieldSummary> partitions = new ArrayList<>();
-        for (int i = 0; i < manifestListEntry.partitions().size(); i++) {
-          IcebergPartitionFieldSummary fieldSummary = manifestListEntry.partitions().get(i);
-          partitions.add(
-              NessieFieldSummary.builder()
-                  .fieldId(partitionDefinition.fields().get(i).icebergId())
-                  .containsNan(fieldSummary.containsNan())
-                  .containsNull(fieldSummary.containsNull())
-                  .lowerBound(fieldSummary.lowerBound())
-                  .upperBound(fieldSummary.upperBound())
-                  .build());
-        }
-
         NessieFileManifestGroupEntry.Builder entry =
             NessieFileManifestGroupEntry.builder()
                 .content(content)
@@ -737,7 +723,6 @@ public class NessieModelIceberg {
                 .sequenceNumber(manifestListEntry.sequenceNumber())
                 .minSequenceNumber(manifestListEntry.minSequenceNumber())
                 .partitionSpecId(manifestListEntry.partitionSpecId())
-                .partitions(partitions)
                 //
                 .addedDataFilesCount(manifestListEntry.addedDataFilesCount())
                 .addedRowsCount(manifestListEntry.addedRowsCount())
@@ -747,6 +732,18 @@ public class NessieModelIceberg {
                 .existingRowsCount(manifestListEntry.existingRowsCount())
                 //
                 .keyMetadata(manifestListEntry.keyMetadata());
+
+        for (int i = 0; i < manifestListEntry.partitions().size(); i++) {
+          IcebergPartitionFieldSummary fieldSummary = manifestListEntry.partitions().get(i);
+          entry.addPartition(
+              NessieFieldSummary.builder()
+                  .fieldId(partitionDefinition.fields().get(i).icebergId())
+                  .containsNan(fieldSummary.containsNan())
+                  .containsNull(fieldSummary.containsNull())
+                  .lowerBound(fieldSummary.lowerBound())
+                  .upperBound(fieldSummary.upperBound())
+                  .build());
+        }
 
         // TODO import manifest-files lazily / asynchronously
         try (SeekableInput avroFileInput =
@@ -805,42 +802,7 @@ public class NessieModelIceberg {
                       .build());
             }
 
-            // Unlike Iceberg, Nessie Catalog stores a field-summary object, so one object per field
-            // in a single map, not many maps.
-            Map<Integer, NessieFieldSummary.Builder> fieldSummaries = new HashMap<>();
-            IntFunction<NessieFieldSummary.Builder> fieldSummary =
-                id ->
-                    fieldSummaries.computeIfAbsent(
-                        id,
-                        i ->
-                            NessieFieldSummary.builder()
-                                // TODO should use the Nessie ID for the field here - TAKE CARE:
-                                //  the field IDs may only be present in another schema (think:
-                                //  dropped column)
-                                .fieldId(i));
-
-            dataFile
-                .columnSizes()
-                .forEach((key, value) -> fieldSummary.apply(key).columnSize(value));
-            dataFile
-                .lowerBounds()
-                .forEach((key, value) -> fieldSummary.apply(key).lowerBound(value));
-            dataFile
-                .upperBounds()
-                .forEach((key, value) -> fieldSummary.apply(key).upperBound(value));
-            dataFile
-                .nanValueCounts()
-                .forEach((key, value) -> fieldSummary.apply(key).nanValueCount(value));
-            dataFile
-                .nullValueCounts()
-                .forEach((key, value) -> fieldSummary.apply(key).nullValueCount(value));
-            dataFile
-                .valueCounts()
-                .forEach((key, value) -> fieldSummary.apply(key).valueCount(value));
-
-            fieldSummaries.values().stream()
-                .map(NessieFieldSummary.Builder::build)
-                .forEach(dataFileManifestBuilder::addColumns);
+            dataFileStatsToFieldSummaries(dataFile, dataFileManifestBuilder);
 
             dataFileManifestBuilder.keyMetadata(dataFile.keyMetadata());
 
@@ -864,6 +826,52 @@ public class NessieModelIceberg {
       // TODO some better error handling
       throw new RuntimeException(e);
     }
+  }
+
+  private static void dataFileStatsToFieldSummaries(
+      IcebergDataFile dataFile, NessieFileManifestEntry.Builder dataFileManifestBuilder) {
+    // Unlike Iceberg, Nessie Catalog stores a field-summary object, so one object per field
+    // in a single map, not many maps.
+    Map<Integer, NessieFieldSummary.Builder> fieldSummaries = new HashMap<>();
+
+    fieldSummaryApply(
+        fieldSummaries, dataFile.columnSizes(), NessieFieldSummary.Builder::columnSize);
+    fieldSummaryApply(
+        fieldSummaries, dataFile.lowerBounds(), NessieFieldSummary.Builder::lowerBound);
+    fieldSummaryApply(
+        fieldSummaries, dataFile.upperBounds(), NessieFieldSummary.Builder::upperBound);
+    fieldSummaryApply(
+        fieldSummaries, dataFile.nanValueCounts(), NessieFieldSummary.Builder::nanValueCount);
+    fieldSummaryApply(
+        fieldSummaries, dataFile.nullValueCounts(), NessieFieldSummary.Builder::nullValueCount);
+    fieldSummaryApply(
+        fieldSummaries, dataFile.valueCounts(), NessieFieldSummary.Builder::valueCount);
+
+    fieldSummaries.values().stream()
+        .map(NessieFieldSummary.Builder::build)
+        .forEach(dataFileManifestBuilder::addColumns);
+  }
+
+  private static <V> void fieldSummaryApply(
+      Map<Integer, NessieFieldSummary.Builder> fieldSummaries,
+      Map<Integer, V> attributeMap,
+      BiConsumer<NessieFieldSummary.Builder, V> valueConsumer) {
+    for (Map.Entry<Integer, V> e : attributeMap.entrySet()) {
+      Integer id = e.getKey();
+
+      NessieFieldSummary.Builder builder =
+          fieldSummaries.computeIfAbsent(
+              id,
+              i ->
+                  NessieFieldSummary.builder()
+                      // TODO should use the Nessie ID for the field here - TAKE CARE:
+                      //  the field IDs may only be present in another schema (think:
+                      //  dropped column)
+                      .fieldId(i));
+
+      valueConsumer.accept(builder, e.getValue());
+    }
+    attributeMap.forEach((key, value) -> {});
   }
 
   /**
