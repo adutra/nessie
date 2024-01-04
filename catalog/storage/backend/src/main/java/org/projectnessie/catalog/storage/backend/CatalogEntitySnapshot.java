@@ -77,8 +77,8 @@ public interface CatalogEntitySnapshot {
   NessieId currentSchema();
 
   /**
-   * Contains the IDs of all schemas, except the {@linkplain #currentPartitionDefinition() ID of the
-   * current one}.
+   * Contains the IDs of all schemas, including the {@linkplain #currentPartitionDefinition() ID of
+   * the current one}.
    */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieId> schemas();
@@ -86,7 +86,7 @@ public interface CatalogEntitySnapshot {
   NessieId currentPartitionDefinition();
 
   /**
-   * Contains the IDs of all partition definitions, except the {@linkplain
+   * Contains the IDs of all partition definitions, including the {@linkplain
    * #currentPartitionDefinition() ID of the current one}.
    */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -95,8 +95,8 @@ public interface CatalogEntitySnapshot {
   NessieId currentSortDefinition();
 
   /**
-   * Contains the IDs of all sort definitions, except the {@linkplain #currentPartitionDefinition()
-   * ID of the current one}.
+   * Contains the IDs of all sort definitions, including the {@linkplain
+   * #currentPartitionDefinition() ID of the current one}.
    */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieId> sortDefinitions();
