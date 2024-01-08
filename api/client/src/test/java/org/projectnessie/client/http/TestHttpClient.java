@@ -620,6 +620,9 @@ public class TestHttpClient {
             .newInstance(config);
     client.close();
     verify(config).close();
+    assertThatThrownBy(client::newRequest)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("newRequest() called on closed client");
   }
 
   @Test
@@ -629,6 +632,9 @@ public class TestHttpClient {
     HttpClient client = new UrlConnectionClient(config);
     client.close();
     verify(config).close();
+    assertThatThrownBy(client::newRequest)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("newRequest() called on closed client");
   }
 
   @Test

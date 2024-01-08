@@ -32,6 +32,7 @@ public final class UrlConnectionClient implements HttpClient {
       "Nessie's URLConnection client does not support the configuration options to specify SSL parameters. Switch to Java 11 instead.";
 
   private final HttpRuntimeConfig config;
+  private boolean closed;
 
   /**
    * Construct an HTTP client with a universal Accept header.
@@ -47,6 +48,9 @@ public final class UrlConnectionClient implements HttpClient {
 
   @Override
   public HttpRequest newRequest() {
+    if (closed) {
+      throw new IllegalStateException("newRequest() called on closed client");
+    }
     return new UrlConnectionRequest(config);
   }
 
@@ -57,6 +61,7 @@ public final class UrlConnectionClient implements HttpClient {
 
   @Override
   public void close() {
+    closed = true;
     config.close();
   }
 }

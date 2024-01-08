@@ -65,7 +65,11 @@ public final class JavaHttpClient implements org.projectnessie.client.http.HttpC
 
   @Override
   public HttpRequest newRequest() {
-    return new JavaRequest(this.config, (req, handler) -> client.send(req, handler));
+    HttpClient client = this.client;
+    if (client == null) {
+      throw new IllegalStateException("newRequest() called on closed client");
+    }
+    return new JavaRequest(this.config, client::send);
   }
 
   @Override
