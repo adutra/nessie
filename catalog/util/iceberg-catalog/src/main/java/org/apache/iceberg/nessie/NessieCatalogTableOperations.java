@@ -17,6 +17,7 @@ package org.apache.iceberg.nessie;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.lang.reflect.Field;
+import java.net.URI;
 import java.util.Map;
 import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableMetadataParser;
@@ -43,6 +44,7 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
   private final NessieIcebergClient client;
   // TODO 'key' field is private in NessieCatalog
   private final ContentKey key;
+  private final URI baseUri;
 
   public NessieCatalogTableOperations(
       ContentKey key,
@@ -58,6 +60,13 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
     this.httpClient =
         api.unwrapClient(HttpClient.class)
             .orElseThrow(() -> new IllegalArgumentException("Nessie client must use HTTP"));
+    this.baseUri = resolveCatalogBaseUri();
+  }
+
+  private URI resolveCatalogBaseUri() {
+    URI coreBaseUri = httpClient.getBaseUri();
+    return coreBaseUri.resolve(
+        coreBaseUri.getPath().endsWith("/") ? "../../catalog/v1/" : "../catalog/v1/");
   }
 
   @Override
@@ -75,8 +84,8 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
     try {
       HttpResponse response =
           httpClient
-              .newRequest()
-              .path("../../catalog/v1/trees/{ref}/snapshot/{key}")
+              .newRequest(baseUri)
+              .path("trees/{ref}/snapshot/{key}")
               .resolveTemplate("ref", reference.toPathString())
               .resolveTemplate("key", key.toPathString())
               .queryParam("format", "iceberg_imported")
