@@ -31,7 +31,7 @@ import org.projectnessie.client.http.HttpClientException;
 public class UriBuilder {
 
   private static final Pattern BACKSLASH_PATTERN = Pattern.compile("\\+");
-  private URI baseUri;
+  private final URI baseUri;
   private final StringBuilder uri = new StringBuilder();
   private final StringBuilder query = new StringBuilder();
   private final Map<String, String> templateValues = new HashMap<>();
@@ -101,15 +101,9 @@ public class UriBuilder {
         char c = uri.charAt(i);
         if (c == '/') {
           if (pathElement.length() > 0) {
-            String element = pathElement.toString();
-            if ("..".equals(element)) {
-              int last = uriBuilder.lastIndexOf("/", uriBuilder.length() - 2);
-              uriBuilder.setLength(last + 1);
-            } else {
-              uriBuilder.append(encode(element));
-              uriBuilder.append('/');
-            }
+            uriBuilder.append(encode(pathElement.toString()));
             pathElement.setLength(0);
+            uriBuilder.append('/');
           }
           if ('/' != uriBuilder.charAt(uriBuilder.length() - 1)) {
             uriBuilder.append('/');
