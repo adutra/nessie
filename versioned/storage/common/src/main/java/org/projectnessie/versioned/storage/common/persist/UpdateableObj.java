@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.quarkus.tests.profiles;
+package org.projectnessie.versioned.storage.common.persist;
 
-public class RocksTestResourceLifecycleManager extends AbstractRocksTestResourceLifecycleManager {
-  public RocksTestResourceLifecycleManager() {
-    super("nessie.version.store.rocks.db-path");
-  }
+import static org.projectnessie.versioned.storage.common.json.ObjIdHelper.OBJ_VERS_KEY;
+
+import com.fasterxml.jackson.annotation.JacksonInject;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+public interface UpdateableObj extends Obj {
+  @JsonIgnore
+  @JacksonInject(OBJ_VERS_KEY)
+  String versionToken();
 }
