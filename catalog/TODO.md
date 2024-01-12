@@ -179,20 +179,20 @@ would automatically be migrated to the Nessie Catalog.
       curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
       curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
       ```
-1. **ALTERNATIVE W/ NESSIE CATALOG INTEGRATED AND LOCAL JARS**
-   1. This approach may be easy when the catalog code changes ofter (e.g. for debugging / exploration)
-   1. Run `./gradlew :nessie-catalog-iceberg-catalog:shadowJar`
-   1. Run Spark SQL:
-      ```bash
-      spark-sql \
-        --jars "$PATH_TO_PROJECT_DIR/catalog/util/iceberg-catalog/build/libs/nessie-catalog-iceberg-catalog-*-all.jar,$PATH_TO_ICEBERG_JARS/iceberg-spark-runtime-3.5_2.12-1.4.2.jar" \
-        --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v1 \
-        --conf spark.sql.catalog.nessie.ref=main \
-        --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog \
-        --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
-        --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
-      ```
-   1. Run SQL as above.
+1. **USING LOCAL JARS**
+   1. Run `./gradlew publishToMavenLocal`
+   1. Run `rm -rf ~/.ivy2/cache/org.projectnessie.nessie/`
+      * This is to force Ivy in Spart to use the latest SNAPSHOT artifacts from the local Maven repository.
+   1. Start Spark session using the appropriate `--packages` option.
+1. **USING Amazon S3**
+   1. Configure S3 credentials in the Catalog Server _and_ in the Spark Job!
+      * For example, export `AWS_PROFILE=demo` and set you credentials in `~/.aws/credentials`.
+   1. Start Nessie Catalog server.
+   1. Start Spark session using `--packages` option with the following extra packages:
+      * `software.amazon.awssdk:bundle:2.20.131`
+      * `software.amazon.awssdk:url-connection-client:2.20.131`
+   1. Note: AWS version `2.20.131` matches Iceberg `1.4.2`.
+   1. Run DDL/DML in the Spark session.
 1. Inspect an Iceberg manifest list:
    ```
    wget --content-disposition 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-list/testing.city'

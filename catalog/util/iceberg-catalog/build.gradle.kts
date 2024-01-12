@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
   id("nessie-conventions-client")
   id("nessie-jacoco")
-  // FIXME see https://github.com/johnrengelman/shadow/pull/876
-  // id("com.github.johnrengelman.shadow")
-  id("io.github.goooler.shadow")
 }
 
 description = "Nessie - Catalog - Iceberg Client"
@@ -42,11 +37,4 @@ dependencies {
   compileOnly("org.apache.iceberg:iceberg-core:$versionIceberg")
   compileOnly("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
   compileOnly("org.apache.iceberg:iceberg-nessie:$versionIceberg")
-}
-
-tasks.named<ShadowJar>("shadowJar").configure {
-  // Relocate fasterxml to be compatible with Iceberg Spark artefacts.
-  // Note: this duplicates the relocated fasterxml classes on top of Iceberg Spark jars,
-  // but the end result appears to be runtime compatible.
-  relocate("com.fasterxml", "org.apache.iceberg.shaded.com.fasterxml")
 }

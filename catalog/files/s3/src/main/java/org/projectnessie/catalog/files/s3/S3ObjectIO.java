@@ -29,14 +29,15 @@ public class S3ObjectIO implements ObjectIO {
 
   private static final ObjectIO local = new LocalObjectIO();
 
-  private final S3Client s3client =
-      S3Client.builder().httpClientBuilder(UrlConnectionHttpClient.builder()).build();
+  private S3Client s3client;
 
   @Override
   public InputStream readObject(URI uri) throws IOException {
     if (!"s3".equals(uri.getScheme())) {
       return local.readObject(uri);
     }
+
+    initClient();
 
     S3Uri s3uri = s3client.utilities().parseUri(uri);
 
@@ -45,5 +46,11 @@ public class S3ObjectIO implements ObjectIO {
             .bucket(s3uri.bucket().orElseThrow())
             .key(s3uri.key().orElseThrow())
             .build());
+  }
+
+  private void initClient() {
+    if (s3client == null) {
+      s3client = S3Client.builder().httpClientBuilder(UrlConnectionHttpClient.builder()).build();
+    }
   }
 }
