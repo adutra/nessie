@@ -19,29 +19,24 @@ plugins {
   id("nessie-jacoco")
 }
 
-extra["maven.name"] = "Nessie - Catalog - Storage Backend"
+extra["maven.name"] = "Nessie - Catalog - Storage"
 
 dependencies {
-  implementation(project(":nessie-model"))
   implementation(project(":nessie-catalog-schema-model"))
-
-  implementation(libs.guava)
+  implementation(project(":nessie-versioned-storage-common"))
 
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
+  compileOnly(libs.jakarta.annotation.api)
+  compileOnly(libs.jakarta.validation.api)
+  compileOnly(libs.errorprone.annotations)
+  compileOnly(libs.microprofile.openapi)
+
   implementation(platform(libs.jackson.bom))
   implementation("com.fasterxml.jackson.core:jackson-databind")
   implementation("com.fasterxml.jackson.core:jackson-annotations")
-  implementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
-  implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-protobuf")
-
-  compileOnly(libs.jakarta.ws.rs.api)
-  compileOnly(libs.jakarta.enterprise.cdi.api)
-  compileOnly(libs.jakarta.validation.api)
-
-  compileOnly(libs.errorprone.annotations)
-  compileOnly(libs.microprofile.openapi)
+  runtimeOnly("com.fasterxml.jackson.datatype:jackson-datatype-guava")
 
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)

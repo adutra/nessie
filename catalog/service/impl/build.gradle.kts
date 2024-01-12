@@ -26,7 +26,8 @@ dependencies {
   implementation(project(":nessie-catalog-format-iceberg"))
   implementation(project(":nessie-catalog-schema-model"))
   implementation(project(":nessie-catalog-service-api"))
-  implementation(project(":nessie-catalog-storage-backend"))
+  implementation(project(":nessie-catalog-service-storage"))
+  implementation(project(":nessie-versioned-storage-common"))
   implementation(project(":nessie-client"))
   implementation(project(":nessie-model"))
 
@@ -55,5 +56,4 @@ dependencies {
   testFixturesApi(libs.bundles.junit.testing)
 
   testFixturesApi(project(":nessie-combined-cs"))
-  testFixturesApi(project(":nessie-catalog-storage-persist"))
 }

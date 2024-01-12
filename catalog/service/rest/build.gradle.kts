@@ -57,7 +57,6 @@ dependencies {
   testFixturesApi(libs.bundles.junit.testing)
 
   testFixturesApi(project(":nessie-combined-cs"))
-  testFixturesApi(project(":nessie-catalog-storage-persist"))
 }
 
 annotationStripper {

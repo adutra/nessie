@@ -21,9 +21,6 @@ import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.local.LocalObjectIO;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
 import org.projectnessie.catalog.service.common.config.ImmutableCatalogServerConfig;
-import org.projectnessie.catalog.storage.backend.CatalogStorage;
-import org.projectnessie.catalog.storage.persist.PersistCatalogStorage;
-import org.projectnessie.versioned.storage.common.persist.Persist;
 
 /**
  * "Quick and dirty" producers providing connection to Nessie, a "storage" impl and object-store
@@ -34,12 +31,6 @@ public class SomeProducers {
   @Singleton
   public CatalogServerConfig catalogServerConfig() {
     return ImmutableCatalogServerConfig.builder().sendStacktraceToClient(true).build();
-  }
-
-  @Produces
-  @Singleton
-  public CatalogStorage catalogStorage(Persist persist) {
-    return new PersistCatalogStorage(persist);
   }
 
   @Produces

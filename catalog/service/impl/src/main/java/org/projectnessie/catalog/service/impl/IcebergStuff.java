@@ -15,9 +15,8 @@
  */
 package org.projectnessie.catalog.service.impl;
 
-import static com.google.common.base.Preconditions.checkState;
-import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
+import static java.util.function.Function.identity;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergTableSnapshotToNessie;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.importIcebergManifests;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.newNessieTable;
@@ -26,14 +25,13 @@ import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
@@ -44,14 +42,19 @@ import org.projectnessie.catalog.model.manifest.NessieFileManifestEntry;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
-import org.projectnessie.catalog.model.schema.NessieSortDefinition;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
-import org.projectnessie.catalog.storage.backend.CatalogEntitySnapshot;
-import org.projectnessie.catalog.storage.backend.CatalogStorage;
-import org.projectnessie.catalog.storage.backend.ObjectMismatchException;
+import org.projectnessie.catalog.service.storage.EntityObj;
+import org.projectnessie.catalog.service.storage.EntitySnapshotObj;
+import org.projectnessie.catalog.service.storage.ManifestEntryObj;
+import org.projectnessie.catalog.service.storage.ManifestGroupObj;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.IcebergTable;
+import org.projectnessie.versioned.storage.common.exceptions.ObjNotFoundException;
+import org.projectnessie.versioned.storage.common.exceptions.ObjTooLargeException;
+import org.projectnessie.versioned.storage.common.persist.Obj;
+import org.projectnessie.versioned.storage.common.persist.ObjId;
+import org.projectnessie.versioned.storage.common.persist.Persist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,11 +63,19 @@ public class IcebergStuff {
   private static final Logger LOGGER = LoggerFactory.getLogger(IcebergStuff.class);
 
   private final ObjectIO objectIO;
-  private final CatalogStorage storage;
+  private final Persist persist;
 
-  public IcebergStuff(ObjectIO objectIO, CatalogStorage storage) {
+  public IcebergStuff(ObjectIO objectIO, Persist persist) {
     this.objectIO = objectIO;
-    this.storage = storage;
+    this.persist = persist;
+  }
+
+  static ObjId nessieIdToObjId(NessieId id) {
+    return ObjId.objIdFromByteArray(id.idAsBytes());
+  }
+
+  static NessieId objIdToNessieId(ObjId id) {
+    return NessieId.nessieIdFromBytes(id.asByteArray());
   }
 
   /**
@@ -75,13 +86,13 @@ public class IcebergStuff {
   public NessieTableSnapshot retrieveIcebergSnapshot(
       NessieId snapshotId, Content content, SnapshotFormat format) {
     NessieTableSnapshot snapshot;
-    CatalogEntitySnapshot catalogSnapshot = storage.loadSnapshot(snapshotId);
-    if (catalogSnapshot == null) {
-      snapshot = importTableSnapshot(snapshotId, content, format);
-    } else {
-      snapshot = loadTableSnapshot(catalogSnapshot, format);
+    try {
+      EntitySnapshotObj snapshotObj =
+          (EntitySnapshotObj) persist.fetchObj(nessieIdToObjId(snapshotId));
+      return loadTableSnapshot(snapshotObj, format);
+    } catch (ObjNotFoundException e) {
+      return importTableSnapshot(snapshotId, content, format);
     }
-    return snapshot;
   }
 
   /**
@@ -107,8 +118,7 @@ public class IcebergStuff {
    * in the Nessie Data Catalog database.
    */
   NessieTableSnapshot importIcebergTableSnapshot(
-      NessieId snapshotId, IcebergTable content, SnapshotFormat format)
-      throws IOException, ObjectMismatchException {
+      NessieId snapshotId, IcebergTable content, SnapshotFormat format) throws IOException {
     // TODO debug level
     LOGGER.info(
         "Fetching Iceberg table metadata from object store for snapshot ID {} from {}",
@@ -126,48 +136,26 @@ public class IcebergStuff {
       throw new IOException("Failed to read table from " + content.getMetadataLocation(), e);
     }
 
+    List<Obj> objectsToStore = new ArrayList<>();
+
     NessieId tableId =
         NessieId.nessieIdFromUUID(
             UUID.fromString(requireNonNull(content.getId(), "Nessie Content has no content ID")));
-    NessieTable table = (NessieTable) storage.loadObject(tableId);
-
-    if (table == null) {
+    NessieTable table;
+    ObjId entityObjId = nessieIdToObjId(tableId);
+    try {
+      EntityObj tableObj = (EntityObj) persist.fetchObj(entityObjId);
+      table = (NessieTable) tableObj.entity();
+    } catch (ObjNotFoundException nf) {
       table = newNessieTable(content, tableId, tableMetadata);
+      objectsToStore.add(EntityObj.builder().id(entityObjId).entity(table).build());
     }
 
     NessieTableSnapshot snapshot =
         icebergTableSnapshotToNessie(snapshotId, null, table, tableMetadata);
 
-    // FIXME isn't CatalogEntitySnapshot already a shallow version of NessieTableSnapshot?
-    NessieTableSnapshot shallowSnapshot =
-        NessieTableSnapshot.builder()
-            .from(snapshot)
-            .schemas(emptyList())
-            .partitionDefinitions(emptyList())
-            .sortDefinitions(emptyList())
-            .build();
-
-    // TODO optimize all the collections and streams here
-    Map<NessieId, Object> objectsToStore = new HashMap<>();
-    objectsToStore.put(snapshotId, shallowSnapshot);
-    objectsToStore.put(snapshot.entity().id(), snapshot.entity());
-    snapshot.schemas().forEach(s -> objectsToStore.put(s.id(), s));
-    snapshot.partitionDefinitions().forEach(s -> objectsToStore.put(s.id(), s));
-    snapshot.sortDefinitions().forEach(s -> objectsToStore.put(s.sortDefinitionId(), s));
-    CatalogEntitySnapshot.Builder catalogSnapshot =
-        CatalogEntitySnapshot.builder()
-            .snapshotId(snapshotId)
-            .entityId(snapshot.entity().id())
-            .currentSchema(snapshot.currentSchema())
-            .currentPartitionDefinition(snapshot.currentPartitionDefinition())
-            .currentSortDefinition(snapshot.currentSortDefinition());
-    snapshot.schemas().stream().map(NessieSchema::id).forEach(catalogSnapshot::addSchemas);
-    snapshot.partitionDefinitions().stream()
-        .map(NessiePartitionDefinition::id)
-        .forEach(catalogSnapshot::addPartitionDefinitions);
-    snapshot.sortDefinitions().stream()
-        .map(NessieSortDefinition::sortDefinitionId)
-        .forEach(catalogSnapshot::addSortDefinitions);
+    EntitySnapshotObj.Builder entitySnapshot =
+        EntitySnapshotObj.builder().id(nessieIdToObjId(snapshotId)).entity(entityObjId);
 
     // Manifest list
     // TODO handling the manifest list needs to separated
@@ -180,7 +168,12 @@ public class IcebergStuff {
     NessieTableSnapshot.Builder snapshotBuilder = NessieTableSnapshot.builder().from(snapshot);
 
     Consumer<NessieFileManifestEntry> dataFileManifestConsumer =
-        dataFile -> objectsToStore.put(dataFile.id(), dataFile);
+        dataFile ->
+            objectsToStore.add(
+                ManifestEntryObj.builder()
+                    .id(nessieIdToObjId(dataFile.id()))
+                    .entry(dataFile)
+                    .build());
 
     // TODO use a memoized current snapshot instead of iterating through the list
     tableMetadata.snapshots().stream()
@@ -209,8 +202,13 @@ public class IcebergStuff {
             })
         .ifPresent(
             fileManifestGroup -> {
-              objectsToStore.put(fileManifestGroup.id(), fileManifestGroup);
-              catalogSnapshot.fileManifestGroup(fileManifestGroup.id());
+              ObjId manifestGroupId = nessieIdToObjId(fileManifestGroup.id());
+              objectsToStore.add(
+                  ManifestGroupObj.builder()
+                      .id(manifestGroupId)
+                      .manifestGroup(fileManifestGroup)
+                      .build());
+              entitySnapshot.manifestGroup(manifestGroupId);
               if (format.includesFileManifestGroup()) {
                 snapshotBuilder.fileManifestGroup(fileManifestGroup);
               }
@@ -221,68 +219,53 @@ public class IcebergStuff {
         objectsToStore.size(),
         snapshot.icebergLocation());
 
-    for (Map.Entry<NessieId, Object> e : objectsToStore.entrySet()) {
-      LOGGER.warn("STORING {} : {}", e.getKey(), e.getValue().getClass().getName());
+    for (Obj e : objectsToStore) {
+      LOGGER.warn("STORING {} : {}", e.id(), e.getClass().getName());
     }
 
-    storage.createObjects(objectsToStore);
-    storage.createSnapshot(catalogSnapshot.build());
+    try {
+      persist.storeObjs(objectsToStore.toArray(new Obj[0]));
+    } catch (ObjTooLargeException e) {
+      // TODO do something?
+      throw new RuntimeException(e);
+    }
 
     return snapshotBuilder.build();
   }
 
   /** Fetch requested metadata from the database, the snapshot already exists. */
-  NessieTableSnapshot loadTableSnapshot(
-      CatalogEntitySnapshot catalogSnapshot, SnapshotFormat format) {
+  NessieTableSnapshot loadTableSnapshot(EntitySnapshotObj snapshotObj, SnapshotFormat format) {
     // TODO debug level
-    LOGGER.info(
-        "Fetching table snapshot from database for snapshot ID {} - {} {}",
-        catalogSnapshot.snapshotId(),
-        catalogSnapshot.schemas().size(),
-        catalogSnapshot.partitionDefinitions().size());
+    LOGGER.info("Fetching table snapshot from database for snapshot ID {}", snapshotObj.id());
 
-    List<NessieId> ids = new ArrayList<>();
+    List<ObjId> ids = new ArrayList<>();
 
     // TODO only load what's really needed
-    ids.add(catalogSnapshot.entityId());
-    ids.add(catalogSnapshot.snapshotId());
-    ids.addAll(catalogSnapshot.schemas());
-    ids.addAll(catalogSnapshot.partitionDefinitions());
-    ids.addAll(catalogSnapshot.sortDefinitions());
+    ids.add(snapshotObj.entity());
 
     // TODO only load if needed
-    if (format.includesFileManifestGroup() && catalogSnapshot.fileManifestGroup() != null) {
-      ids.add(catalogSnapshot.fileManifestGroup());
+    if (format.includesFileManifestGroup() && snapshotObj.manifestGroup() != null) {
+      ids.add(snapshotObj.manifestGroup());
     }
 
-    Map<NessieId, Object> loaded = new HashMap<>();
-    Set<NessieId> notFound = new HashSet<>();
-    storage.loadObjects(ids, loaded::put, notFound::add);
-
-    // TODO some error handling here
-    checkState(notFound.isEmpty(), "Ooops - not all parts exist: %s", notFound);
+    Map<ObjId, Object> loaded;
+    try {
+      loaded =
+          Arrays.stream(persist.fetchObjs(ids.toArray(new ObjId[0])))
+              .collect(Collectors.toMap(Obj::id, identity()));
+    } catch (ObjNotFoundException e) {
+      throw new RuntimeException(e);
+    }
 
     // TODO only add what's really needed
     NessieTableSnapshot.Builder snapshotBuilder =
         NessieTableSnapshot.builder()
-            .from((NessieTableSnapshot) loaded.get(catalogSnapshot.snapshotId()))
-            .entity((NessieTable) loaded.get(catalogSnapshot.entityId()));
-    catalogSnapshot.schemas().stream()
-        .map(loaded::get)
-        .map(NessieSchema.class::cast)
-        .forEach(snapshotBuilder::addSchemas);
-    catalogSnapshot.partitionDefinitions().stream()
-        .map(loaded::get)
-        .map(NessiePartitionDefinition.class::cast)
-        .forEach(snapshotBuilder::addPartitionDefinitions);
-    catalogSnapshot.sortDefinitions().stream()
-        .map(loaded::get)
-        .map(NessieSortDefinition.class::cast)
-        .forEach(snapshotBuilder::addSortDefinitions);
+            .from((NessieTableSnapshot) snapshotObj.snapshot())
+            .entity((NessieTable) loaded.get(snapshotObj.entity()));
 
     if (format.includesFileManifestGroup()) {
       NessieFileManifestGroup fileManifestGroup =
-          (NessieFileManifestGroup) loaded.get(catalogSnapshot.fileManifestGroup());
+          (NessieFileManifestGroup) loaded.get(snapshotObj.manifestGroup());
       snapshotBuilder.fileManifestGroup(fileManifestGroup);
     }
 

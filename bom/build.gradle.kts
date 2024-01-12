@@ -97,8 +97,7 @@ dependencies {
     api(project(":nessie-catalog-service-server"))
     api(project(":nessie-catalog-service-server-combined"))
     api(project(":nessie-catalog-service-server-tests"))
-    api(project(":nessie-catalog-storage-backend"))
-    api(project(":nessie-catalog-storage-persist"))
+    api(project(":nessie-catalog-service-storage"))
     api(project(":nessie-catalog-iceberg-catalog"))
     api(project(":nessie-catalog-iceberg-httpfileio"))
 
