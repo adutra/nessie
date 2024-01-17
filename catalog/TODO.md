@@ -68,6 +68,8 @@ would automatically be migrated to the Nessie Catalog.
       In other words it allows direct use of `INSERT`/`UPDATE`/`DELETE`/`SELECT`/etc working with Nessie Catalog.
       Since all SQL extensions use _relocated_ classes and the Iceberg catalog implementation for Nessie Catalog relies on non-relocated classes, the SQL extensions cannot be used in this early stage.
       ```bash
+      rm -rf ~/.ivy2/cache/org.projectnessie.nessie/
+      rm -rf ~/.ivy2/cache/org.apache.iceberg/
       rm -rf /tmp/nessie-catalog-demo
       mkdir -p /tmp/nessie-catalog-demo
       ./gradlew publishToMavenLocal
@@ -79,6 +81,7 @@ would automatically be migrated to the Nessie Catalog.
 
       packages=$(echo \
         org.apache.iceberg:iceberg-spark-${sparkVersion}_${scalaVersion}:${icebergVersion} \
+        org.apache.iceberg:iceberg-nessie:${icebergVersion} \
         org.projectnessie.nessie:nessie-catalog-iceberg-catalog:$nessieVersion \
         | sed "s/ /,/g")
 
@@ -182,7 +185,7 @@ would automatically be migrated to the Nessie Catalog.
 1. **USING LOCAL JARS**
    1. Run `./gradlew publishToMavenLocal`
    1. Run `rm -rf ~/.ivy2/cache/org.projectnessie.nessie/`
-      * This is to force Ivy in Spart to use the latest SNAPSHOT artifacts from the local Maven repository.
+      * This is to force Ivy in Spark to use the latest SNAPSHOT artifacts from the local Maven repository.
    1. Start Spark session using the appropriate `--packages` option.
 1. **USING Amazon S3**
    1. Configure S3 credentials in the Catalog Server _and_ in the Spark Job!
