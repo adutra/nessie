@@ -293,6 +293,7 @@ packages_csv=${packages_csv:1}
 
 spark-sql "${DEBUG_SPARK_SHELL[@]}" \
   --packages "${packages_csv}" \
+  --conf spark.sql.catalogImplementation=in-memory \
   --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v2 \
   --conf spark.sql.catalog.nessie.client-api-version=2 \
   --conf spark.sql.catalog.nessie.ref=main \
