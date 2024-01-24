@@ -28,4 +28,12 @@ dependencies {
   compileOnly(libs.hadoop.common)
   compileOnly("org.apache.iceberg:iceberg-core:$versionIceberg")
   compileOnly("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
+
+  testFixturesApi(platform(libs.junit.bom))
+  testFixturesApi(libs.bundles.junit.testing)
+  testFixturesApi(libs.guava)
+  testFixturesApi(libs.undertow.core)
+  testFixturesApi(libs.undertow.servlet)
+  testFixturesApi("org.apache.iceberg:iceberg-core:$versionIceberg")
+  testFixturesRuntimeOnly(libs.logback.classic)
 }

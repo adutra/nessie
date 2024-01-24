@@ -90,7 +90,7 @@ public class HttpFileIO implements HadoopConfigurable, DelegateFileIO {
   public InputFile newInputFile(String path) {
     LOG.info("newInputFile {}", path);
     if (isHttp(path)) {
-      return new HttpInputFile(path);
+      return openHttpInputFile(path);
     }
     return delegate.newInputFile(path);
   }
@@ -99,9 +99,13 @@ public class HttpFileIO implements HadoopConfigurable, DelegateFileIO {
   public InputFile newInputFile(String path, long length) {
     LOG.info("newInputFile {} {}", path, length);
     if (isHttp(path)) {
-      return new HttpInputFile(path, length);
+      return openHttpInputFile(path);
     }
     return delegate.newInputFile(path, length);
+  }
+
+  private HttpInputFile openHttpInputFile(String path) {
+    return new HttpInputFile(path, properties().get("nessie.http.file.spill-dir"));
   }
 
   private static void failForHttp(String path) {
