@@ -41,7 +41,7 @@ agroal-pool = { module = "io.agroal:agroal-pool", version = "2.2" }
 agrona = { module = "org.agrona:agrona", version = "1.20.0" }
 antlr-antlr4 = { module = "org.antlr:antlr4", version.ref = "antlr4" }
 antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr4" }
-assertj-core = { module = "org.assertj:assertj-core", version = "3.25.1" }
+assertj-core = { module = "org.assertj:assertj-core", version = "3.25.2" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.0" }
 awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.23.7" }
@@ -60,7 +60,7 @@ findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version = "3.0.2
 gatling-charts-highcharts = { module = "io.gatling.highcharts:gatling-charts-highcharts", version.ref = "gatling" }
 google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.31.0" }
 google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.18" }
-google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.9" }
+google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.10" }
 google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.32.0" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "googleJavaFormat" }
 grpc-bom = { module = "io.grpc:grpc-bom", version = "1.57.1" }
