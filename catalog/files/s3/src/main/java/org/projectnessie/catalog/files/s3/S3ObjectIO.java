@@ -15,21 +15,44 @@
  */
 package org.projectnessie.catalog.files.s3;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.function.Supplier;
+import org.projectnessie.catalog.files.api.BackendThrottledException;
 import org.projectnessie.catalog.files.api.ObjectIO;
+import org.projectnessie.catalog.files.api.ObjectIOException;
 import org.projectnessie.catalog.files.local.LocalObjectIO;
+import software.amazon.awssdk.core.exception.SdkServiceException;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Uri;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 public class S3ObjectIO implements ObjectIO {
 
   private static final ObjectIO local = new LocalObjectIO();
 
   private S3Client s3client;
+  private final Supplier<S3Client> clientSupplier;
+  private final Clock clock;
+  private final Duration defaultRetryAfter;
+
+  public S3ObjectIO(Clock clock, Duration defaultRetryAfter) {
+    this(S3ObjectIO::buildS3Client, clock, defaultRetryAfter);
+  }
+
+  public S3ObjectIO(Supplier<S3Client> clientSupplier, Clock clock, Duration defaultRetryAfter) {
+    this.clientSupplier = clientSupplier;
+    this.clock = clock;
+    this.defaultRetryAfter = defaultRetryAfter;
+  }
 
   @Override
   public InputStream readObject(URI uri) throws IOException {
@@ -41,16 +64,53 @@ public class S3ObjectIO implements ObjectIO {
 
     S3Uri s3uri = s3client.utilities().parseUri(uri);
 
-    return s3client.getObject(
-        GetObjectRequest.builder()
-            .bucket(s3uri.bucket().orElseThrow())
-            .key(s3uri.key().orElseThrow())
-            .build());
+    try {
+      return s3client.getObject(
+          GetObjectRequest.builder()
+              .bucket(s3uri.bucket().orElseThrow())
+              .key(s3uri.key().orElseThrow())
+              .build());
+    } catch (SdkServiceException e) {
+      if (e.isThrottlingException()) {
+        throw new BackendThrottledException(
+            clock.instant().plus(defaultRetryAfter), "S3 throttled", e);
+      }
+      throw new ObjectIOException(e);
+    }
+  }
+
+  @Override
+  public OutputStream writeObject(URI uri) throws IOException {
+    if (!"s3".equals(uri.getScheme())) {
+      return local.writeObject(uri);
+    }
+
+    initClient();
+
+    return new ByteArrayOutputStream() {
+      @Override
+      public void close() throws IOException {
+        super.close();
+
+        S3Uri s3uri = s3client.utilities().parseUri(uri);
+
+        s3client.putObject(
+            PutObjectRequest.builder()
+                .bucket(s3uri.bucket().orElseThrow())
+                .key(s3uri.key().orElseThrow())
+                .build(),
+            RequestBody.fromBytes(toByteArray()));
+      }
+    };
   }
 
   private void initClient() {
     if (s3client == null) {
-      s3client = S3Client.builder().httpClientBuilder(UrlConnectionHttpClient.builder()).build();
+      s3client = clientSupplier.get();
     }
+  }
+
+  private static S3Client buildS3Client() {
+    return S3Client.builder().httpClientBuilder(UrlConnectionHttpClient.builder()).build();
   }
 }

@@ -17,8 +17,11 @@ package org.projectnessie.catalog.files.api;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
 
 public interface ObjectIO {
   InputStream readObject(URI uri) throws IOException;
+
+  OutputStream writeObject(URI uri) throws IOException;
 }

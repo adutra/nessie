@@ -17,7 +17,10 @@ package org.projectnessie.catalog.files.local;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.projectnessie.catalog.files.api.ObjectIO;
 
@@ -29,5 +32,19 @@ public class LocalObjectIO implements ObjectIO {
       uri = Paths.get(uri.getPath()).toUri();
     }
     return uri.toURL().openStream();
+  }
+
+  @Override
+  public OutputStream writeObject(URI uri) throws IOException {
+    // Awesome implementation of a local object IO :D
+    if (uri.getScheme() == null) {
+      uri = Paths.get(uri.getPath()).toUri();
+    }
+    try {
+      return Files.newOutputStream(Paths.get(uri));
+    } catch (FileSystemNotFoundException e) {
+      throw new UnsupportedOperationException(
+          "Writing to " + uri.getScheme() + " URIs is not supported", e);
+    }
   }
 }

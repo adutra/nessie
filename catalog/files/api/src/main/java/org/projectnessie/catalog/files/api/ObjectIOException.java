@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.projectnessie.catalog.files.api;
 
-plugins {
-  id("nessie-conventions-server")
-  id("nessie-jacoco")
-}
+import java.io.IOException;
 
-extra["maven.name"] = "Nessie - Catalog - Files for Amazon S3"
+public class ObjectIOException extends IOException {
+  public ObjectIOException(Throwable cause) {
+    super(cause);
+  }
 
-dependencies {
-  api(project(":nessie-catalog-files-api"))
-  implementation(project(":nessie-catalog-files-local"))
+  public ObjectIOException(String message) {
+    super(message);
+  }
 
-  implementation(platform(libs.awssdk.bom))
-  implementation("software.amazon.awssdk:s3")
-  implementation("software.amazon.awssdk:url-connection-client")
-
-  testFixturesApi(platform(libs.junit.bom))
-  testFixturesApi(libs.bundles.junit.testing)
+  public ObjectIOException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

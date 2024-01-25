@@ -15,8 +15,12 @@
  */
 package org.projectnessie.catalog.service.server.base;
 
+import static java.time.Clock.systemUTC;
+import static java.time.temporal.ChronoUnit.SECONDS;
+
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
+import java.time.Duration;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.s3.S3ObjectIO;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
@@ -36,6 +40,6 @@ public class SomeProducers {
   @Produces
   @Singleton
   public ObjectIO objectIO() {
-    return new S3ObjectIO();
+    return new S3ObjectIO(systemUTC(), Duration.of(10, SECONDS));
   }
 }
