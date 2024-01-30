@@ -15,12 +15,14 @@
  */
 package org.projectnessie.catalog.model.snapshot;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieView;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.schema.NessieSchema;
@@ -41,7 +43,17 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @NessieImmutable
 @JsonSerialize(as = ImmutableNessieViewSnapshot.class)
 @JsonDeserialize(as = ImmutableNessieViewSnapshot.class)
+@JsonTypeName("VIEW")
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
 public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
+
+  @Override
+  @Value.NonAttribute
+  default String type() {
+    return "VIEW";
+  }
 
   @Nullable
   @jakarta.annotation.Nullable

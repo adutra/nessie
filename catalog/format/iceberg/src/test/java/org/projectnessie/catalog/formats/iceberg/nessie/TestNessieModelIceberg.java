@@ -17,30 +17,10 @@ package org.projectnessie.catalog.formats.iceberg.nessie;
 
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField.nestedField;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_COLUMN_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SCHEMA_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SEQUENCE_NUMBER;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SORT_ORDER_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SPEC_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.NO_SNAPSHOT_ID;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.binaryType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.booleanType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.dateType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.decimalType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.doubleType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.fixedType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.floatType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.integerType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.listType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.longType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.mapType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.stringType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.structType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.timeType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.timestampType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.timestamptzType;
-import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.uuidType;
+import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.icebergSchemaAllTypes;
+import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataBare;
+import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataBareWithSchema;
+import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataSimple;
 import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,7 +28,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -63,14 +42,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
+import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshotLogEntry;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshotRef;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSortField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSortOrder;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
@@ -228,15 +206,12 @@ public class TestNessieModelIceberg {
 
     NessieTable table =
         NessieTable.builder()
-            .id(NessieId.randomNessieId())
             .createdTimestamp(Instant.now())
             .baseLocation(
                 BaseLocation.baseLocation(
                     NessieId.randomNessieId(),
                     "some-location",
                     URI.create("s3://somebucket/some/path")))
-            .icebergLastColumnId(INITIAL_COLUMN_ID)
-            .icebergLastPartitionId(INITIAL_COLUMN_ID)
             .icebergUuid(icebergTableMetadata.tableUuid())
             .nessieContentId(UUID.randomUUID().toString())
             .tableFormat(TableFormat.ICEBERG)
@@ -246,7 +221,7 @@ public class TestNessieModelIceberg {
 
     NessieTableSnapshot nessie =
         NessieModelIceberg.icebergTableSnapshotToNessie(
-            snapshotId, null, table, icebergTableMetadata);
+            snapshotId, null, table, icebergTableMetadata, IcebergSnapshot::manifestList);
     soft.assertThat(icebergJsonSerializeDeserialize(nessie, NessieTableSnapshot.class))
         .isEqualTo(nessie);
 
@@ -269,72 +244,19 @@ public class TestNessieModelIceberg {
 
     NessieTableSnapshot nessieAgain =
         NessieModelIceberg.icebergTableSnapshotToNessie(
-            snapshotId, nessie, nessie.entity(), iceberg);
+            snapshotId, nessie, nessie.entity(), iceberg, IcebergSnapshot::manifestList);
     soft.assertThat(icebergJsonSerializeDeserialize(nessieAgain, NessieTableSnapshot.class))
         .isEqualTo(nessieAgain);
   }
 
   static Stream<IcebergTableMetadata> icebergTableMetadata() {
-    IcebergSchema schemaAllTypes = icebergSchemaAllTypes();
-    int snapshotId = 11;
     return Stream.of(
             // bare one
-            IcebergTableMetadata.builder()
-                .tableUuid(UUID.randomUUID())
-                .lastUpdatedMs(111111111L)
-                .location("table-location")
-                .currentSnapshotId(NO_SNAPSHOT_ID)
-                .lastColumnId(INITIAL_COLUMN_ID)
-                .lastPartitionId(INITIAL_COLUMN_ID)
-                .lastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
-                .currentSchemaId(INITIAL_SCHEMA_ID)
-                .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
-                .defaultSpecId(INITIAL_SPEC_ID)
-                .putProperty("prop", "value"),
+            tableMetadataBare(),
             // just a schema
-            IcebergTableMetadata.builder()
-                .tableUuid(UUID.randomUUID())
-                .lastUpdatedMs(111111111L)
-                .location("table-location")
-                .currentSnapshotId(NO_SNAPSHOT_ID)
-                .lastColumnId(schemaAllTypes.fields().get(schemaAllTypes.fields().size() - 1).id())
-                .lastPartitionId(INITIAL_COLUMN_ID)
-                .lastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
-                .currentSchemaId(schemaAllTypes.schemaId())
-                .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
-                .defaultSpecId(INITIAL_SPEC_ID)
-                .putProperty("prop", "value")
-                .addSchemas(schemaAllTypes),
+            tableMetadataBareWithSchema(),
             // snapshot
-            IcebergTableMetadata.builder()
-                .tableUuid(UUID.randomUUID())
-                .lastUpdatedMs(111111111L)
-                .location("table-location")
-                .currentSnapshotId(snapshotId)
-                .lastColumnId(schemaAllTypes.fields().get(schemaAllTypes.fields().size() - 1).id())
-                .lastPartitionId(INITIAL_COLUMN_ID)
-                .lastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
-                .currentSchemaId(schemaAllTypes.schemaId())
-                .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
-                .defaultSpecId(INITIAL_SPEC_ID)
-                .putProperty("prop", "value")
-                .addSchemas(schemaAllTypes)
-                .addSnapshots(
-                    IcebergSnapshot.builder()
-                        .snapshotId(snapshotId)
-                        .schemaId(schemaAllTypes.schemaId())
-                        .putSummary("operation", "testing")
-                        .sequenceNumber(123L)
-                        .timestampMs(12345678L)
-                        .build())
-                .putRef(
-                    "main",
-                    IcebergSnapshotRef.builder().type("branch").snapshotId(snapshotId).build())
-                .addSnapshotLog(
-                    IcebergSnapshotLogEntry.builder()
-                        .snapshotId(snapshotId)
-                        .timestampMs(12345678L)
-                        .build()))
+            tableMetadataSimple())
         .flatMap(
             builder ->
                 Stream.of(
@@ -389,51 +311,7 @@ public class TestNessieModelIceberg {
         .isEqualTo(nessieIdHasher("NessieTypeSpec").hash(nessieAgain).generate());
   }
 
-  private static IcebergSchema icebergSchemaAllTypes() {
-    IcebergSchema.Builder icebergSchemaBuilder =
-        IcebergSchema.builder().schemaId(42).type("struct");
-
-    int i = 0;
-    for (Iterator<IcebergType> iter = icebergTypes().iterator(); iter.hasNext(); i++) {
-      IcebergType icebergType = iter.next();
-      icebergSchemaBuilder.addFields(
-          IcebergNestedField.builder()
-              .id(1001 + i)
-              .doc("doc_" + i)
-              .type(icebergType)
-              .name("field_name_" + i)
-              .required((i & 1) == 0)
-              .build());
-    }
-
-    return icebergSchemaBuilder.build();
-  }
-
   static Stream<IcebergType> icebergTypes() {
-    return Stream.of(
-        booleanType(),
-        uuidType(),
-        stringType(),
-        binaryType(),
-        integerType(),
-        longType(),
-        floatType(),
-        doubleType(),
-        dateType(),
-        timeType(),
-        structType(singletonList(nestedField(11, "field11", true, stringType(), null)), null),
-        structType(singletonList(nestedField(11, "field11", false, stringType(), null)), null),
-        listType(1, stringType(), true),
-        listType(1, stringType(), false),
-        listType(1, uuidType(), true),
-        listType(1, uuidType(), false),
-        mapType(3, stringType(), 4, dateType(), true),
-        mapType(3, stringType(), 4, dateType(), false),
-        mapType(3, uuidType(), 4, timeType(), true),
-        mapType(3, uuidType(), 4, timeType(), false),
-        decimalType(10, 3),
-        fixedType(42),
-        timestampType(),
-        timestamptzType());
+    return IcebergFixtures.icebergTypes();
   }
 }

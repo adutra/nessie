@@ -24,9 +24,19 @@ extra["maven.name"] = "Nessie - Catalog - Server Tests"
 dependencies {
   implementation(project(":nessie-client"))
   implementation(project(":nessie-model"))
+  implementation(project(":nessie-catalog-format-iceberg"))
+  implementation(project(":nessie-catalog-format-iceberg-fixturegen"))
+
+  implementation(libs.avro)
+
+  implementation(enforcedPlatform(libs.quarkus.bom))
+  implementation(libs.vertx.core)
 
   implementation(platform(libs.junit.bom))
   implementation(libs.bundles.junit.testing)
+
+  compileOnly(platform(libs.jackson.bom))
+  compileOnly("com.fasterxml.jackson.core:jackson-annotations")
 
   compileOnly(libs.microprofile.openapi)
 }

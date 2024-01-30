@@ -25,9 +25,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
+import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -108,6 +110,23 @@ public interface IcebergTableMetadata {
   List<IcebergSnapshotLogEntry> snapshotLog();
 
   List<IcebergHistoryEntry> metadataLog();
+
+  default Optional<IcebergSnapshot> currentSnapshot() {
+    long id = currentSnapshotId();
+    return snapshotById(id);
+  }
+
+  default Optional<IcebergSnapshot> snapshotById(long id) {
+    if (id == NessieModelIceberg.NO_SNAPSHOT_ID) {
+      return Optional.empty();
+    }
+    for (IcebergSnapshot snapshot : snapshots()) {
+      if (id == snapshot.snapshotId()) {
+        return Optional.of(snapshot);
+      }
+    }
+    return Optional.empty();
+  }
 
   static Builder builder() {
     return ImmutableIcebergTableMetadata.builder();

@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.storage;
+package org.projectnessie.catalog.api.rest.spec;
 
-import java.util.function.Consumer;
-import org.projectnessie.versioned.storage.common.persist.ObjType;
-import org.projectnessie.versioned.storage.common.persist.ObjTypeBundle;
-
-public class CatalogObjTypeBundle implements ObjTypeBundle {
-  @Override
-  public void register(Consumer<ObjType> registrar) {
-    registrar.accept(EntityObj.OBJ_TYPE);
-    registrar.accept(EntitySnapshotObj.OBJ_TYPE);
-    registrar.accept(ManifestGroupObj.OBJ_TYPE);
-    registrar.accept(ManifestEntryObj.OBJ_TYPE);
-  }
+public enum SnapshotResultFormat {
+  /** Snapshot as an Iceberg table-metadata. */
+  ICEBERG,
+  /** Snapshot as an Iceberg table-metadata, without replacements. */
+  ICEBERG_IMPORTED,
+  /** Snapshot in Delta Lake format. */
+  DELTA_LAKE,
+  /** Snapshot in native Nessie Catalog format, including manifests. */
+  NESSIE,
+  /** Snapshot in native Nessie Catalog format, without manifests. */
+  NESSIE_NO_MANIFEST,
+  ;
 }

@@ -15,6 +15,9 @@
  */
 package org.projectnessie.catalog.api.base.transport;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeId;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.projectnessie.catalog.model.NessieEntity;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
@@ -22,7 +25,15 @@ import org.projectnessie.model.CommitMeta;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = TableSnapshot.class, name = "TABLE"),
+  @JsonSubTypes.Type(value = ViewSnapshot.class, name = "VIEW")
+})
 public interface EntitySnapshot<ES extends NessieEntitySnapshot<E>, E extends NessieEntity> {
+  @JsonTypeId
+  String type();
+
   NessieId snapshotId();
 
   Reference reference();

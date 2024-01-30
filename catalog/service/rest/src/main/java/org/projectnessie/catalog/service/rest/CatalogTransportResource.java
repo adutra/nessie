@@ -16,20 +16,34 @@
 package org.projectnessie.catalog.service.rest;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.projectnessie.model.Validation.REF_NAME_PATH_ELEMENT_REGEX;
 
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import jakarta.ws.rs.core.UriInfo;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
-import org.projectnessie.catalog.api.rest.spec.NessieCatalogService;
+import java.util.concurrent.CompletionStage;
+import org.projectnessie.catalog.api.rest.spec.SnapshotResultFormat;
+import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.catalog.service.api.CatalogService;
@@ -39,23 +53,34 @@ import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 
 @RequestScoped
-public class CatalogTransportResource implements NessieCatalogService {
+@Consumes(MediaType.APPLICATION_JSON)
+@Path("catalog/v1")
+public class CatalogTransportResource /* implements NessieCatalogService */ {
 
   private final CatalogService catalogService;
+  private final ObjectIO objectIO;
 
   @Context UriInfo uriInfo;
 
+  @SuppressWarnings("unused")
   public CatalogTransportResource() {
-    this(null);
+    this(null, null);
   }
 
   @Inject
-  public CatalogTransportResource(CatalogService catalogService) {
+  public CatalogTransportResource(CatalogService catalogService, ObjectIO objectIO) {
     this.catalogService = catalogService;
+    this.objectIO = objectIO;
   }
 
-  @Override
-  public Object tableSnapshot(String ref, ContentKey key, String format, String specVersion)
+  @GET
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshot/{key}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Uni<Response> tableSnapshot(
+      @PathParam("ref") String ref,
+      @PathParam("key") ContentKey key,
+      @QueryParam("format") String format,
+      @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException {
     SnapshotFormat snapshotFormat;
     OptionalInt reqVersion = OptionalInt.empty();
@@ -64,9 +89,12 @@ public class CatalogTransportResource implements NessieCatalogService {
       // No table format specified, return the NessieTableSnapshot as JSON
       snapshotFormat = SnapshotFormat.NESSIE_SNAPSHOT;
     } else {
-      switch (TableFormat.valueOf(format.toUpperCase(Locale.ROOT))) {
+      format = format.toUpperCase(Locale.ROOT);
+      SnapshotResultFormat tableFormat = SnapshotResultFormat.valueOf(format);
+      switch (tableFormat) {
         case ICEBERG:
-          // Return the snapshot as an Iceberg table-metadata using either the spec-version given in
+          // Return the snapshot as an Iceberg table-metadata using either the spec-version given
+          // in
           // the request or the one used when the table-metadata was written.
           // TODO Does requesting a table-metadata using another spec-version make any sense?
           // TODO Response should respect the JsonView / spec-version
@@ -77,7 +105,8 @@ public class CatalogTransportResource implements NessieCatalogService {
           }
           break;
         case ICEBERG_IMPORTED:
-          // Return the snapshot as an Iceberg table-metadata using either the spec-version given in
+          // Return the snapshot as an Iceberg table-metadata using either the spec-version given
+          // in
           // the request or the one used when the table-metadata was written.
           // TODO Does requesting a table-metadata using another spec-version make any sense?
           // TODO Response should respect the JsonView / spec-version
@@ -86,6 +115,12 @@ public class CatalogTransportResource implements NessieCatalogService {
           if (specVersion != null) {
             reqVersion = OptionalInt.of(Integer.parseInt(specVersion));
           }
+          break;
+        case NESSIE:
+          snapshotFormat = SnapshotFormat.NESSIE_SNAPSHOT;
+          break;
+        case NESSIE_NO_MANIFEST:
+          snapshotFormat = SnapshotFormat.NESSIE_SNAPSHOT_NO_MANIFESTS;
           break;
         case DELTA_LAKE:
         default:
@@ -96,8 +131,14 @@ public class CatalogTransportResource implements NessieCatalogService {
     return snapshotBased(ref, key, snapshotFormat, Optional.empty(), reqVersion);
   }
 
-  @Override
-  public Object manifestList(String ref, ContentKey key, String format, String specVersion)
+  @GET
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-list/{key}")
+  @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  public Uni<Response> manifestList(
+      @PathParam("ref") String ref,
+      @PathParam("key") ContentKey key,
+      @QueryParam("format") String format,
+      @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException {
     SnapshotFormat snapshotFormat;
     OptionalInt reqVersion = OptionalInt.empty();
@@ -125,9 +166,15 @@ public class CatalogTransportResource implements NessieCatalogService {
     return snapshotBased(ref, key, snapshotFormat, Optional.empty(), reqVersion);
   }
 
-  @Override
-  public Object manifestFile(
-      String ref, ContentKey key, String manifestFile, String format, String specVersion)
+  @GET
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-file/{key}")
+  @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  public Uni<Response> manifestFile(
+      @PathParam("ref") String ref,
+      @PathParam("key") ContentKey key,
+      @QueryParam("manifest-file") String manifestFile,
+      @QueryParam("format") String format,
+      @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException {
     SnapshotFormat snapshotFormat;
     NessieId manifestFileId;
@@ -157,7 +204,87 @@ public class CatalogTransportResource implements NessieCatalogService {
     return snapshotBased(ref, key, snapshotFormat, Optional.of(manifestFileId), reqVersion);
   }
 
-  private Response snapshotBased(
+  @GET
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/data-file/{key}")
+  @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  public Uni<Response> dataFile(
+      @PathParam("ref") String ref,
+      @PathParam("key") ContentKey key,
+      @QueryParam("file") String dataFile,
+      @QueryParam("type") String fileType,
+      @QueryParam("token") String fileToken)
+      throws NessieNotFoundException {
+    CompletionStage<Response> cs =
+        snapshotResponse(
+                ref, key, SnapshotFormat.NESSIE_SNAPSHOT, Optional.empty(), OptionalInt.empty())
+            .thenApply(
+                snapshotResponse -> {
+                  NessieTableSnapshot tableSnapshot =
+                      snapshotResponse
+                          .entityObject()
+                          .map(NessieTableSnapshot.class::cast)
+                          .orElseThrow();
+                  // TODO will need table-snapshot later for AuthZ
+
+                  // TODO need the effective Nessie reference incl commit-ID here, add as a HTTP
+                  //  response header?
+
+                  String dataFileName = Paths.get(dataFile).getFileName().toString();
+
+                  NessieDataFileFormat fileFormat;
+                  if (fileType != null) {
+                    fileFormat = NessieDataFileFormat.valueOf(fileType.toUpperCase(Locale.ROOT));
+                  } else {
+                    fileFormat = NessieDataFileFormat.forFileName(dataFile);
+                  }
+                  String contentType =
+                      fileFormat != null ? fileFormat.contentType() : "application/octet-stream";
+
+                  // TODO need to validate that 'dataFile' belongs to the table -> AuthZ !!
+                  //  Need some token, that's signed using the Nessie reference, content-key,
+                  //  signed using a private key, with it's public key published "somewhere".
+                  //  These key-pairs need IDs, so we can have multiple key-pairs.
+                  //  In other words: need a way to prove that 'dataFile' belongs to the table,
+                  //  then we can rely on table AuthZ.
+                  //  Since the dataFile-token itself only verifies that 'dataFile' belongs
+                  //  to some table, it is not a "private thing" and can be shared w/ others.
+                  //  AuthN+table-level-AuthZ is still required to access the file.
+                  //  Technically:
+                  //     var hash = hash ( snapshot-id , file-path )
+                  //     var signature = sign ( hash , key-pair )
+                  //     var token = signature + key-pair-name
+                  StreamingOutput producer =
+                      outputStream -> {
+                        try (InputStream in = objectIO.readObject(URI.create(dataFile))) {
+                          in.transferTo(outputStream);
+                        }
+                      };
+
+                  return Response.ok(producer)
+                      .header(
+                          "Content-Disposition", "attachment; filename=\"" + dataFileName + "\"")
+                      .header("Content-Type", contentType)
+                      .build();
+                });
+
+    return Uni.createFrom().completionStage(cs);
+  }
+
+  private Uni<Response> snapshotBased(
+      String ref,
+      ContentKey key,
+      SnapshotFormat snapshotFormat,
+      Optional<NessieId> manifestFileId,
+      OptionalInt reqVersion)
+      throws NessieNotFoundException {
+    CompletionStage<SnapshotResponse> snapshotResponse =
+        snapshotResponse(ref, key, snapshotFormat, manifestFileId, reqVersion);
+    return Uni.createFrom()
+        .completionStage(snapshotResponse)
+        .map(CatalogTransportResource::snapshotToResponse);
+  }
+
+  private CompletionStage<SnapshotResponse> snapshotResponse(
       String ref,
       ContentKey key,
       SnapshotFormat snapshotFormat,
@@ -171,12 +298,13 @@ public class CatalogTransportResource implements NessieCatalogService {
     // which is then resolved to the URIs for manifest lists and manifest files.
     CatalogService.CatalogUriResolver catalogUriResolver =
         new CatalogService.CatalogUriResolver() {
+          // TODO this baseUri must include the commit-ID
           final URI baseUri = uriInfo.getRequestUri().resolve("..");
           final String keyPathString = key.toPathString();
 
           @Override
           public URI icebergManifestList(NessieTableSnapshot snapshot) {
-            return snapshotFormat.useOriginalPaths()
+            return snapshotFormat.asImported()
                 ? URI.create(snapshot.icebergManifestListLocation())
                 : baseUri.resolve("manifest-list/" + keyPathString);
           }
@@ -189,15 +317,36 @@ public class CatalogTransportResource implements NessieCatalogService {
                     + "?manifest-file="
                     + URLEncoder.encode(manifestFileId.idAsBase64(), UTF_8));
           }
+
+          @Override
+          public URI dataFile(NessieDataFileFormat fileFormat, String dataFile) {
+            // TODO generate dataFile token
+            String fileToken = "tokenToVerifyThatTheDataFileBelongsToTheTable";
+            String fileFormatParam =
+                dataFile.endsWith(fileFormat.fileExtension())
+                    ? ""
+                    : "&format=" + URLEncoder.encode(fileFormat.name(), UTF_8);
+            return baseUri.resolve(
+                "data-file/"
+                    + keyPathString
+                    + "?file="
+                    + URLEncoder.encode(dataFile, UTF_8)
+                    + fileFormatParam
+                    + "&token="
+                    + URLEncoder.encode(fileToken, UTF_8));
+          }
         };
 
-    SnapshotResponse snapshot =
-        catalogService.retrieveTableSnapshot(
-            ref, key, manifestFileId, snapshotFormat, reqVersion, catalogUriResolver);
+    return catalogService.retrieveTableSnapshot(
+        ref, key, manifestFileId, snapshotFormat, reqVersion, catalogUriResolver);
+  }
 
-    // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit ID and
-    //  state of the manifest-list/files to reflect "in-place" changes, like
-    // compaction/optimization)
+  private static Response snapshotToResponse(SnapshotResponse snapshot) {
+    // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit
+    //  ID and state of the manifest-list/files to reflect "in-place" changes, like
+    //  compaction/optimization)
+
+    // TODO need the effective Nessie reference incl commit-ID here, add as a HTTP response header?
 
     Optional<Object> entity = snapshot.entityObject();
     if (entity.isPresent()) {
@@ -207,11 +356,7 @@ public class CatalogTransportResource implements NessieCatalogService {
           .build();
     }
 
-    // TODO Should have support for HTTP range-requests (`Range` request header / `Accept-Ranges`
-    //  response header). Probably requires some logic to ensure that the generated stream matches
-    //  is "still the same" - so generated URLs, content unchanged. Maybe cache control headers can
-    //  help here.
-
+    // TODO do we need a BufferedOutputStream via StreamingOutput.write ?
     return Response.ok((StreamingOutput) snapshot::produce)
         .header("Content-Disposition", "attachment; filename=\"" + snapshot.fileName() + "\"")
         .header("Content-Type", snapshot.contentType())

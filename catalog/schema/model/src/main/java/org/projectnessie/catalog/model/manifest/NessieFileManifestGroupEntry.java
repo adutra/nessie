@@ -15,15 +15,12 @@
  */
 package org.projectnessie.catalog.model.manifest;
 
-import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.immutables.value.Value;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -32,47 +29,6 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonSerialize(as = ImmutableNessieFileManifestGroupEntry.class)
 @JsonDeserialize(as = ImmutableNessieFileManifestGroupEntry.class)
 public interface NessieFileManifestGroupEntry {
-  @Value.Default
-  default NessieId id() {
-    // TODO This can probably go away?!
-    //
-    // For Iceberg this MUST be derived only from the manifest-path.
-    //
-    // Background: Iceberg produces snapshots/manifest-lists/manifests using optimistic concurrency.
-    // If something goes wrong during one attempt, it retries. This can include rewriting the
-    // manifest-list. When `SnapshotProducer.commit()` completes, it deletes all written files, that
-    // are not referenced via TableMetadata's Snapshot.manifestList(). This means, if we tweak the
-    // manifestList attribute to directly point to the Nessie Catalog server (aka return a different
-    // path), Iceberg WILL DELETE the manifest-list and manifest files during the commit.
-    //
-    // To mitigate the above, we make the ID of this type deterministic via the ORIGINAL path. The
-    // Nessie Catalog aware Iceberg Catalog will translate the requests and direct those to the
-    // Nessie Catalog service.
-    //
-    // See `org.apache.iceberg.SnapshotProducer.commit()`
-    if (icebergManifestPath() != null) {
-      return nessieIdHasher("").hash(icebergManifestPath()).generate();
-    }
-
-    // Must derive the ID from the manifest-path.
-    return nessieIdHasher("NessieListManifestEntry")
-        .hash(icebergManifestPath())
-        .hash(icebergManifestLength())
-        .hash(partitionSpecId())
-        .hash(addedSnapshotId())
-        .hash(addedDataFilesCount())
-        .hash(existingDataFilesCount())
-        .hash(deletedDataFilesCount())
-        .hash(addedRowsCount())
-        .hash(existingRowsCount())
-        .hash(deletedRowsCount())
-        .hash(sequenceNumber())
-        .hash(minSequenceNumber())
-        .hash(content())
-        .hash(keyMetadata())
-        .hashCollection(partitions())
-        .generate();
-  }
 
   @Nullable
   @jakarta.annotation.Nullable
@@ -166,7 +122,7 @@ public interface NessieFileManifestGroupEntry {
   List<NessieFieldSummary> partitions();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  List<NessieId> dataFiles();
+  NessieId manifestId();
 
   static Builder builder() {
     return ImmutableNessieFileManifestGroupEntry.builder();
@@ -178,9 +134,6 @@ public interface NessieFileManifestGroupEntry {
 
     @CanIgnoreReturnValue
     Builder clear();
-
-    @CanIgnoreReturnValue
-    Builder id(NessieId id);
 
     @CanIgnoreReturnValue
     Builder icebergManifestPath(String icebergManifestPath);
@@ -237,16 +190,7 @@ public interface NessieFileManifestGroupEntry {
     Builder addAllPartitions(Iterable<? extends NessieFieldSummary> elements);
 
     @CanIgnoreReturnValue
-    Builder addDataFile(NessieId element);
-
-    @CanIgnoreReturnValue
-    Builder addDataFiles(NessieId... elements);
-
-    @CanIgnoreReturnValue
-    Builder dataFiles(Iterable<? extends NessieId> elements);
-
-    @CanIgnoreReturnValue
-    Builder addAllDataFiles(Iterable<? extends NessieId> elements);
+    Builder manifestId(NessieId manifestId);
 
     NessieFileManifestGroupEntry build();
   }

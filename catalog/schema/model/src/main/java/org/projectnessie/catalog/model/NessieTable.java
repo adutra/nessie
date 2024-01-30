@@ -15,15 +15,12 @@
  */
 package org.projectnessie.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.time.Instant;
-import java.util.UUID;
-import javax.annotation.Nullable;
-import org.projectnessie.catalog.model.id.NessieId;
+import org.immutables.value.Value;
 import org.projectnessie.catalog.model.locations.BaseLocation;
-import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 /**
@@ -36,48 +33,30 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @NessieImmutable
 @JsonSerialize(as = ImmutableNessieTable.class)
 @JsonDeserialize(as = ImmutableNessieTable.class)
+@JsonTypeName("TABLE")
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
 public interface NessieTable extends NessieEntity {
+
+  @Override
+  @Value.NonAttribute
+  default String type() {
+    return "TABLE";
+  }
+
   BaseLocation baseLocation();
-
-  @Nullable
-  @jakarta.annotation.Nullable
-  Integer icebergLastColumnId();
-
-  @Nullable
-  @jakarta.annotation.Nullable
-  Integer icebergLastPartitionId();
 
   static Builder builder() {
     return ImmutableNessieTable.builder();
   }
 
-  interface Builder {
+  interface Builder extends NessieEntity.Builder<Builder> {
     @CanIgnoreReturnValue
     Builder from(NessieTable instance);
 
     @CanIgnoreReturnValue
-    Builder id(NessieId id);
-
-    @CanIgnoreReturnValue
-    Builder createdTimestamp(Instant createdTimestamp);
-
-    @CanIgnoreReturnValue
-    Builder nessieContentId(String nessieContentId);
-
-    @CanIgnoreReturnValue
-    Builder icebergUuid(@Nullable UUID icebergUuid);
-
-    @CanIgnoreReturnValue
-    Builder tableFormat(@Nullable TableFormat tableFormat);
-
-    @CanIgnoreReturnValue
     Builder baseLocation(BaseLocation baseLocation);
-
-    @CanIgnoreReturnValue
-    Builder icebergLastColumnId(@Nullable Integer icebergLastColumnId);
-
-    @CanIgnoreReturnValue
-    Builder icebergLastPartitionId(@Nullable Integer icebergLastPartitionId);
 
     NessieTable build();
   }

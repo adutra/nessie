@@ -18,7 +18,9 @@ package org.projectnessie.catalog.service.api;
 import java.net.URI;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.CompletionStage;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
@@ -39,7 +41,7 @@ public interface CatalogService {
    *     is useful to return results that are quite big, for example Iceberg manifest lists or
    *     manifest files.
    */
-  SnapshotResponse retrieveTableSnapshot(
+  CompletionStage<SnapshotResponse> retrieveTableSnapshot(
       String ref,
       ContentKey key,
       Optional<NessieId> manifestFileId,
@@ -52,5 +54,7 @@ public interface CatalogService {
     URI icebergManifestList(NessieTableSnapshot snapshot);
 
     URI icebergManifestFile(NessieId manifestFileId);
+
+    URI dataFile(NessieDataFileFormat fileFormat, String dataFile);
   }
 }

@@ -36,30 +36,11 @@ public interface NessieFileManifestEntry {
 
   @Value.Derived
   default NessieId id() {
-    return nessieIdHasher("NessieFileManifestEntry")
-        .hash(status())
-        .hash(content())
-        .hash(specId())
-        .hashCollection(partitionElements())
-        .hashIntCollection(equalityIds())
-        .hash(sortOrderId())
-        .hash(fileFormat())
-        .hash(filePath())
-        .hash(fileSizeInBytes())
-        .hash(blockSizeInBytes())
-        .hash(recordCount())
-        .hashLongCollection(splitOffsets())
-        .hash(keyMetadata())
-        .hashCollection(columns())
-        .hash(tightBounds())
-        .hash(dataChange())
-        .hashStringToStringMap(tags())
-        .hash(deltaBaseRowId())
-        .hash(deltaDefaultRowCommitVersion())
-        .hash(icebergFileSequenceNumber())
-        .hash(icebergSequenceNumber())
-        .hash(icebergSnapshotId())
-        .generate();
+    return id(filePath());
+  }
+
+  static NessieId id(String filePath) {
+    return nessieIdHasher("NessieFileManifestEntry").hash(filePath).generate();
   }
 
   NessieFileStatus status();

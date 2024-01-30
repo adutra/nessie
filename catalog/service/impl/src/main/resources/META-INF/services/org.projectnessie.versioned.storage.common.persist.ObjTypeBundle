@@ -14,4 +14,4 @@
 # limitations under the License.
 #
 
-org.projectnessie.catalog.service.storage.CatalogObjTypeBundle
+org.projectnessie.catalog.service.impl.CatalogObjTypeBundle

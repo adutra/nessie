@@ -15,7 +15,9 @@
  */
 package org.projectnessie.catalog.api.base.transport;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.List;
+import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
@@ -25,7 +27,18 @@ import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
+@JsonTypeName("TABLE")
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
 public interface TableSnapshot extends EntitySnapshot<NessieTableSnapshot, NessieTable> {
+
+  @Override
+  @Value.NonAttribute
+  default String type() {
+    return "TABLE";
+  }
+
   @Override
   NessieTableSnapshot shallowSnapshot();
 

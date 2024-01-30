@@ -21,6 +21,7 @@ import static org.projectnessie.catalog.model.schema.NessieSchema.NO_SCHEMA_ID;
 import static org.projectnessie.catalog.model.schema.NessieSortDefinition.NO_SORT_ORDER_ID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -55,7 +56,17 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @NessieImmutable
 @JsonSerialize(as = ImmutableNessieTableSnapshot.class)
 @JsonDeserialize(as = ImmutableNessieTableSnapshot.class)
+@JsonTypeName("TABLE")
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
 public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
+
+  @Override
+  @Value.NonAttribute
+  default String type() {
+    return "TABLE";
+  }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
@@ -137,6 +148,16 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   // FIXME is this nullable? The builder method says yes, but the interface says no.
   Instant lastUpdatedTimestamp();
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  @jakarta.annotation.Nullable
+  Integer icebergLastColumnId();
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  @jakarta.annotation.Nullable
+  Integer icebergLastPartitionId();
+
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Map<String, String> icebergSnapshotSummary();
 
@@ -145,14 +166,34 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @jakarta.annotation.Nullable
   String icebergLocation();
 
+  /**
+   * Corresponds to the {@code manifest-list} field in Iceberg snapshots.
+   *
+   * <p>When importing an Iceberg snapshot without a {@code manifest-list} but with the {@code
+   * manifests} field populated, both {@link #icebergManifestFileLocations()} <em>and</em> this
+   * field are populated, the manifest-list is generated from the manifest files referenced by this
+   * list.
+   *
+   * <p>Iceberg table-metadata/snapshots generated from {@link NessieTableSnapshot} will always have
+   * the {@code manifest-list} field populated and no {@code manifests} field.
+   */
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
-  // TODO this is the manifest list path from the _imported_ snapshot
   String icebergManifestListLocation();
 
+  /**
+   * Corresponds to the {@code manifests} field in Iceberg snapshots.
+   *
+   * <p>When importing an Iceberg snapshot without a {@code manifest-list} but with the {@code
+   * manifests} field populated, both this list <em>and</em> {@link #icebergManifestListLocation()}
+   * are populated, the latter contains the location of the manifest-list, which is generated from
+   * the manifest files referenced by this list.
+   *
+   * <p>Iceberg table-metadata/snapshots generated from {@link NessieTableSnapshot} will always have
+   * the {@code manifest-list} field populated and no {@code manifests} field.
+   */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  // TODO derive this one from manifests() ?
   List<String> icebergManifestFileLocations();
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -258,6 +299,12 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
     @CanIgnoreReturnValue
     Builder lastUpdatedTimestamp(@Nullable Instant lastUpdatedTimestamp);
+
+    @CanIgnoreReturnValue
+    Builder icebergLastColumnId(@Nullable Integer icebergLastColumnId);
+
+    @CanIgnoreReturnValue
+    Builder icebergLastPartitionId(@Nullable Integer icebergLastPartitionId);
 
     @CanIgnoreReturnValue
     Builder putIcebergSnapshotSummary(String key, String value);

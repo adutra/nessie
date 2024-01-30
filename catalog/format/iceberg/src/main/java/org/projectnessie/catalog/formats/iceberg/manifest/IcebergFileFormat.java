@@ -21,7 +21,8 @@ public enum IcebergFileFormat {
   ORC("orc", true, NessieDataFileFormat.ORC),
   PARQUET("parquet", true, NessieDataFileFormat.PARQUET),
   AVRO("avro", true, NessieDataFileFormat.AVRO),
-  METADATA("metadata.json", false, NessieDataFileFormat.METADATA);
+  METADATA("metadata.json", false, NessieDataFileFormat.METADATA),
+  ;
 
   private final String fileExtension;
   private final boolean splittable;

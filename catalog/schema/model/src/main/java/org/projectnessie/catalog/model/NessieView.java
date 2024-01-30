@@ -15,13 +15,11 @@
  */
 package org.projectnessie.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.UUID;
-import javax.annotation.Nullable;
-import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.snapshot.TableFormat;
+import org.immutables.value.Value;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 /**
@@ -34,27 +32,25 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @NessieImmutable
 @JsonSerialize(as = ImmutableNessieView.class)
 @JsonDeserialize(as = ImmutableNessieView.class)
+@JsonTypeName("VIEW")
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
 public interface NessieView extends NessieEntity {
+
+  @Override
+  @Value.NonAttribute
+  default String type() {
+    return "VIEW";
+  }
 
   static Builder builder() {
     return ImmutableNessieView.builder();
   }
 
-  interface Builder {
+  interface Builder extends NessieEntity.Builder<Builder> {
     @CanIgnoreReturnValue
     Builder from(NessieView instance);
-
-    @CanIgnoreReturnValue
-    Builder id(NessieId id);
-
-    @CanIgnoreReturnValue
-    Builder nessieContentId(String nessieContentId);
-
-    @CanIgnoreReturnValue
-    Builder icebergUuid(@Nullable UUID icebergUuid);
-
-    @CanIgnoreReturnValue
-    Builder tableFormat(@Nullable TableFormat tableFormat);
 
     NessieView build();
   }

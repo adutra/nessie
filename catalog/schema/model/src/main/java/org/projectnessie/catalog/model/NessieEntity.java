@@ -15,18 +15,27 @@
  */
 package org.projectnessie.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeId;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.time.Instant;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.model.CommitMeta.InstantDeserializer;
 import org.projectnessie.model.CommitMeta.InstantSerializer;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+  @JsonSubTypes.Type(value = NessieTable.class, name = "TABLE"),
+  @JsonSubTypes.Type(value = NessieView.class, name = "VIEW")
+})
 public interface NessieEntity {
-  NessieId id();
+  @JsonTypeId
+  String type();
 
   String nessieContentId();
 
@@ -43,4 +52,18 @@ public interface NessieEntity {
   @JsonSerialize(using = InstantSerializer.class)
   @JsonDeserialize(using = InstantDeserializer.class)
   Instant createdTimestamp();
+
+  interface Builder<B extends Builder<B>> {
+    @CanIgnoreReturnValue
+    B nessieContentId(String nessieContentId);
+
+    @CanIgnoreReturnValue
+    B icebergUuid(UUID icebergUuid);
+
+    @CanIgnoreReturnValue
+    B tableFormat(TableFormat tableFormat);
+
+    @CanIgnoreReturnValue
+    B createdTimestamp(Instant createdTimestamp);
+  }
 }

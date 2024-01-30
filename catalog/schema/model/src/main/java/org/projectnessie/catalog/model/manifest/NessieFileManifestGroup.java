@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
-import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 // Corresponds to a manifest-list
@@ -28,8 +27,6 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonSerialize(as = ImmutableNessieFileManifestGroup.class)
 @JsonDeserialize(as = ImmutableNessieFileManifestGroup.class)
 public interface NessieFileManifestGroup {
-  NessieId id();
-
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   // TODO Store manifest-list externally, in a way that we can update the manifest-list w/o touching
   //  the persisted snapshot.
@@ -47,9 +44,6 @@ public interface NessieFileManifestGroup {
 
     @CanIgnoreReturnValue
     Builder clear();
-
-    @CanIgnoreReturnValue
-    Builder id(NessieId id);
 
     @CanIgnoreReturnValue
     Builder addManifest(NessieFileManifestGroupEntry element);

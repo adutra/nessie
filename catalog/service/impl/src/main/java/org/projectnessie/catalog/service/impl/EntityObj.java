@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.storage;
+package org.projectnessie.catalog.service.impl;
 
 import static org.projectnessie.versioned.storage.common.objtypes.CustomObjType.customObjType;
 
@@ -23,20 +23,20 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieEntity;
 import org.projectnessie.nessie.immutables.NessieImmutable;
-import org.projectnessie.versioned.storage.common.persist.Obj;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
 import org.projectnessie.versioned.storage.common.persist.ObjType;
+import org.projectnessie.versioned.storage.common.persist.UpdateableObj;
 
 @NessieImmutable
 @JsonSerialize(as = ImmutableEntityObj.class)
 @JsonDeserialize(as = ImmutableEntityObj.class)
-public interface EntityObj extends Obj {
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
+public interface EntityObj extends UpdateableObj {
 
   @Override
-  ObjId id();
-
-  @Override
-  @Value.NonAttribute
+  @Value.Default
   default ObjType type() {
     return OBJ_TYPE;
   }
@@ -51,7 +51,13 @@ public interface EntityObj extends Obj {
 
   interface Builder {
     @CanIgnoreReturnValue
+    Builder from(EntityObj obj);
+
+    @CanIgnoreReturnValue
     Builder id(ObjId id);
+
+    @CanIgnoreReturnValue
+    Builder versionToken(String versionToken);
 
     @CanIgnoreReturnValue
     Builder entity(NessieEntity entity);

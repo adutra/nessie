@@ -63,6 +63,10 @@ dependencies {
 
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
+  testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
+
+  testFixturesImplementation(platform(libs.jackson.bom))
+  testFixturesImplementation("com.fasterxml.jackson.core:jackson-annotations")
 
   testFixturesApi("org.apache.iceberg:iceberg-core:$versionIceberg")
 }

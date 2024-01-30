@@ -13,47 +13,59 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.storage;
+package org.projectnessie.catalog.service.impl;
 
-import static org.projectnessie.versioned.storage.common.objtypes.CustomObjType.customObjType;
+import static org.projectnessie.versioned.storage.common.objtypes.CustomObjType.dynamicCaching;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import jakarta.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.nessie.immutables.NessieImmutable;
-import org.projectnessie.versioned.storage.common.persist.Obj;
+import org.projectnessie.nessie.tasks.api.TaskObj;
+import org.projectnessie.nessie.tasks.api.TaskState;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
 import org.projectnessie.versioned.storage.common.persist.ObjType;
 
 @NessieImmutable
 @JsonSerialize(as = ImmutableManifestGroupObj.class)
 @JsonDeserialize(as = ImmutableManifestGroupObj.class)
-public interface ManifestGroupObj extends Obj {
-  @Override
-  ObjId id();
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
+public interface ManifestGroupObj extends TaskObj {
 
   @Override
-  @Value.NonAttribute
+  @Value.Default
   default ObjType type() {
     return OBJ_TYPE;
   }
 
+  @Nullable
   NessieFileManifestGroup manifestGroup();
 
-  ObjType OBJ_TYPE = customObjType("catalog-mgroup", "c-mg", ManifestGroupObj.class);
+  ObjType OBJ_TYPE =
+      dynamicCaching(
+          "catalog-mgroup", "c-mg", ManifestGroupObj.class, TaskObj.taskDefaultCacheExpire());
 
   static Builder builder() {
     return ImmutableManifestGroupObj.builder();
   }
 
-  interface Builder {
+  interface Builder extends TaskObj.Builder {
+    @CanIgnoreReturnValue
+    Builder from(ManifestGroupObj obj);
+
     @CanIgnoreReturnValue
     Builder id(ObjId id);
 
     @CanIgnoreReturnValue
     Builder manifestGroup(NessieFileManifestGroup manifestGroup);
+
+    @CanIgnoreReturnValue
+    Builder taskState(TaskState taskState);
 
     ManifestGroupObj build();
   }

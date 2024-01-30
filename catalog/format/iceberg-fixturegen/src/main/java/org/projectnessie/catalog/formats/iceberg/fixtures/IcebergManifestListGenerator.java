@@ -72,7 +72,7 @@ public abstract class IcebergManifestListGenerator {
     return ImmutableIcebergManifestListGenerator.builder();
   }
 
-  public void generate(Supplier<IcebergManifestFile> manifestFileSupplier) throws Exception {
+  public String generate(Supplier<IcebergManifestFile> manifestFileSupplier) throws Exception {
 
     String listFile =
         String.format(
@@ -99,5 +99,7 @@ public abstract class IcebergManifestListGenerator {
         }
       }
     }
+
+    return listPath;
   }
 }

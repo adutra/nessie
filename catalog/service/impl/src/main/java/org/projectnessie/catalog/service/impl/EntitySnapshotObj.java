@@ -13,40 +13,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.storage;
+package org.projectnessie.catalog.service.impl;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.projectnessie.versioned.storage.common.objtypes.CustomObjType.dynamicCaching;
-import static org.projectnessie.versioned.storage.common.persist.ObjType.CACHE_UNLIMITED;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import jakarta.annotation.Nullable;
-import java.time.Instant;
 import org.immutables.value.Value;
+import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
+import org.projectnessie.model.Content;
 import org.projectnessie.nessie.immutables.NessieImmutable;
-import org.projectnessie.versioned.storage.common.objtypes.CustomObjType;
-import org.projectnessie.versioned.storage.common.persist.Obj;
+import org.projectnessie.nessie.tasks.api.TaskObj;
+import org.projectnessie.nessie.tasks.api.TaskState;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
 import org.projectnessie.versioned.storage.common.persist.ObjType;
 
+/** Represents the snapshot/state of a table or view. */
 @NessieImmutable
 @JsonSerialize(as = ImmutableEntitySnapshotObj.class)
 @JsonDeserialize(as = ImmutableEntitySnapshotObj.class)
-public interface EntitySnapshotObj extends Obj {
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
+public interface EntitySnapshotObj extends TaskObj {
 
   @Override
-  ObjId id();
-
-  @Override
-  @Value.NonAttribute
+  @Value.Default
   default ObjType type() {
     return OBJ_TYPE;
   }
 
-  /** Snapshot value. */
+  /** The Nessie {@linkplain Content content} object from which this entity snapshot was created. */
+  @Nullable
+  Content content();
+
+  /**
+   * Snapshot value, does not include a {@link NessieFileManifestGroup}, which is referenced by
+   * {@link #manifestGroup()}.
+   */
   @Nullable
   NessieEntitySnapshot<?> snapshot();
 
@@ -58,34 +65,18 @@ public interface EntitySnapshotObj extends Obj {
   @Nullable
   ObjId manifestGroup();
 
-  @Nullable
-  Instant refreshAt();
-
-  @Nullable
-  String failure();
-
-  CustomObjType.CacheExpireCalculation<EntitySnapshotObj> CACHE_EXPIRE =
-      (obj, currentTimeMicros) -> {
-        if (obj.failure() != null) {
-          return CACHE_UNLIMITED;
-        }
-
-        Instant refreshAt = obj.refreshAt();
-        if (refreshAt != null) {
-          return MILLISECONDS.toMicros(refreshAt.toEpochMilli());
-        }
-
-        return CACHE_UNLIMITED;
-      };
-
   ObjType OBJ_TYPE =
-      dynamicCaching("catalog-snapshot", "c-s", EntitySnapshotObj.class, CACHE_EXPIRE);
+      dynamicCaching(
+          "catalog-snapshot", "c-s", EntitySnapshotObj.class, TaskObj.taskDefaultCacheExpire());
 
   static Builder builder() {
     return ImmutableEntitySnapshotObj.builder();
   }
 
-  interface Builder {
+  interface Builder extends TaskObj.Builder {
+    @CanIgnoreReturnValue
+    Builder from(EntitySnapshotObj obj);
+
     @CanIgnoreReturnValue
     Builder id(ObjId id);
 
@@ -99,10 +90,10 @@ public interface EntitySnapshotObj extends Obj {
     Builder manifestGroup(ObjId manifestGroup);
 
     @CanIgnoreReturnValue
-    Builder refreshAt(Instant refreshAt);
+    Builder content(Content content);
 
     @CanIgnoreReturnValue
-    Builder failure(String failure);
+    Builder taskState(TaskState taskState);
 
     EntitySnapshotObj build();
   }

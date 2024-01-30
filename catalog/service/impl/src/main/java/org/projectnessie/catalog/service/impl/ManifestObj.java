@@ -13,49 +13,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.storage;
+package org.projectnessie.catalog.service.impl;
 
 import static org.projectnessie.versioned.storage.common.objtypes.CustomObjType.customObjType;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import jakarta.annotation.Nullable;
 import org.immutables.value.Value;
-import org.projectnessie.catalog.model.manifest.NessieFileManifestEntry;
+import org.projectnessie.catalog.model.manifest.NessieFileManifestGroupEntry;
 import org.projectnessie.nessie.immutables.NessieImmutable;
-import org.projectnessie.versioned.storage.common.persist.Obj;
+import org.projectnessie.nessie.tasks.api.TaskObj;
+import org.projectnessie.nessie.tasks.api.TaskState;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
 import org.projectnessie.versioned.storage.common.persist.ObjType;
 
 @NessieImmutable
-@JsonSerialize(as = ImmutableManifestEntryObj.class)
-@JsonDeserialize(as = ImmutableManifestEntryObj.class)
-public interface ManifestEntryObj extends Obj {
+@JsonSerialize(as = ImmutableManifestObj.class)
+@JsonDeserialize(as = ImmutableManifestObj.class)
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
+public interface ManifestObj extends TaskObj {
 
   @Override
-  ObjId id();
-
-  @Override
-  @Value.NonAttribute
+  @Value.Default
   default ObjType type() {
     return OBJ_TYPE;
   }
 
-  NessieFileManifestEntry entry();
+  @Nullable
+  NessieFileManifestGroupEntry entry();
 
-  ObjType OBJ_TYPE = customObjType("catalog-mentry", "c-me", ManifestEntryObj.class);
+  ObjType OBJ_TYPE = customObjType("catalog-mentry", "c-me", ManifestObj.class);
 
   static Builder builder() {
-    return ImmutableManifestEntryObj.builder();
+    return ImmutableManifestObj.builder();
   }
 
-  interface Builder {
+  interface Builder extends TaskObj.Builder {
+    @CanIgnoreReturnValue
+    Builder from(ManifestObj obj);
+
     @CanIgnoreReturnValue
     Builder id(ObjId id);
 
     @CanIgnoreReturnValue
-    Builder entry(NessieFileManifestEntry entry);
+    Builder entry(NessieFileManifestGroupEntry entry);
 
-    ManifestEntryObj build();
+    @CanIgnoreReturnValue
+    Builder taskState(TaskState taskState);
+
+    ManifestObj build();
   }
 }

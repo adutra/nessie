@@ -26,10 +26,11 @@ dependencies {
   implementation(project(":nessie-catalog-format-iceberg"))
   implementation(project(":nessie-catalog-schema-model"))
   implementation(project(":nessie-catalog-service-api"))
-  implementation(project(":nessie-catalog-service-storage"))
   implementation(project(":nessie-versioned-storage-common"))
   implementation(project(":nessie-client"))
   implementation(project(":nessie-model"))
+  implementation(project(":nessie-tasks-api"))
+  implementation(project(":nessie-tasks-service-async"))
 
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
@@ -52,8 +53,14 @@ dependencies {
   compileOnly(libs.errorprone.annotations)
   compileOnly(libs.microprofile.openapi)
 
+  testCompileOnly(libs.microprofile.openapi)
+
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
-
-  testFixturesApi(project(":nessie-combined-cs"))
+  testFixturesApi(project(":nessie-versioned-storage-testextension"))
+  testFixturesRuntimeOnly(project(":nessie-versioned-storage-inmemory"))
+  testFixturesRuntimeOnly(libs.logback.classic)
+  testFixturesApi(project(":nessie-tasks-service-impl"))
+  testFixturesApi(project(":nessie-catalog-files-local"))
+  testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
 }

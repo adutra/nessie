@@ -28,6 +28,7 @@ dependencies {
   implementation(project(":nessie-rest-common"))
   implementation(project(":nessie-catalog-api-base"))
   implementation(project(":nessie-catalog-api-rest"))
+  implementation(project(":nessie-catalog-files-api"))
   implementation(project(":nessie-catalog-schema-model"))
   implementation(project(":nessie-catalog-service-api"))
   implementation(project(":nessie-catalog-service-common"))
@@ -36,6 +37,8 @@ dependencies {
 
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
+
+  implementation(libs.smallrye.mutiny)
 
   implementation(platform(libs.jackson.bom))
   implementation("com.fasterxml.jackson.core:jackson-databind")

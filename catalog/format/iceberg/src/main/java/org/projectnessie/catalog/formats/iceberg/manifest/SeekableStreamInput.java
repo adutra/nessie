@@ -51,24 +51,28 @@ public final class SeekableStreamInput implements SeekableInput {
 
   @Override
   public void seek(long p) throws IOException {
+    // TODO trace level
     LOGGER.info("seek({}) for {}", p, uri);
     seekableFileInput.seek(p);
   }
 
   @Override
   public long tell() throws IOException {
+    // TODO trace level
     LOGGER.info("tell() for {}", uri);
     return seekableFileInput.tell();
   }
 
   @Override
   public long length() throws IOException {
+    // TODO trace level
     LOGGER.info("length() for {}", uri);
     return seekableFileInput.length();
   }
 
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
+    // TODO trace level
     LOGGER.info("read({}, {}, {}) for {}", b.length, off, len, uri);
     return seekableFileInput.read(b, off, len);
   }
@@ -78,6 +82,7 @@ public final class SeekableStreamInput implements SeekableInput {
     if (closed) {
       return;
     }
+    // TODO trace level
     LOGGER.info("close() for {}", uri);
     try {
       seekableFileInput.close();

@@ -16,17 +16,20 @@
 package org.projectnessie.catalog.model.manifest;
 
 public enum NessieDataFileFormat {
-  ORC("orc", true),
-  PARQUET("parquet", true),
-  AVRO("avro", true),
-  METADATA("metadata.json", false);
+  ORC("orc", true, "application/orc"),
+  PARQUET("parquet", true, "application/parquet"),
+  AVRO("avro", true, "avro/binary"),
+  METADATA("metadata.json", false, "application/json"),
+  ;
 
   private final String fileExtension;
   private final boolean splittable;
+  private final String contentType;
 
-  NessieDataFileFormat(String fileExtension, boolean splittable) {
+  NessieDataFileFormat(String fileExtension, boolean splittable, String contentType) {
     this.fileExtension = "." + fileExtension;
     this.splittable = splittable;
+    this.contentType = contentType;
   }
 
   public boolean splittable() {
@@ -35,5 +38,18 @@ public enum NessieDataFileFormat {
 
   public String fileExtension() {
     return fileExtension;
+  }
+
+  public String contentType() {
+    return contentType;
+  }
+
+  public static NessieDataFileFormat forFileName(String fileName) {
+    for (NessieDataFileFormat value : values()) {
+      if (fileName.endsWith(value.fileExtension)) {
+        return value;
+      }
+    }
+    return null;
   }
 }

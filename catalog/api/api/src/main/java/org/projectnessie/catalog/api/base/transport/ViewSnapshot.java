@@ -15,14 +15,27 @@
  */
 package org.projectnessie.catalog.api.base.transport;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.List;
+import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieView;
 import org.projectnessie.catalog.model.snapshot.NessieViewDependency;
 import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
+@JsonTypeName("VIEW")
+// Suppress: "Constructor parameters should be better defined on the same level of inheritance
+// hierarchy..."
+@SuppressWarnings("immutables:subtype")
 public interface ViewSnapshot extends EntitySnapshot<NessieViewSnapshot, NessieView> {
+
+  @Override
+  @Value.NonAttribute
+  default String type() {
+    return "VIEW";
+  }
+
   @Override
   NessieViewSnapshot shallowSnapshot();
 

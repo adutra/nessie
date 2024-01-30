@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.service.api;
 
+import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
+
 /**
  * The output format of snapshot related entity information that is returned to actual clients, with
  * attributes whether additional entity metadata like schema, partition definition, sort definitions
@@ -26,6 +28,8 @@ public enum SnapshotFormat {
    * partition definitions, sort definitions and file-group entries.
    */
   NESSIE_SNAPSHOT(false, true, true),
+  /** Same as {@link #NESSIE_SNAPSHOT} but without the {@link NessieFileManifestGroup}. */
+  NESSIE_SNAPSHOT_NO_MANIFESTS(false, true, false),
   /** Iceberg table metadata. */
   ICEBERG_TABLE_METADATA(false, true, false),
   /** Iceberg table metadata, returning the original paths from the imported metadata file. */
@@ -40,19 +44,19 @@ public enum SnapshotFormat {
   ICEBERG_MANIFEST_FILE(true, false, true),
   ;
 
-  private final boolean useOriginalPaths;
+  private final boolean asImported;
   private final boolean includesEntityMetadata;
   private final boolean includesFileManifestGroup;
 
   SnapshotFormat(
-      boolean useOriginalPaths, boolean includesEntityMetadata, boolean includesFileManifestGroup) {
-    this.useOriginalPaths = useOriginalPaths;
+      boolean asImported, boolean includesEntityMetadata, boolean includesFileManifestGroup) {
+    this.asImported = asImported;
     this.includesEntityMetadata = includesEntityMetadata;
     this.includesFileManifestGroup = includesFileManifestGroup;
   }
 
-  public boolean useOriginalPaths() {
-    return useOriginalPaths;
+  public boolean asImported() {
+    return asImported;
   }
 
   public boolean includesFileManifestGroup() {

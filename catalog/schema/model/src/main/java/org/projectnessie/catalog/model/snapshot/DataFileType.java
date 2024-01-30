@@ -19,5 +19,6 @@ public enum DataFileType {
   PARQUET,
   AVRO,
   ORC,
-  CSV
+  CSV,
+  ;
 }
