@@ -682,28 +682,28 @@ jobs:
 #            17
 #
 #      - name: Iceberg Nessie test
-#        uses: gradle/gradle-build-action@v2
+#        uses: gradle/actions/setup-gradle@v3
 #        with:
 #          cache-read-only: true
 #          arguments: :iceberg:iceberg-nessie:test --scan
 #
 #      - name: Nessie Spark 3.3 / 2.12 Extensions test
-#        uses: gradle/gradle-build-action@v2
+#        uses: gradle/actions/setup-gradle@v3
 #        with:
 #          arguments: :nessie:nessie-iceberg:nessie-spark-extensions-3.3_2.12:test :nessie:nessie-iceberg:nessie-spark-extensions-3.3_2.12:intTest --scan
 #
 #      - name: Nessie Spark 3.4 / 2.13 Extensions test
-#        uses: gradle/gradle-build-action@v2
+#        uses: gradle/actions/setup-gradle@v3
 #        with:
 #          arguments: :nessie:nessie-iceberg:nessie-spark-extensions-3.4_2.13:test :nessie:nessie-iceberg:nessie-spark-extensions-3.4_2.13:intTest --scan
 #
 #      - name: Nessie Spark 3.5 / 2.13 Extensions test
-#        uses: gradle/gradle-build-action@v2
+#        uses: gradle/actions/setup-gradle@v3
 #        with:
 #          arguments: :nessie:nessie-iceberg:nessie-spark-extensions-3.5_2.13:test :nessie:nessie-iceberg:nessie-spark-extensions-3.5_2.13:intTest --scan
 #
 #      #- name: Publish Nessie + Iceberg to local Maven repo
-#      #  uses: gradle/gradle-build-action@v2
+#      #  uses: gradle/actions/setup-gradle@v3
 #      #  with:
 #      #    arguments: publishLocal --scan
 #      #
@@ -721,7 +721,7 @@ jobs:
 #      #    !
 #
 #      - name: Tools & Integrations tests
-#        uses: gradle/gradle-build-action@v2
+#        uses: gradle/actions/setup-gradle@v3
 #        with:
 #          arguments: intTest --scan
 
