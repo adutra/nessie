@@ -180,6 +180,10 @@ testing {
 
       targets.all {
         testTask.configure {
+
+          // Remove quarkus-specific log manager overrides
+          systemProperties.remove("java.util.logging.manager")
+
           usesService(
             gradle.sharedServices.registrations.named("intTestParallelismConstraint").get().service
           )
