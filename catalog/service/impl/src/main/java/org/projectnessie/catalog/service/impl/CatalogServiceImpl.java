@@ -64,12 +64,16 @@ import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
 import org.projectnessie.client.api.NessieApiV2;
+import org.projectnessie.error.ErrorCode;
+import org.projectnessie.error.ImmutableNessieError;
+import org.projectnessie.error.NessieContentNotFoundException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.ContentResponse;
 import org.projectnessie.model.IcebergTable;
 import org.projectnessie.model.IcebergView;
+import org.projectnessie.model.Namespace;
 import org.projectnessie.model.Reference;
 import org.projectnessie.nessie.tasks.api.TasksService;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
@@ -492,13 +496,22 @@ public class CatalogServiceImpl implements CatalogService {
   }
 
   /** Compute the ID for the given Nessie {@link Content} object. */
-  private ObjId snapshotIdFromContent(Content content) {
+  private ObjId snapshotIdFromContent(Content content) throws NessieContentNotFoundException {
     if (content instanceof IcebergTable) {
       IcebergTable icebergTable = (IcebergTable) content;
       return objIdHasher("ContentSnapshot")
           .hash(icebergTable.getMetadataLocation())
           .hash(icebergTable.getSnapshotId())
           .generate();
+    }
+    if (content instanceof Namespace) {
+      throw new NessieContentNotFoundException(
+          ImmutableNessieError.builder()
+              .errorCode(ErrorCode.CONTENT_NOT_FOUND)
+              .message("No snapshots for Namespace: " + content)
+              .reason("Not a table")
+              .status(404)
+              .build());
     }
     if (content instanceof IcebergView) {
       throw new UnsupportedOperationException("IMPLEMENT ME FOR " + content);
