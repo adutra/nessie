@@ -32,6 +32,6 @@ dependencies {
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
-java { toolchain { languageVersion.set(JavaLanguageVersion.of(11)) } }
+java { toolchain { languageVersion = JavaLanguageVersion.of(11) } }
 
 tasks.withType<Test>().configureEach { useJUnitPlatform() }
