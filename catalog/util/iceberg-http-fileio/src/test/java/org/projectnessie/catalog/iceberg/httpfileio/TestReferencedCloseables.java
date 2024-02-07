@@ -23,6 +23,7 @@ import java.util.concurrent.TimeoutException;
 import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
 import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -30,6 +31,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 @ExtendWith(SoftAssertionsExtension.class)
 public class TestReferencedCloseables {
   @InjectSoftAssertions protected SoftAssertions soft;
+
+  @Test
+  public void closeablesSelfReference() {
+    AutoCloseable closeable = () -> {};
+    soft.assertThatIllegalArgumentException()
+        .isThrownBy(() -> ReferencedCloseables.addCloseable(closeable, closeable));
+  }
 
   @ParameterizedTest
   @ValueSource(ints = {1, 10, 1000})

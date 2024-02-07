@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.iceberg.httpfileio;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.iceberg.relocated.com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.lang.ref.PhantomReference;
@@ -92,6 +93,7 @@ public final class ReferencedCloseables {
     }
 
     void addCloseable(Object referent, AutoCloseable closeable) {
+      checkArgument(referent != closeable, "Referent must not be the closeable instance");
       Lock l = lock;
       l.lock();
       try {
