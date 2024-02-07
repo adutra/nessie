@@ -15,6 +15,7 @@
  */
 package org.apache.iceberg.nessie;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.iceberg.TableOperations;
 import org.apache.iceberg.catalog.TableIdentifier;
@@ -41,6 +42,11 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
   private NessieIcebergClient client;
 
   @Override
+  public void initialize(String name, Map<String, String> options) {
+    super.initialize(name, withDefaultOptions(options));
+  }
+
+  @Override
   public void initialize(
       String name, NessieIcebergClient client, FileIO fileIO, Map<String, String> catalogOptions) {
     NessieApiV1 api = client.getApi();
@@ -55,6 +61,13 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
     this.fileIO = fileIO;
 
     super.initialize(name, client, fileIO, catalogOptions);
+  }
+
+  private Map<String, String> withDefaultOptions(Map<String, String> options) {
+    HashMap<String, String> result = new HashMap<>();
+    result.put("io-impl", "org.apache.iceberg.io.ResolvingFileIO");
+    result.putAll(options);
+    return result;
   }
 
   @Override
