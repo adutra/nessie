@@ -40,6 +40,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletionStage;
+import org.projectnessie.catalog.api.rest.spec.NessieCatalogServiceBase;
 import org.projectnessie.catalog.api.rest.spec.SnapshotResultFormat;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.model.id.NessieId;
@@ -55,7 +56,7 @@ import org.projectnessie.model.ContentKey;
 @RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Path("catalog/v1")
-public class CatalogTransportResource /* implements NessieCatalogService */ {
+public class CatalogTransportResource implements NessieCatalogServiceBase<Uni<Response>> {
 
   private final CatalogService catalogService;
   private final ObjectIO objectIO;
@@ -76,6 +77,7 @@ public class CatalogTransportResource /* implements NessieCatalogService */ {
   @GET
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshot/{key}")
   @Produces(MediaType.APPLICATION_JSON)
+  @Override
   public Uni<Response> tableSnapshot(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
@@ -134,6 +136,7 @@ public class CatalogTransportResource /* implements NessieCatalogService */ {
   @GET
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-list/{key}")
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  @Override
   public Uni<Response> manifestList(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
@@ -169,6 +172,7 @@ public class CatalogTransportResource /* implements NessieCatalogService */ {
   @GET
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-file/{key}")
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  @Override
   public Uni<Response> manifestFile(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
@@ -207,6 +211,7 @@ public class CatalogTransportResource /* implements NessieCatalogService */ {
   @GET
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/data-file/{key}")
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
+  @Override
   public Uni<Response> dataFile(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,

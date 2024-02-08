@@ -33,7 +33,7 @@ import org.projectnessie.model.ContentKey;
 @Path("catalog/v1")
 @jakarta.ws.rs.Path("catalog/v1")
 @Tag(name = "catalog-v1")
-public interface NessieCatalogService {
+public interface NessieCatalogService extends NessieCatalogServiceBase<Object> {
   @GET
   @jakarta.ws.rs.GET
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshot/{key}")
