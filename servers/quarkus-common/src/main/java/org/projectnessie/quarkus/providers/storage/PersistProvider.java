@@ -18,6 +18,7 @@ package org.projectnessie.quarkus.providers.storage;
 import static org.projectnessie.versioned.storage.common.logic.Logics.repositoryLogic;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Default;
@@ -30,7 +31,7 @@ import org.projectnessie.quarkus.config.QuarkusStoreConfig;
 import org.projectnessie.quarkus.config.VersionStoreConfig;
 import org.projectnessie.quarkus.config.VersionStoreConfig.VersionStoreType;
 import org.projectnessie.quarkus.providers.NotObserved;
-import org.projectnessie.quarkus.providers.WIthInitializedRepository;
+import org.projectnessie.quarkus.providers.WithInitializedRepository;
 import org.projectnessie.quarkus.providers.versionstore.StoreType.Literal;
 import org.projectnessie.services.config.ServerConfig;
 import org.projectnessie.versioned.storage.cache.CacheBackend;
@@ -91,7 +92,7 @@ public class PersistProvider {
 
   @Produces
   @Singleton
-  @WIthInitializedRepository
+  @WithInitializedRepository
   public Persist produceWithInitializedRepository(@Default Persist persist) {
     repositoryLogic(persist).initialize(serverConfig.getDefaultBranch());
     return persist;
@@ -100,6 +101,7 @@ public class PersistProvider {
   @Produces
   @Singleton
   @NotObserved
+  @Startup
   public Persist producePersist(MeterRegistry meterRegistry) {
     VersionStoreType versionStoreType = versionStoreConfig.getVersionStoreType();
 
