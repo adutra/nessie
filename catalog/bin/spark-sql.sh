@@ -23,7 +23,7 @@ PROJECT_DIR=$(pwd)
 
 # Set the default values
 NESSIE_VERSION=$(./gradlew properties -q | awk '/^version:/ {print $2}')
-ICEBERG_VERSION="1.4.2"
+ICEBERG_VERSION="1.4.3"
 SPARK_VERSION="3.5"
 SCALA_VERSION="2.12"
 AWS_SDK_VERSION="2.20.131"
@@ -128,127 +128,7 @@ fi
 
 done
 
-GRADLE_OPTS=("--quiet")
-
-if [[ -z "$VERBOSE" ]]; then
-  GRADLE_OPTS+=("--console=plain")
-  REDIRECT="$PROJECT_DIR/build/spark-catalog-demo.log"
-  NESSIE_CORE_PROMPT="[NESSIE CORE] "
-  NESSIE_CATALOG_PROMPT="[NESSIE CTLG] "
-  NESSIE_COMBINED_PROMPT="[NESSIE CMBD] "
-else
-  REDIRECT="/dev/stdout"
-  NESSIE_CORE_PROMPT=$(printf "\033[1m\033[33m[NESSIE CORE] \033[0m")
-  NESSIE_CATALOG_PROMPT=$(printf "\033[1m\033[32m[NESSIE CTLG] \033[0m")
-  NESSIE_COMBINED_PROMPT=$(printf "\033[1m\033[32m[NESSIE CMBD] \033[0m")
-fi
-
-echo "Working directory  : $(pwd)"
-echo "Warehouse location : $WAREHOUSE_LOCATION"
-echo "Nessie logging to  : $REDIRECT"
-
-if [[ -z "$NO_CLEAR_IVY_CACHE" ]]; then
-  echo "Clearing Ivy cache..."
-  rm -rf ~/.ivy2/cache/org.projectnessie
-  rm -rf ~/.ivy2/cache/org.apache.iceberg
-fi
-
-if [[ -n "$CLEAR_WAREHOUSE" ]]; then
-  echo "Clearing warehouse directory: $WAREHOUSE_LOCATION..."
-  rm -rf "$WAREHOUSE_LOCATION"
-fi
-
-mkdir -p "$WAREHOUSE_LOCATION"
-
-if [[ -z "$NO_PUBLISH_TO_MAVEN_LOCAL" ]]; then
-  echo "Publishing to Maven local..."
-  ./gradlew "${GRADLE_OPTS[@]}" publishToMavenLocal
-fi
-
-echo "Building nessie-core server..."
-./gradlew "${GRADLE_OPTS[@]}" :nessie-quarkus:quarkusBuild
-
-
-if [[ -z "$NO_COMBINED" ]]; then
-
-  echo "Building combined nessie core + catalog server..."
-  ./gradlew "${GRADLE_OPTS[@]}" :nessie-catalog-service-server-combined:quarkusBuild
-
-else
-
-  echo "Building nessie catalog server..."
-  ./gradlew "${GRADLE_OPTS[@]}" :nessie-catalog-service-server:quarkusBuild
-
-fi
-
-if [[ -n "$DEBUG" ]]; then
-  export QUARKUS_LOG_MIN_LEVEL="DEBUG"
-  export QUARKUS_LOG_CONSOLE_LEVEL="DEBUG"
-  export QUARKUS_LOG_CATEGORY__ORG_PROJECTNESSIE__LEVEL="DEBUG"
-  export QUARKUS_LOG_CATEGORY__ORG_APACHE_ICEBERG__LEVEL="DEBUG"
-  export QUARKUS_VERTX_MAX_EVENT_LOOP_EXECUTE_TIME="PT5M"
-  DEBUG_NESSIE_CORE=(
-    "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-  )
-  DEBUG_NESSIE_CATALOG=(
-    "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006"
-    "-Dnessie.transport.read-timeout=300000"
-  )
-fi
-
-if [[ -z "$NO_COMBINED" ]]; then
-
-  echo "Starting combined nessie core + catalog server..."
-
-  java "${DEBUG_NESSIE_CATALOG[@]}" \
-    -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-    -jar catalog/service/server-combined/build/quarkus-app/quarkus-run.jar | \
-    sed ''s/^/"$NESSIE_COMBINED_PROMPT"/'' \
-    >> "$REDIRECT" 2>&1 &
-
-  combined_pid=$!
-  echo "Combined nessie core + catalog PID: $combined_pid"
-  sleep 2
-  echo "Waiting for combined nessie core + catalog server to start..."
-  curl --silent --show-error --fail \
-    --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
-    http://localhost:19110/q/health/ready > /dev/null 2>&1
-
-else
-
-  echo "Starting nessie core server..."
-
-  java "${DEBUG_NESSIE_CORE[@]}" \
-    -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-    -jar servers/quarkus-server/build/quarkus-app/quarkus-run.jar | \
-    sed  ''s/^/"$NESSIE_CORE_PROMPT"/'' \
-    >> "$REDIRECT" 2>&1 &
-
-  core_pid=$!
-  echo "Nessie core PID: $core_pid"
-  sleep 2
-  echo "Waiting for nessie core to start..."
-  curl --silent --show-error --fail \
-    --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
-    http://localhost:19120/q/health/ready > /dev/null 2>&1
-
-  echo "Starting nessie catalog server..."
-
-  java "${DEBUG_NESSIE_CATALOG[@]}" \
-    -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-    -jar catalog/service/server/build/quarkus-app/quarkus-run.jar | \
-    sed  ''s/^/"$NESSIE_CATALOG_PROMPT"/'' \
-    >> "$REDIRECT" 2>&1 &
-
-  catalog_pid=$!
-  echo "Nessie catalog PID: $catalog_pid"
-  sleep 2
-  echo "Waiting for nessie catalog to start..."
-  curl --silent --show-error --fail \
-    --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
-    http://localhost:19110/q/health/ready > /dev/null 2>&1
-
-fi
+source "$PROJECT_DIR/catalog/bin/common.sh"
 
 PACKAGES=(
   "org.apache.iceberg:iceberg-spark-${SPARK_VERSION}_${SCALA_VERSION}:${ICEBERG_VERSION}"
