@@ -59,8 +59,8 @@ echo "Nessie logging to  : $REDIRECT"
 
 if [[ -z "$NO_CLEAR_IVY_CACHE" ]]; then
   echo "Clearing Ivy cache..."
-  rm -rf ~/.ivy2/cache/org.projectnessie
-  rm -rf ~/.ivy2/cache/org.apache.iceberg
+  rm -rf ~/.ivy2/cache/org.projectnessie*
+  rm -rf ~/.ivy2/cache/org.apache.iceberg*
 fi
 
 if [[ -n "$CLEAR_WAREHOUSE" ]]; then
