@@ -67,6 +67,10 @@ do
       NO_CLEAR_IVY_CACHE="true"
       shift
       ;;
+    --no-nessie-start)
+      NO_NESSIE_START="true"
+      shift
+      ;;
     --no-combined)
       NO_COMBINED="true"
       shift

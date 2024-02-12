@@ -76,6 +76,10 @@ do
       NO_CLEAR_IVY_CACHE="true"
       shift
       ;;
+    --no-nessie-start)
+      NO_NESSIE_START="true"
+      shift
+      ;;
     --no-combined)
       NO_COMBINED="true"
       shift
@@ -115,10 +119,11 @@ if [[ -n "$HELP" ]]; then
   echo "  --scala-version <version>       Scala version to use. Default: $SCALA_VERSION"
   echo "  --aws-sdk-version <version>     AWS SDK version to use. Default: $AWS_SDK_VERSION"
   echo "  --warehouse <location>          Warehouse location. Default: $WAREHOUSE_LOCATION"
-  echo "  --old-catalog                   Use NessieCatalog instead of NessieCatalogIcebergCatalog. Default:false"
+  echo "  --old-catalog                   Use NessieCatalog instead of NessieCatalogIcebergCatalog. Default: use Nessie Catalog"
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
-  echo "  --no-combined                   Do not use combined nessie core + catalog server. Default: false"
+  echo "  --no-combined                   Do not use combined Nessie Core + Catalog server. Default: combined"
+  echo "  --no-start                      Do not start Nessie Core/Catalog, use externally provided instance(s). Default: start"
   echo "  --clear-warehouse               Clear warehouse directory. Default: false"
   echo "  --debug                         Enable debug mode"
   echo "  --verbose                       Enable verbose mode"
