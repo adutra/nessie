@@ -17,8 +17,6 @@ package org.apache.iceberg.nessie;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
@@ -31,6 +29,8 @@ import org.apache.iceberg.io.DelegateFileIO;
 import org.apache.iceberg.io.FileInfo;
 import org.apache.iceberg.io.InputFile;
 import org.apache.iceberg.io.OutputFile;
+import org.apache.iceberg.relocated.com.google.common.hash.HashCode;
+import org.apache.iceberg.relocated.com.google.common.hash.Hashing;
 import org.apache.iceberg.util.SerializableSupplier;
 import org.projectnessie.client.api.NessieApiV1;
 import org.projectnessie.client.http.HttpClient;

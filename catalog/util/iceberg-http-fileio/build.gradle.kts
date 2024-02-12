@@ -25,7 +25,7 @@ val versionIceberg = libs.versions.iceberg.get()
 
 dependencies {
   compileOnly(libs.slf4j.api)
-  compileOnly(libs.hadoop.common)
+  compileOnly(libs.hadoop.common) { exclude(group = "com.google.guava", module = "guava") }
   compileOnly("org.apache.iceberg:iceberg-core:$versionIceberg")
   compileOnly("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
 
