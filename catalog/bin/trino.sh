@@ -24,11 +24,10 @@ PROJECT_DIR=$(pwd)
 
 # Set the default values
 NESSIE_VERSION=$(./gradlew properties -q | awk '/^version:/ {print $2}')
-ICEBERG_VERSION="1.4.2"
+ICEBERG_VERSION="1.4.3"
 TRINO_VERSION="438"
 WAREHOUSE_LOCATION="$PROJECT_DIR/build/trino-warehouse"
 TRINO_TEMP_DIR=/tmp/trino-catalog
-TRINO_CLI="in-container"
 
 # Parse the command line arguments
 while [[ $# -gt 0 ]]
