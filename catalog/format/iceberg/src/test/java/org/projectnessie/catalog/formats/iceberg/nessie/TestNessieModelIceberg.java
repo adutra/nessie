@@ -227,7 +227,10 @@ public class TestNessieModelIceberg {
 
     IcebergTableMetadata iceberg =
         NessieModelIceberg.nessieTableSnapshotToIceberg(
-            nessie, Optional.empty(), NessieModelIceberg.IcebergSnapshotTweak.NOOP);
+            nessie,
+            Optional.empty(),
+            NessieModelIceberg.IcebergSnapshotTweak.NOOP,
+            properties -> {});
     IcebergTableMetadata icebergWithCatalogProps =
         IcebergTableMetadata.builder()
             .from(icebergTableMetadata)

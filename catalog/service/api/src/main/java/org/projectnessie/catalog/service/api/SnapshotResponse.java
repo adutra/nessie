@@ -18,6 +18,7 @@ package org.projectnessie.catalog.service.api;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Optional;
+import org.projectnessie.model.Reference;
 
 /**
  * Wraps a response from the catalog.
@@ -27,11 +28,17 @@ import java.util.Optional;
  * stream}.
  */
 public interface SnapshotResponse {
-  static SnapshotResponse forEntity(Object result, String fileName, String contentType) {
+  static SnapshotResponse forEntity(
+      Reference effectiveReference, Object result, String fileName, String contentType) {
     return new SnapshotResponse() {
       @Override
       public Optional<Object> entityObject() {
         return Optional.of(result);
+      }
+
+      @Override
+      public Reference effectiveReference() {
+        return effectiveReference;
       }
 
       @Override
@@ -50,6 +57,8 @@ public interface SnapshotResponse {
       }
     };
   }
+
+  Reference effectiveReference();
 
   Optional<Object> entityObject();
 

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
@@ -666,7 +667,8 @@ public class NessieModelIceberg {
   public static IcebergTableMetadata nessieTableSnapshotToIceberg(
       NessieTableSnapshot nessie,
       Optional<IcebergSpec> requestedSpecVersion,
-      IcebergSnapshotTweak tweak) {
+      IcebergSnapshotTweak tweak,
+      Consumer<Map<String, String>> tablePropertiesTweak) {
     NessieTable entity = nessie.entity();
 
     checkArgument(entity.tableFormat() == TableFormat.ICEBERG, "Not an Iceberg table.");
@@ -678,8 +680,7 @@ public class NessieModelIceberg {
     long snapshotId = safeUnbox(nessie.icebergSnapshotId(), NO_SNAPSHOT_ID);
 
     Map<String, String> properties = new HashMap<>(nessie.properties());
-    properties.put("nessie.catalog.content-id", entity.nessieContentId());
-    properties.put("nessie.catalog.snapshot-id", nessie.snapshotId().idAsString());
+    tablePropertiesTweak.accept(properties);
 
     IcebergTableMetadata.Builder metadata =
         IcebergTableMetadata.builder()

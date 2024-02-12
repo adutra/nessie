@@ -358,6 +358,8 @@ public class CatalogTransportResource implements NessieCatalogServiceBase<Uni<Re
       return Response.ok(entity.get())
           .header("Content-Disposition", "attachment; filename=\"" + snapshot.fileName() + "\"")
           .header("Content-Type", snapshot.contentType())
+          .header(
+              "Nessie-Reference", URLEncoder.encode(snapshot.effectiveReference().toPathString()))
           .build();
     }
 
@@ -365,6 +367,7 @@ public class CatalogTransportResource implements NessieCatalogServiceBase<Uni<Re
     return Response.ok((StreamingOutput) snapshot::produce)
         .header("Content-Disposition", "attachment; filename=\"" + snapshot.fileName() + "\"")
         .header("Content-Type", snapshot.contentType())
+        .header("Nessie-Reference", URLEncoder.encode(snapshot.effectiveReference().toPathString()))
         .build();
   }
 }
