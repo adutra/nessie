@@ -28,7 +28,7 @@
     <maven.compiler.release>8</maven.compiler.release>
     <versionMavenResolver>1.9.18</versionMavenResolver>
     <versionMaven>3.9.6</versionMaven>
-    <nessie.version>0.76.6</nessie.version>
+    <nessie.version>0.77.1</nessie.version>
   </properties>
 
   <dependencyManagement>
@@ -65,7 +65,7 @@
     </dependency>
     <dependency>
       <groupId>org.projectnessie.nessie</groupId>
-      <artifactId>nessie-versioned-storage-inmemory</artifactId>
+      <artifactId>nessie-versioned-storage-inmemory-tests</artifactId>
     </dependency>
     <dependency>
       <groupId>org.projectnessie.nessie</groupId>
@@ -73,7 +73,7 @@
     </dependency>
     <dependency>
       <groupId>org.projectnessie.nessie</groupId>
-      <artifactId>nessie-versioned-storage-rocksdb</artifactId>
+      <artifactId>nessie-versioned-storage-rocksdb-tests</artifactId>
     </dependency>
     <dependency>
       <groupId>org.projectnessie.nessie</groupId>
