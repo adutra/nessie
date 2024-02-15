@@ -191,7 +191,7 @@ public class TestIcebergStuff {
 
   static Stream<Arguments> icebergImports() throws Exception {
     return Stream.of(
-        arguments("no manifests", generateSimpleMetadata(tempDir), false),
+        arguments("no manifests", generateSimpleMetadata(tempDir, 2), false),
         arguments("with manifest list", generateMetadataWithManifestList(tempDir), true),
         arguments("with manifests", generateMetadataWithManifests(tempDir), true));
   }

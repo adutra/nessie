@@ -37,12 +37,14 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
 public class IcebergGenerateFixtures {
   private IcebergGenerateFixtures() {}
 
-  public static String generateSimpleMetadata(Path targetDir) throws Exception {
+  public static String generateSimpleMetadata(Path targetDir, int icebergSpecVersion)
+      throws Exception {
     targetDir = targetDir.resolve("table-metadata-simple-no-manifest");
     Files.createDirectories(targetDir);
 
     Path metadataSimpleFile = targetDir.resolve("table-metadata-simple-no-manifest.json");
-    IcebergTableMetadata simpleTableMetadata = tableMetadataSimple().formatVersion(2).build();
+    IcebergTableMetadata simpleTableMetadata =
+        tableMetadataSimple().formatVersion(icebergSpecVersion).build();
     Files.write(
         metadataSimpleFile,
         IcebergJson.objectMapper()

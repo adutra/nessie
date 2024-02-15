@@ -15,27 +15,19 @@
  */
 package org.projectnessie.catalog.service.impl;
 
+import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergManifestListToNessieGroup;
 import static org.projectnessie.catalog.service.impl.ManifestTaskRequest.manifestTaskRequest;
 import static org.projectnessie.catalog.service.impl.Util.nessieIdToObjId;
 import static org.projectnessie.nessie.tasks.api.TaskState.successState;
 
 import java.net.URI;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CompletableFuture;
 import org.apache.avro.file.SeekableInput;
-import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
-import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestContent;
-import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFile;
-import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListReader;
 import org.projectnessie.catalog.formats.iceberg.manifest.SeekableStreamInput;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.manifest.NessieFieldSummary;
-import org.projectnessie.catalog.model.manifest.NessieFileContentType;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestEntry;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
-import org.projectnessie.catalog.model.manifest.NessieFileManifestGroupEntry;
-import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.IcebergTable;
@@ -56,14 +48,8 @@ final class ImportManifestGroupWorker {
     Content content = taskRequest.snapshotObj().content();
     ObjId manifestGroupId = taskRequest.snapshotObj().manifestGroup();
     if (content instanceof IcebergTable) {
-      try {
-        return importIcebergManifestList(
-            (NessieTableSnapshot) taskRequest.snapshotObj().snapshot(), manifestGroupId);
-      } catch (RuntimeException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+      return importIcebergManifestList(
+          (NessieTableSnapshot) taskRequest.snapshotObj().snapshot(), manifestGroupId);
     }
 
     throw new UnsupportedOperationException("Unsupported Nessie content type " + content.getType());
@@ -72,9 +58,7 @@ final class ImportManifestGroupWorker {
   private ManifestGroupObj.Builder importIcebergManifestList(
       NessieTableSnapshot snapshot, ObjId manifestGroupId) {
 
-    NessieFileManifestGroup.Builder manifestGroup = NessieFileManifestGroup.builder();
-
-    importIcebergManifests(snapshot, manifestGroup);
+    NessieFileManifestGroup manifestGroup = importIcebergManifests(snapshot);
 
     // TODO if the manifest-list is small(-ish), we could add NessieFileManifestGroup to the
     //  NessieTableSnapshot in EntitySnapshotObj and save one database read-op at the expense of a
@@ -85,30 +69,28 @@ final class ImportManifestGroupWorker {
 
     return ManifestGroupObj.builder()
         .id(manifestGroupId)
-        .manifestGroup(manifestGroup.build())
+        .manifestGroup(manifestGroup)
         .taskState(successState());
   }
 
-  void importIcebergManifests(
-      NessieTableSnapshot snapshot, NessieFileManifestGroup.Builder manifestGroup) {
+  private NessieFileManifestGroup importIcebergManifests(NessieTableSnapshot snapshot) {
     String manifestList = snapshot.icebergManifestListLocation();
     if (!snapshot.icebergManifestFileLocations().isEmpty()) {
       // Old table-metadata files, from an Iceberg version that does not write a manifest-list, but
       // just a list of manifest-file location.
       // Must test for manifest-files first, because the manifest-list location field has been
       // populated for this case.
-      importManifestFilesForIcebergSpecV1(snapshot, manifestGroup);
+      return importManifestFilesForIcebergSpecV1(snapshot);
     } else if (manifestList != null && !manifestList.isEmpty()) {
       // Common code path - use the manifest-list file per Iceberg snapshot.
-      importIcebergManifestList(snapshot, manifestList, manifestGroup);
+      return importIcebergManifestList(snapshot, manifestList);
     }
+    return null;
   }
 
   /** Imports an Iceberg manifest-list. */
-  void importIcebergManifestList(
-      NessieTableSnapshot snapshot,
-      String manifestListLocation,
-      NessieFileManifestGroup.Builder manifestGroup) {
+  private NessieFileManifestGroup importIcebergManifestList(
+      NessieTableSnapshot snapshot, String manifestListLocation) {
     LOGGER.debug("Fetching Iceberg manifest-list from {}", manifestListLocation);
 
     // TODO there is a lot of back-and-forth re-serialization:
@@ -117,108 +99,52 @@ final class ImportManifestGroupWorker {
     //  as possible!!
 
     try (SeekableInput avroListInput =
-            new SeekableStreamInput(
-                URI.create(manifestListLocation), taskRequest.objectIO()::readObject);
-        IcebergManifestListReader.IcebergManifestListEntryReader listReader =
-            IcebergManifestListReader.builder().build().entryReader(avroListInput)) {
-
-      // TODO The information in the manifest-list header seems redundant?
-      // TODO Do we need to store it separately?
-      // TODO Do we need an assertion that it matches the values in the Iceberg snapshot?
-      IcebergSpec listIcebergSpec = listReader.spec();
-      // TODO assert if the snapshot ID's the same?
-      long listSnapshotId = listReader.snapshotId();
-      // TODO store parentSnapshotId in NessieTableSnapshot ?
-      long listParentSnapshotId = listReader.parentSnapshotId();
-      // TODO store the list's sequenceNumber separately in NessieTableSnapshot ?
-      long listSequenceNumber = listReader.sequenceNumber();
-
-      // TODO trace level
-      LOGGER.debug(
-          "Iceberg manifest list for format version {}, snapshot id {}, sequence number {}",
-          listReader.spec(),
-          listReader.snapshotId(),
-          listReader.sequenceNumber());
-
-      while (listReader.hasNext()) {
-        IcebergManifestFile manifestListEntry = listReader.next();
-
-        // TODO trace level
-        LOGGER.debug(
-            "Iceberg manifest list with manifest list entry for {}",
-            manifestListEntry.manifestPath());
-
-        IcebergManifestContent entryContent = manifestListEntry.content();
-        NessieFileContentType content =
-            entryContent != null
-                ? entryContent.nessieFileContentType()
-                : NessieFileContentType.ICEBERG_DATA_FILE;
-
-        NessieId manifestId = triggerManifestFileImport(manifestListEntry, snapshot);
-
-        NessiePartitionDefinition partitionDefinition =
-            snapshot.partitionDefinitionByIcebergId().get(manifestListEntry.partitionSpecId());
-
-        NessieFileManifestGroupEntry.Builder entry =
-            NessieFileManifestGroupEntry.builder()
-                .manifestId(manifestId)
-                .content(content)
-                //
-                .icebergManifestPath(manifestListEntry.manifestPath())
-                .icebergManifestLength(manifestListEntry.manifestLength())
-                //
-                .addedSnapshotId(manifestListEntry.addedSnapshotId())
-                .sequenceNumber(manifestListEntry.sequenceNumber())
-                .minSequenceNumber(manifestListEntry.minSequenceNumber())
-                .partitionSpecId(manifestListEntry.partitionSpecId())
-                //
-                .addedDataFilesCount(manifestListEntry.addedDataFilesCount())
-                .addedRowsCount(manifestListEntry.addedRowsCount())
-                .deletedDataFilesCount(manifestListEntry.deletedDataFilesCount())
-                .deletedRowsCount(manifestListEntry.deletedRowsCount())
-                .existingDataFilesCount(manifestListEntry.existingDataFilesCount())
-                .existingRowsCount(manifestListEntry.existingRowsCount())
-                //
-                .keyMetadata(manifestListEntry.keyMetadata());
-
-        for (int i = 0; i < manifestListEntry.partitions().size(); i++) {
-          IcebergPartitionFieldSummary fieldSummary = manifestListEntry.partitions().get(i);
-          entry.addPartition(
-              NessieFieldSummary.builder()
-                  .fieldId(partitionDefinition.fields().get(i).icebergId())
-                  .containsNan(fieldSummary.containsNan())
-                  .containsNull(fieldSummary.containsNull())
-                  .lowerBound(fieldSummary.lowerBound())
-                  .upperBound(fieldSummary.upperBound())
-                  .build());
-        }
-
-        manifestGroup.addManifest(entry.build());
-      }
+        new SeekableStreamInput(
+            URI.create(manifestListLocation), taskRequest.objectIO()::readObject)) {
+      return icebergManifestListToNessieGroup(
+          avroListInput,
+          snapshot.partitionDefinitionByIcebergId()::get,
+          manifestListEntry -> NessieFileManifestEntry.id(manifestListEntry.manifestPath()));
     } catch (Exception e) {
       // TODO some better error handling
       throw new RuntimeException(e);
     }
   }
 
-  private NessieId triggerManifestFileImport(
-      IcebergManifestFile manifestFile, NessieTableSnapshot snapshot) {
-    NessieId id = NessieFileManifestEntry.id(manifestFile.manifestPath());
-    taskRequest
-        .tasks()
-        .submit(
-            manifestTaskRequest(
-                nessieIdToObjId(id),
-                manifestFile.manifestPath(),
-                manifestFile,
-                snapshot,
-                taskRequest.persist(),
-                taskRequest.objectIO(),
-                taskRequest.executor()));
-    return id;
+  /**
+   * Construct an Iceberg manifest-list from a list of manifest-file locations, used for
+   * compatibility with table-metadata representations that do not have a manifest-list.
+   */
+  private NessieFileManifestGroup importManifestFilesForIcebergSpecV1(
+      NessieTableSnapshot snapshot) {
+    NessieFileManifestGroup.Builder manifestGroup = NessieFileManifestGroup.builder();
+
+    List<String> manifests = snapshot.icebergManifestFileLocations();
+
+    LOGGER.debug(
+        "Constructing Nessie manifest group from {} manifest file locations", manifests.size());
+
+    // For Iceberg spec V1 snapshots WITHOUT `manifest-list` we have to wait for all manifest-file
+    // imports to finish to be able to construct the manifest-group entries.
+
+    manifests.stream()
+        .map(manifest -> triggerManifestFileImportForIcebergSpecV1(manifest, snapshot))
+        .map(
+            future -> {
+              try {
+                return future.get();
+              } catch (Exception e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .map(ManifestObj.class::cast)
+        .map(ManifestObj::entry)
+        .forEach(manifestGroup::addManifest);
+
+    return manifestGroup.build();
   }
 
-  private CompletionStage<ManifestObj> triggerManifestFileImportForIcebergSpecV1(
+  private CompletableFuture<ManifestObj> triggerManifestFileImportForIcebergSpecV1(
       String manifestFilePath, NessieTableSnapshot snapshot) {
     NessieId id = NessieFileManifestEntry.id(manifestFilePath);
     return taskRequest
@@ -231,38 +157,7 @@ final class ImportManifestGroupWorker {
                 snapshot,
                 taskRequest.persist(),
                 taskRequest.objectIO(),
-                taskRequest.executor()));
-  }
-
-  /**
-   * Construct an Iceberg manifest-list from a list of manifest-file locations, used for
-   * compatibility with table-metadata representations that do not have a manifest-list.
-   */
-  void importManifestFilesForIcebergSpecV1(
-      NessieTableSnapshot snapshot, NessieFileManifestGroup.Builder manifestGroup) {
-
-    List<String> manifests = snapshot.icebergManifestFileLocations();
-
-    LOGGER.debug(
-        "Constructing Nessie manifest group from {} manifest file locations", manifests.size());
-
-    // For Iceberg spec V1 snapshots WITHOUT `manifest-list` we have to wait for all manifest-file
-    // imports to finish to be able to construct the manifest-group entries.
-
-    manifests.stream()
-        .map(
-            manifest ->
-                triggerManifestFileImportForIcebergSpecV1(manifest, snapshot).toCompletableFuture())
-        .map(
-            future -> {
-              try {
-                return future.get();
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            })
-        .map(ManifestObj.class::cast)
-        .map(ManifestObj::entry)
-        .forEach(manifestGroup::addManifest);
+                taskRequest.executor()))
+        .toCompletableFuture();
   }
 }

@@ -17,6 +17,9 @@ package org.projectnessie.catalog.formats.iceberg.meta;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergManifestListToNessieGroup;
+import static org.projectnessie.catalog.model.id.NessieId.randomNessieId;
+import static org.projectnessie.versioned.storage.common.persist.ObjId.randomObjId;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
@@ -49,6 +52,11 @@ import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergSchemaGenerator
 import org.projectnessie.catalog.formats.iceberg.fixtures.ImmutableIcebergManifestListGenerator;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFile;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListReader;
+import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
+import org.projectnessie.catalog.service.impl.ManifestGroupObj;
+import org.projectnessie.nessie.tasks.api.TaskState;
+import org.projectnessie.versioned.storage.common.persist.ObjId;
+import org.projectnessie.versioned.storage.serialize.ProtoSerialization;
 
 @Warmup(iterations = 2, time = 2000, timeUnit = MILLISECONDS)
 @Measurement(iterations = 3, time = 1000, timeUnit = MILLISECONDS)
@@ -75,6 +83,10 @@ public class IcebergManifestListSerializationBench {
     List<IcebergManifestFile> files;
 
     private byte[] serializedManifestList;
+    private byte[] serializedManifestGroup;
+    private String versionToken;
+    private ObjId objId;
+    private ManifestGroupObj manifestGroupObj;
 
     @Setup
     public void init() throws Exception {
@@ -112,6 +124,25 @@ public class IcebergManifestListSerializationBench {
       ByteArrayOutputStream collect = new ByteArrayOutputStream();
       doGenerate(this, path -> collect);
       this.serializedManifestList = collect.toByteArray();
+
+      this.versionToken = randomObjId().toString();
+      this.objId = randomObjId();
+
+      try (SeekableByteArrayInput input = new SeekableByteArrayInput(serializedManifestList)) {
+        NessieFileManifestGroup nessieGroup =
+            icebergManifestListToNessieGroup(
+                input, x -> schemaGenerator.getNessiePartitionDefinition(), x -> randomNessieId());
+        ManifestGroupObj.Builder builder =
+            ManifestGroupObj.builder()
+                .manifestGroup(nessieGroup)
+                .id(objId)
+                .taskState(TaskState.SUCCESS);
+        builder.versionToken(versionToken);
+        this.manifestGroupObj = builder.build();
+        this.serializedManifestGroup =
+            ProtoSerialization.serializeObj(
+                manifestGroupObj, Integer.MAX_VALUE, Integer.MAX_VALUE, true);
+      }
     }
   }
 
@@ -147,6 +178,25 @@ public class IcebergManifestListSerializationBench {
         bh.consume(entryReader.next());
       }
     }
+  }
+
+  @Benchmark
+  public void serializeManifestGroup(BenchmarkParam param, Blackhole bh, SizeResult sizeResult)
+      throws Exception {
+    byte[] serialized =
+        ProtoSerialization.serializeObj(
+            param.manifestGroupObj, Integer.MAX_VALUE, Integer.MAX_VALUE, true);
+    bh.consume(serialized);
+    if (sizeResult.fileSize == 0L) {
+      sizeResult.fileSize = serialized.length;
+    }
+  }
+
+  @Benchmark
+  public void deserializeManifestGroup(BenchmarkParam param, Blackhole bh) {
+    bh.consume(
+        ProtoSerialization.deserializeObj(
+            param.objId, param.serializedManifestGroup, param.versionToken));
   }
 
   private static void doGenerate(BenchmarkParam param, Function<String, OutputStream> output)

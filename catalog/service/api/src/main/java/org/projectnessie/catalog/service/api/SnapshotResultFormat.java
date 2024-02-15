@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.api.rest.spec;
+package org.projectnessie.catalog.service.api;
 
 public enum SnapshotResultFormat {
   /** Snapshot as an Iceberg table-metadata. */

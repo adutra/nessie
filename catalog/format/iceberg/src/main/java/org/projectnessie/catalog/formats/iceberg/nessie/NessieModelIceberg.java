@@ -16,10 +16,11 @@
 package org.projectnessie.catalog.formats.iceberg.nessie;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Collections.emptyList;
 import static org.projectnessie.catalog.model.schema.types.NessieType.DEFAULT_TIME_PRECISION;
 
-import com.google.common.collect.ImmutableList;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,19 +28,25 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.Schema;
+import org.apache.avro.file.SeekableInput;
 import org.apache.avro.generic.GenericData;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergDataContent;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergDataFile;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergFileFormat;
+import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestContent;
+import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFile;
+import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListReader;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergBlobMetadata;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergHistoryEntry;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
@@ -58,10 +65,14 @@ import org.projectnessie.catalog.formats.iceberg.types.IcebergStructType;
 import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.manifest.BooleanArray;
 import org.projectnessie.catalog.model.manifest.NessieFieldSummary;
 import org.projectnessie.catalog.model.manifest.NessieFieldValue;
+import org.projectnessie.catalog.model.manifest.NessieFieldsSummary;
+import org.projectnessie.catalog.model.manifest.NessieFileContentType;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestEntry;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
+import org.projectnessie.catalog.model.manifest.NessieFileManifestGroupEntry;
 import org.projectnessie.catalog.model.schema.NessieField;
 import org.projectnessie.catalog.model.schema.NessieFieldTransform;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
@@ -754,7 +765,7 @@ public class NessieModelIceberg {
       List<String> manifestsLocations =
           spec == IcebergSpec.V1 && (manifestListLocation == null || manifestListLocation.isEmpty())
               ? tweak.resolveManifestFilesLocations(nessie.icebergManifestFileLocations())
-              : ImmutableList.of();
+              : emptyList();
 
       IcebergSnapshot.Builder snapshot =
           IcebergSnapshot.builder()
@@ -840,5 +851,187 @@ public class NessieModelIceberg {
       dataFile.partition(record);
     }
     return dataFile.build();
+  }
+
+  public static NessieFileManifestGroup icebergManifestListToNessieGroup(
+      SeekableInput avroListInput,
+      IntFunction<NessiePartitionDefinition> lookupPartitionSpec,
+      Function<IcebergManifestFile, NessieId> manifestIdProvider) {
+    NessieFileManifestGroup.Builder manifestGroup = NessieFileManifestGroup.builder();
+    try (IcebergManifestListReader.IcebergManifestListEntryReader listReader =
+        IcebergManifestListReader.builder().build().entryReader(avroListInput)) {
+
+      // TODO The information in the manifest-list header seems redundant?
+      // TODO Do we need to store it separately?
+      // TODO Do we need an assertion that it matches the values in the Iceberg snapshot?
+      IcebergSpec listIcebergSpec = listReader.spec();
+      // TODO assert if the snapshot ID's the same?
+      long listSnapshotId = listReader.snapshotId();
+      // TODO store parentSnapshotId in NessieTableSnapshot ?
+      long listParentSnapshotId = listReader.parentSnapshotId();
+      // TODO store the list's sequenceNumber separately in NessieTableSnapshot ?
+      long listSequenceNumber = listReader.sequenceNumber();
+
+      while (listReader.hasNext()) {
+        IcebergManifestFile manifestListEntry = listReader.next();
+
+        NessieId manifestId = manifestIdProvider.apply(manifestListEntry);
+
+        NessiePartitionDefinition partitionDefinition =
+            lookupPartitionSpec.apply(manifestListEntry.partitionSpecId());
+
+        NessieFileManifestGroupEntry groupEntry =
+            icebergManifestFileToNessieGroupEntry(
+                manifestListEntry, manifestId, partitionDefinition);
+
+        manifestGroup.addManifest(groupEntry);
+      }
+
+      return manifestGroup.build();
+    } catch (Exception e) {
+      // TODO some better error handling
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static NessieFileManifestGroupEntry icebergManifestFileToNessieGroupEntry(
+      IcebergManifestFile manifestFile,
+      NessieId manifestId,
+      NessiePartitionDefinition partitionDefinition) {
+    IcebergManifestContent entryContent = manifestFile.content();
+    NessieFileContentType content =
+        entryContent != null
+            ? entryContent.nessieFileContentType()
+            : NessieFileContentType.ICEBERG_DATA_FILE;
+
+    NessieFileManifestGroupEntry.Builder entry =
+        NessieFileManifestGroupEntry.builder()
+            .manifestId(manifestId)
+            .content(content)
+            //
+            .icebergManifestPath(manifestFile.manifestPath())
+            .icebergManifestLength(manifestFile.manifestLength())
+            //
+            .addedSnapshotId(manifestFile.addedSnapshotId())
+            .sequenceNumber(manifestFile.sequenceNumber())
+            .minSequenceNumber(manifestFile.minSequenceNumber())
+            .partitionSpecId(manifestFile.partitionSpecId())
+            //
+            .addedDataFilesCount(manifestFile.addedDataFilesCount())
+            .addedRowsCount(manifestFile.addedRowsCount())
+            .deletedDataFilesCount(manifestFile.deletedDataFilesCount())
+            .deletedRowsCount(manifestFile.deletedRowsCount())
+            .existingDataFilesCount(manifestFile.existingDataFilesCount())
+            .existingRowsCount(manifestFile.existingRowsCount())
+            //
+            .keyMetadata(manifestFile.keyMetadata());
+
+    int size = manifestFile.partitions().size();
+    int[] fieldIds = new int[size];
+    BooleanArray containsNan = new BooleanArray(size);
+    BooleanArray containsNull = new BooleanArray(size);
+    byte[][] lowerBound = new byte[size][];
+    byte[][] upperBound = new byte[size][];
+    for (int i = 0; i < size; i++) {
+      IcebergPartitionFieldSummary fieldSummary = manifestFile.partitions().get(i);
+      fieldIds[i] = partitionDefinition.fields().get(i).icebergId();
+      containsNan.set(i, fieldSummary.containsNan());
+      containsNull.set(i, fieldSummary.containsNull());
+      lowerBound[i] = fieldSummary.lowerBound();
+      upperBound[i] = fieldSummary.upperBound();
+    }
+
+    entry.partitions(
+        NessieFieldsSummary.builder()
+            .fieldIds(fieldIds)
+            .containsNan(containsNan.nullIfAllElementsNull())
+            .containsNull(containsNan.nullIfAllElementsNull())
+            .lowerBound(allNullToNull(lowerBound))
+            .upperBound(allNullToNull(upperBound))
+            .build());
+
+    return entry.build();
+  }
+
+  private static byte[][] allNullToNull(byte[][] byteArrays) {
+    for (byte[] bytes : byteArrays) {
+      if (bytes != null) {
+        return byteArrays;
+      }
+    }
+    return null;
+  }
+
+  public static IcebergManifestFile nessieGroupEntryToIcebergManifestFile(
+      NessieFileManifestGroupEntry groupEntry, String manifestPath) {
+    IcebergManifestContent content;
+    switch (groupEntry.content()) {
+      case ICEBERG_DATA_FILE:
+        content = IcebergManifestContent.DATA;
+        break;
+      case ICEBERG_DELETE_FILE:
+        content = IcebergManifestContent.DELETES;
+        break;
+      default:
+        throw new IllegalArgumentException(groupEntry.content().name());
+    }
+
+    List<IcebergPartitionFieldSummary> partitions;
+    NessieFieldsSummary partitionStats = groupEntry.partitions();
+    if (partitionStats != null) {
+      BooleanArray containsNan = partitionStats.containsNan();
+      BooleanArray containsNull = partitionStats.containsNull();
+      byte[][] lowerBound = partitionStats.lowerBound();
+      byte[][] upperBound = partitionStats.upperBound();
+
+      int length = partitionStats.fieldIds().length;
+      partitions = new ArrayList<>(length);
+      for (int i = 0; i < length; i++) {
+        IcebergPartitionFieldSummary.Builder partFieldStats =
+            IcebergPartitionFieldSummary.builder();
+        if (containsNan != null) {
+          partFieldStats.containsNan(containsNan.get(i));
+        }
+        partFieldStats.containsNull(containsNull != null && containsNull.get(i));
+        if (lowerBound != null) {
+          partFieldStats.lowerBound(lowerBound[i]);
+        }
+        if (upperBound != null) {
+          partFieldStats.upperBound(upperBound[i]);
+        }
+        partitions.add(partFieldStats.build());
+      }
+    } else {
+      partitions = emptyList();
+    }
+
+    return IcebergManifestFile.builder()
+        .content(content)
+        //
+        //                    .manifestPath(manifest.icebergManifestPath())
+        // TODO the following would tweak the location of the manifest-file to Nessie
+        //  Catalog.
+        .manifestPath(manifestPath)
+        //
+        // TODO the length of the manifest file generated by the Nessie Catalog will be
+        //  different from the manifest file length reported by Iceberg.
+        .manifestLength(groupEntry.icebergManifestLength())
+        //
+        .addedSnapshotId(groupEntry.addedSnapshotId())
+        .sequenceNumber(groupEntry.sequenceNumber())
+        .minSequenceNumber(groupEntry.minSequenceNumber())
+        .partitionSpecId(groupEntry.partitionSpecId())
+        .partitions(partitions)
+        //
+        .addedDataFilesCount(groupEntry.addedDataFilesCount())
+        .addedRowsCount(groupEntry.addedRowsCount())
+        .deletedDataFilesCount(groupEntry.deletedDataFilesCount())
+        .deletedRowsCount(groupEntry.deletedRowsCount())
+        .existingDataFilesCount(groupEntry.existingDataFilesCount())
+        .existingRowsCount(groupEntry.existingRowsCount())
+        //
+        .keyMetadata(groupEntry.keyMetadata())
+        //
+        .build();
   }
 }

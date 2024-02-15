@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
   id("nessie-conventions-client")
   id("nessie-jacoco")
   alias(libs.plugins.annotations.stripper)
+  id("com.github.johnrengelman.shadow")
   alias(libs.plugins.jmh)
 }
 
@@ -60,6 +63,10 @@ dependencies {
   compileOnly(libs.microprofile.openapi)
 
   jmhImplementation(project(":nessie-catalog-format-iceberg-fixturegen"))
+  jmhImplementation(project(":nessie-catalog-service-impl"))
+  jmhImplementation(project(":nessie-tasks-api"))
+  jmhImplementation(project(":nessie-versioned-storage-common"))
+  jmhImplementation(project(":nessie-versioned-storage-common-serialize"))
 
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
@@ -98,3 +105,9 @@ val generateAvroSchemas by
 sourceSets.named("main") { resources { srcDir(generateAvroSchemas) } }
 
 jmh { jmhVersion.set(libs.versions.jmh.get()) }
+
+tasks.named<ShadowJar>("jmhJar").configure {
+  outputs.cacheIf { false } // do not cache uber/shaded jars
+  exclude("META-INF/jandex.idx")
+  mergeServiceFiles()
+}

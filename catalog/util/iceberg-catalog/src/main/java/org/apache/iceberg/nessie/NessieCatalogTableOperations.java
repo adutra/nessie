@@ -19,10 +19,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Map;
+import org.apache.iceberg.PartitionSpec;
+import org.apache.iceberg.StructLike;
 import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableMetadataParser;
 import org.apache.iceberg.exceptions.NoSuchTableException;
 import org.apache.iceberg.io.FileIO;
+import org.apache.iceberg.io.LocationProvider;
 import org.projectnessie.client.api.NessieApiV1;
 import org.projectnessie.client.http.HttpClient;
 import org.projectnessie.client.http.HttpResponse;
@@ -70,13 +73,49 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
   }
 
   @Override
+  public String metadataFileLocation(String filename) {
+    String location = super.metadataFileLocation(filename);
+    LOG.info("New metadata file {} mapped to {}", filename, location);
+    return location;
+  }
+
+  @Override
+  public LocationProvider locationProvider() {
+    LOG.info("locationProvider() called");
+    return new LoggingLocationProvider(super.locationProvider());
+  }
+
+  // LocationProvider is being serialized :facepalm:
+  static final class LoggingLocationProvider implements LocationProvider {
+    private final LocationProvider delegate;
+
+    LoggingLocationProvider(LocationProvider delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public String newDataLocation(String filename) {
+      String location = delegate.newDataLocation(filename);
+      LOG.info("New data file {} mapped to {}", filename, location);
+      return location;
+    }
+
+    @Override
+    public String newDataLocation(PartitionSpec spec, StructLike partitionData, String filename) {
+      String location = delegate.newDataLocation(filename);
+      LOG.info("New data file {} for partition {} mapped to {}", filename, partitionData, location);
+      return location;
+    }
+  }
+
+  @Override
   protected void doRefresh() {
     try {
       client.refresh();
     } catch (NessieNotFoundException e) {
       throw new RuntimeException(
           String.format(
-              "Failed to refresh as ref '%s' " + "is no longer valid.", client.getRef().getName()),
+              "Failed to refresh as ref '%s' is no longer valid.", client.getRef().getName()),
           e);
     }
 
@@ -111,7 +150,6 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
               defaultSpecId,
               defaultSortOrderId,
               contentId);
-      System.err.println("IcebergTable: " + table);
 
       // TODO Ugly way to set the private `table` field
       try {

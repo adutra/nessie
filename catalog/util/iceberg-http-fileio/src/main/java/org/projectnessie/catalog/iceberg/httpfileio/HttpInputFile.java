@@ -193,6 +193,11 @@ final class HttpInputFile implements InputFile {
     }
   }
 
+  @Override
+  public String toString() {
+    return getClass().getName() + '[' + location + ']';
+  }
+
   private abstract static class HttpSource {
     final String location;
 

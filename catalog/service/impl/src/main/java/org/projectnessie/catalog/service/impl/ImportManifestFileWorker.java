@@ -60,7 +60,8 @@ final class ImportManifestFileWorker {
 
   ManifestObj.Builder importManifestFile(String location) {
     try {
-      NessieFileManifestGroupEntry groupEntry = importIcebergManifestFile(location);
+      NessieFileManifestGroupEntry groupEntry =
+          nessieFileManifestGroupEntryFromIcebergManifestFile(location);
       return ManifestObj.builder()
           .id(taskRequest.objId())
           .entry(groupEntry)
@@ -70,7 +71,9 @@ final class ImportManifestFileWorker {
     }
   }
 
-  NessieFileManifestGroupEntry importIcebergManifestFile(String location) throws Exception {
+  /** Produces a {@link NessieFileManifestGroupEntry} from a manifest file. */
+  NessieFileManifestGroupEntry nessieFileManifestGroupEntryFromIcebergManifestFile(String location)
+      throws Exception {
 
     LOGGER.debug("Importing Iceberg manifest file {}", location);
 

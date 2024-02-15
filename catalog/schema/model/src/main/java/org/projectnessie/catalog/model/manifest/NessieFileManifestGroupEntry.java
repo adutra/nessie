@@ -19,7 +19,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.List;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -117,9 +116,8 @@ public interface NessieFileManifestGroupEntry {
   // Only in Iceberg
   byte[] keyMetadata();
 
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  // Only in Iceberg
-  List<NessieFieldSummary> partitions();
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  NessieFieldsSummary partitions();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   NessieId manifestId();
@@ -178,19 +176,10 @@ public interface NessieFileManifestGroupEntry {
     Builder keyMetadata(@Nullable byte[] keyMetadata);
 
     @CanIgnoreReturnValue
-    Builder addPartition(NessieFieldSummary element);
-
-    @CanIgnoreReturnValue
-    Builder addPartitions(NessieFieldSummary... elements);
-
-    @CanIgnoreReturnValue
-    Builder partitions(Iterable<? extends NessieFieldSummary> elements);
-
-    @CanIgnoreReturnValue
-    Builder addAllPartitions(Iterable<? extends NessieFieldSummary> elements);
-
-    @CanIgnoreReturnValue
     Builder manifestId(NessieId manifestId);
+
+    @CanIgnoreReturnValue
+    Builder partitions(NessieFieldsSummary partitions);
 
     NessieFileManifestGroupEntry build();
   }

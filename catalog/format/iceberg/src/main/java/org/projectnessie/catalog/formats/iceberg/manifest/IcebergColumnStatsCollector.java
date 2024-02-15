@@ -27,7 +27,8 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSumma
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
-import org.projectnessie.catalog.model.manifest.NessieFieldSummary;
+import org.projectnessie.catalog.model.manifest.BooleanArray;
+import org.projectnessie.catalog.model.manifest.NessieFieldsSummary;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroupEntry;
 
 public class IcebergColumnStatsCollector {
@@ -111,11 +112,41 @@ public class IcebergColumnStatsCollector {
 
   public void addToNessieFileManifestGroupEntryBuilder(
       NessieFileManifestGroupEntry.Builder groupBuilder) {
-    for (PartitionFieldSummaryBuilder partitionFieldSummaryBuilder : summary) {
-      groupBuilder.addPartition(partitionFieldSummaryBuilder.asNessieFieldSummary());
-    }
 
+    int length = summary.length;
+    int[] fieldIds = new int[length];
+    BooleanArray containsNan = new BooleanArray(length);
+    BooleanArray containsNull = new BooleanArray(length);
+    long[] nanValueCount = new long[length];
+    long[] nullValueCount = new long[length];
+    byte[][] upperBound = new byte[length][];
+    byte[][] lowerBound = new byte[length][];
+    long[] valueCount = new long[length];
+
+    for (int i = 0; i < summary.length; i++) {
+      summary[i].intoNessieFieldSummaries(
+          i,
+          fieldIds,
+          containsNan,
+          containsNull,
+          nanValueCount,
+          nullValueCount,
+          upperBound,
+          lowerBound,
+          valueCount);
+    }
     groupBuilder
+        .partitions(
+            NessieFieldsSummary.builder()
+                .fieldIds(fieldIds)
+                .containsNan(containsNan.nullIfAllElementsNull())
+                .containsNull(containsNull.nullIfAllElementsNull())
+                .nanValueCount(nanValueCount)
+                .nullValueCount(nullValueCount)
+                .upperBound(upperBound)
+                .lowerBound(lowerBound)
+                .valueCount(valueCount)
+                .build())
         .addedDataFilesCount(addedDataFilesCount)
         .addedRowsCount(addedRowsCount)
         .deletedDataFilesCount(deletedDataFilesCount)
@@ -143,7 +174,6 @@ public class IcebergColumnStatsCollector {
     final int fieldId;
     long nullValueCount;
     long nanValueCount;
-    boolean containsNull;
     long valueCount;
     Object lowerBound;
     Object upperBound;
@@ -166,18 +196,31 @@ public class IcebergColumnStatsCollector {
       return nanValueCount > 0 ? true : null;
     }
 
-    public NessieFieldSummary asNessieFieldSummary() {
-      return NessieFieldSummary.builder()
-          .fieldId(fieldId)
-          .containsNan(containsNan())
-          .containsNull(nullValueCount > 0)
-          .nanValueCount(nanValueCount)
-          .nullValueCount(nullValueCount)
-          // .columnSize()
-          .upperBound(upperBoundBytes())
-          .lowerBound(lowerBoundBytes())
-          .valueCount(valueCount)
-          .build();
+    public void intoNessieFieldSummaries(
+        int i,
+        int[] fieldIds,
+        BooleanArray containsNan,
+        BooleanArray containsNull,
+        long[] nanValueCount,
+        long[] nullValueCount,
+        byte[][] upperBound,
+        byte[][] lowerBound,
+        long[] valueCount) {
+      fieldIds[i] = this.fieldId;
+      containsNan.set(i, this.nanValueCount > 0 ? Boolean.TRUE : null);
+      containsNull.set(i, this.nullValueCount > 0);
+      nanValueCount[i] = this.nanValueCount;
+      nullValueCount[i] = this.nullValueCount;
+      upperBound[i] = this.upperBoundBytes();
+      lowerBound[i] = this.lowerBoundBytes();
+      valueCount[i] = this.valueCount;
+    }
+
+    static byte encodeNullableBoolean(Boolean b) {
+      if (b == null) {
+        return 0;
+      }
+      return (byte) (b ? 1 : 2);
     }
 
     private byte[] lowerBoundBytes() {

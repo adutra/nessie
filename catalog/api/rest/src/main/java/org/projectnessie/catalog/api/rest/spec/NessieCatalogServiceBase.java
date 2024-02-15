@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.api.rest.spec;
 
+import java.util.List;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 
@@ -24,21 +25,23 @@ import org.projectnessie.model.ContentKey;
  * <p>Must not add Jakarta-WS-RS annotations, because that would cause ambiguous resource
  * declarations, because generic types are erased to {@link Object} and then clash with the async
  * {@code Uni<>} in the server.
- *
- * @param <GENERIC_RESPONSE>
  */
-public interface NessieCatalogServiceBase<GENERIC_RESPONSE> {
-  GENERIC_RESPONSE tableSnapshot(String ref, ContentKey key, String format, String specVersion)
+public interface NessieCatalogServiceBase<SINGLE_RESPONSE, MULTI_RESPONSE> {
+  MULTI_RESPONSE tableSnapshots(
+      String ref, List<ContentKey> keys, String format, String specVersion)
       throws NessieNotFoundException;
 
-  GENERIC_RESPONSE manifestList(String ref, ContentKey key, String format, String specVersion)
+  SINGLE_RESPONSE tableSnapshot(String ref, ContentKey key, String format, String specVersion)
       throws NessieNotFoundException;
 
-  GENERIC_RESPONSE manifestFile(
-      String ref, ContentKey key, String manifestFile, String format, String specVersion)
+  SINGLE_RESPONSE manifestList(String ref, ContentKey key, String format, String specVersion)
       throws NessieNotFoundException;
 
-  GENERIC_RESPONSE dataFile(
-      String ref, ContentKey key, String dataFile, String fileType, String fileToken)
+  SINGLE_RESPONSE manifestFile(
+      String ref, ContentKey key, String format, String specVersion, String manifestFile)
+      throws NessieNotFoundException;
+
+  SINGLE_RESPONSE dataFile(
+      String ref, ContentKey key, String fileType, String fileToken, String dataFile)
       throws NessieNotFoundException;
 }

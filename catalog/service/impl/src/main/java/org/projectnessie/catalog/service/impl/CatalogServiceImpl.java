@@ -15,8 +15,11 @@
  */
 package org.projectnessie.catalog.service.impl;
 
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 import static org.projectnessie.api.v2.params.ReferenceResolver.resolveReferencePathElement;
 import static org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestContent.fromNessieFileContentType;
+import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessieGroupEntryToIcebergManifestFile;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessiePartitionDefinitionToIceberg;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessieSchemaToIcebergSchema;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessieTableSnapshotToIceberg;
@@ -32,26 +35,27 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.LongConsumer;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.apache.avro.file.SeekableInput;
 import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergDataFile;
-import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestContent;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestEntry;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFile;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFileReader;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFileWriter;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListWriter;
 import org.projectnessie.catalog.formats.iceberg.manifest.SeekableStreamInput;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
@@ -64,7 +68,7 @@ import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.service.api.CatalogService;
-import org.projectnessie.catalog.service.api.SnapshotFormat;
+import org.projectnessie.catalog.service.api.SnapshotReqParams;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
 import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.error.ErrorCode;
@@ -74,6 +78,7 @@ import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.ContentResponse;
+import org.projectnessie.model.GetMultipleContentsResponse;
 import org.projectnessie.model.IcebergTable;
 import org.projectnessie.model.IcebergView;
 import org.projectnessie.model.Namespace;
@@ -116,16 +121,74 @@ public class CatalogServiceImpl implements CatalogService {
   }
 
   @Override
+  public Stream<Supplier<CompletionStage<SnapshotResponse>>> retrieveTableSnapshots(
+      SnapshotReqParams reqParams,
+      List<ContentKey> keys,
+      CatalogUriResolver catalogUriResolver,
+      Consumer<Reference> effectiveReferenceConsumer)
+      throws NessieNotFoundException {
+    ParsedReference reference = parseRefPathString(reqParams.ref());
+
+    // TODO remove this log information / move to "trace" / remove sensitive information
+    LOGGER.info(
+        "retrieveTableSnapshots ref-name:{} ref-hash:{} keys:{}",
+        reference.name(),
+        reference.hashWithRelativeSpec(),
+        keys);
+
+    GetMultipleContentsResponse contentResponse =
+        nessieApi
+            .getContent()
+            .refName(reference.name())
+            .hashOnRef(reference.hashWithRelativeSpec())
+            .keys(keys)
+            .getWithResponse();
+
+    IcebergStuff icebergStuff = new IcebergStuff(objectIO, persist, tasksService, executor);
+
+    Reference effectiveReference = contentResponse.getEffectiveReference();
+    effectiveReferenceConsumer.accept(effectiveReference);
+    return contentResponse.getContents().stream()
+        .map(
+            c -> {
+              ObjId snapshotId;
+              try {
+                snapshotId = snapshotIdFromContent(c.getContent());
+              } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+              }
+              return (Supplier<CompletionStage<SnapshotResponse>>)
+                  () -> {
+                    ContentKey key = c.getKey();
+                    // TODO remove this log information / move to "trace" / remove sensitive
+                    // information
+                    LOGGER.info(
+                        "retrieveTableSnapshots - individual ref-name:{} ref-hash:{} key:{}",
+                        reference.name(),
+                        reference.hashWithRelativeSpec(),
+                        key);
+                    CompletionStage<NessieTableSnapshot> snapshotStage =
+                        icebergStuff.retrieveIcebergSnapshot(
+                            snapshotId, c.getContent(), reqParams.snapshotFormat());
+                    return snapshotResponseCompletionStage(
+                        key,
+                        reqParams,
+                        catalogUriResolver,
+                        snapshotStage,
+                        effectiveReference,
+                        snapshotId);
+                  };
+            })
+        .filter(Objects::nonNull);
+  }
+
+  @Override
   public CompletionStage<SnapshotResponse> retrieveTableSnapshot(
-      String ref,
-      ContentKey key,
-      Optional<NessieId> manifestFileId,
-      SnapshotFormat format,
-      OptionalInt specVersion,
-      CatalogUriResolver catalogUriResolver)
+      SnapshotReqParams reqParams, ContentKey key, CatalogUriResolver catalogUriResolver)
       throws NessieNotFoundException {
 
-    ParsedReference reference = parseRefPathString(ref);
+    ParsedReference reference = parseRefPathString(reqParams.ref());
 
     // TODO remove this log information / move to "trace" / remove sensitive information
     LOGGER.info(
@@ -147,8 +210,19 @@ public class CatalogServiceImpl implements CatalogService {
 
     CompletionStage<NessieTableSnapshot> snapshotStage =
         new IcebergStuff(objectIO, persist, tasksService, executor)
-            .retrieveIcebergSnapshot(snapshotId, content, format);
+            .retrieveIcebergSnapshot(snapshotId, content, reqParams.snapshotFormat());
 
+    return snapshotResponseCompletionStage(
+        key, reqParams, catalogUriResolver, snapshotStage, effectiveReference, snapshotId);
+  }
+
+  private CompletionStage<SnapshotResponse> snapshotResponseCompletionStage(
+      ContentKey key,
+      SnapshotReqParams reqParams,
+      CatalogUriResolver catalogUriResolver,
+      CompletionStage<NessieTableSnapshot> snapshotStage,
+      Reference effectiveReference,
+      ObjId snapshotId) {
     return snapshotStage.thenApply(
         snapshot -> {
           Object result;
@@ -162,7 +236,7 @@ public class CatalogServiceImpl implements CatalogService {
                 properties.put("nessie.commit.ref", effectiveReference.toPathString());
               };
 
-          switch (format) {
+          switch (reqParams.snapshotFormat()) {
             case NESSIE_SNAPSHOT:
               fileName =
                   String.join("/", key.getElements())
@@ -190,20 +264,31 @@ public class CatalogServiceImpl implements CatalogService {
               result =
                   nessieTableSnapshotToIceberg(
                       snapshot,
-                      optionalIcebergSpec(specVersion),
+                      optionalIcebergSpec(reqParams.reqVersion()),
                       new NessieModelIceberg.IcebergSnapshotTweak() {
                         @Override
                         public String resolveManifestListLocation(String original) {
-                          return format.asImported()
-                              ? snapshot.icebergManifestListLocation()
-                              : catalogUriResolver.icebergManifestList(snapshot).toString();
+                          if (original == null || original.isEmpty()) {
+                            return null;
+                          }
+                          URI manifestList =
+                              catalogUriResolver.icebergManifestList(
+                                  effectiveReference, key, snapshot);
+                          if (reqParams.snapshotFormat().asImported()) {
+                            return original;
+                          }
+                          return manifestList != null ? manifestList.toString() : null;
                         }
 
                         @Override
                         public List<String> resolveManifestFilesLocations(List<String> original) {
-                          return snapshot.fileManifestGroup().manifests().stream()
+                          NessieFileManifestGroup fileManifestGroup = snapshot.fileManifestGroup();
+                          if (fileManifestGroup == null) {
+                            return emptyList();
+                          }
+                          return fileManifestGroup.manifests().stream()
                               .map(NessieFileManifestGroupEntry::icebergManifestPath)
-                              .collect(Collectors.toList());
+                              .collect(toList());
                         }
                       },
                       tablePropertiesTweak);
@@ -214,26 +299,29 @@ public class CatalogServiceImpl implements CatalogService {
               return produceIcebergManifestList(
                   effectiveReference,
                   snapshot,
-                  optionalIcebergSpec(specVersion),
+                  optionalIcebergSpec(reqParams.reqVersion()),
                   manifestListFileName(snapshot),
                   manifest ->
-                      format.asImported()
+                      reqParams.snapshotFormat().asImported()
                           ? manifest.icebergManifestPath()
                           : catalogUriResolver
                               .icebergManifestFile(
+                                  effectiveReference,
+                                  key,
                                   NessieFileManifestEntry.id(manifest.icebergManifestPath()))
                               .toString(),
                   tablePropertiesTweak);
             case ICEBERG_MANIFEST_FILE:
               return produceIcebergManifestFile(
                   effectiveReference,
+                  key,
                   snapshot,
-                  manifestFileId.orElseThrow(),
-                  optionalIcebergSpec(specVersion),
+                  reqParams.manifestFileId().orElseThrow(),
+                  optionalIcebergSpec(reqParams.reqVersion()),
                   catalogUriResolver,
                   tablePropertiesTweak);
             default:
-              throw new IllegalArgumentException("Unknown format " + format);
+              throw new IllegalArgumentException("Unknown format " + reqParams.snapshotFormat());
           }
 
           return SnapshotResponse.forEntity(
@@ -266,6 +354,7 @@ public class CatalogServiceImpl implements CatalogService {
 
   private SnapshotResponse produceIcebergManifestFile(
       Reference effectiveReference,
+      ContentKey key,
       NessieTableSnapshot snapshot,
       NessieId manifestFileId,
       Optional<IcebergSpec> icebergSpec,
@@ -305,6 +394,11 @@ public class CatalogServiceImpl implements CatalogService {
                 .findFirst()
                 .orElseThrow();
 
+        if (snapshot.fileManifestGroup() == null) {
+          // TODO better exception & message
+          throw new IllegalArgumentException("No manifest group");
+        }
+
         NessieFileManifestGroupEntry nessieFileManifestGroupEntry =
             snapshot.fileManifestGroup().manifests().stream()
                 .filter(g -> g.manifestId().equals(manifestFileId))
@@ -331,20 +425,26 @@ public class CatalogServiceImpl implements CatalogService {
         Map<String, String> properties = new HashMap<>(snapshot.properties());
         tablePropertiesTweak.accept(properties);
 
-        try (IcebergManifestFileWriter.IcebergManifestFileEntryWriter writer =
+        IcebergManifestFileWriter.Builder manifestFileWriterBuilder =
             IcebergManifestFileWriter.builder()
                 .spec(icebergSpec.orElse(IcebergSpec.forVersion(snapshot.icebergFormatVersion())))
                 .schema(icebergSchema)
                 .partitionSpec(partitionSpec)
-                .addedSnapshotId(nessieFileManifestGroupEntry.addedSnapshotId())
-                .sequenceNumber(nessieFileManifestGroupEntry.sequenceNumber())
-                .minSequenceNumber(nessieFileManifestGroupEntry.minSequenceNumber())
                 .tableProperties(properties)
-                .content(fromNessieFileContentType(nessieFileManifestGroupEntry.content()))
                 .output(outputStream)
                 .manifestPath(nessieFileManifestGroupEntry.icebergManifestPath())
-                .build()
-                .entryWriter()) {
+                .content(fromNessieFileContentType(nessieFileManifestGroupEntry.content()));
+        safeApply(
+            nessieFileManifestGroupEntry.addedSnapshotId(),
+            manifestFileWriterBuilder::addedSnapshotId);
+        safeApply(
+            nessieFileManifestGroupEntry.sequenceNumber(),
+            manifestFileWriterBuilder::sequenceNumber);
+        safeApply(
+            nessieFileManifestGroupEntry.minSequenceNumber(),
+            manifestFileWriterBuilder::minSequenceNumber);
+        try (IcebergManifestFileWriter.IcebergManifestFileEntryWriter writer =
+            manifestFileWriterBuilder.build().entryWriter()) {
 
           URI manifestUri = URI.create(nessieFileManifestGroupEntry.icebergManifestPath());
           try (SeekableInput avroFileInput =
@@ -356,7 +456,9 @@ public class CatalogServiceImpl implements CatalogService {
               NessieDataFileFormat fileFormat =
                   entry.dataFile().fileFormat().nessieDataFileFormat();
               String updatedDataFileLocation =
-                  catalogUriResolver.dataFile(fileFormat, entry.dataFile().filePath()).toString();
+                  catalogUriResolver
+                      .dataFile(effectiveReference, key, fileFormat, entry.dataFile().filePath())
+                      .toString();
               IcebergManifestEntry updatedEntry =
                   IcebergManifestEntry.builder()
                       .from(entry)
@@ -378,6 +480,12 @@ public class CatalogServiceImpl implements CatalogService {
         }
       }
     };
+  }
+
+  private static void safeApply(Long boxed, LongConsumer consumer) {
+    if (boxed != null) {
+      consumer.accept(boxed);
+    }
   }
 
   private SnapshotResponse produceIcebergManifestList(
@@ -451,59 +559,8 @@ public class CatalogServiceImpl implements CatalogService {
                 .entryWriter()) {
 
           for (NessieFileManifestGroupEntry manifest : nessieFileManifestGroup.manifests()) {
-            IcebergManifestContent content;
-            switch (manifest.content()) {
-              case ICEBERG_DATA_FILE:
-                content = IcebergManifestContent.DATA;
-                break;
-              case ICEBERG_DELETE_FILE:
-                content = IcebergManifestContent.DELETES;
-                break;
-              default:
-                throw new IllegalArgumentException(manifest.content().name());
-            }
-            List<IcebergPartitionFieldSummary> partitions =
-                manifest.partitions().stream()
-                    .map(
-                        p ->
-                            IcebergPartitionFieldSummary.builder()
-                                .containsNan(p.containsNan())
-                                .containsNull(p.containsNull())
-                                .lowerBound(p.lowerBound())
-                                .upperBound(p.upperBound())
-                                .build())
-                    .collect(Collectors.toList());
-
-            LOGGER.info("  .. adding manifest file");
             IcebergManifestFile icebergManifestFile =
-                IcebergManifestFile.builder()
-                    .content(content)
-                    //
-                    //                    .manifestPath(manifest.icebergManifestPath())
-                    // TODO the following would tweak the location of the manifest-file to Nessie
-                    //  Catalog.
-                    .manifestPath(tweakManifestPath.apply(manifest))
-                    //
-                    // TODO the length of the manifest file generated by the Nessie Catalog will be
-                    //  different from the manifest file length reported by Iceberg.
-                    .manifestLength(manifest.icebergManifestLength())
-                    //
-                    .addedSnapshotId(manifest.addedSnapshotId())
-                    .sequenceNumber(manifest.sequenceNumber())
-                    .minSequenceNumber(manifest.minSequenceNumber())
-                    .partitionSpecId(manifest.partitionSpecId())
-                    .partitions(partitions)
-                    //
-                    .addedDataFilesCount(manifest.addedDataFilesCount())
-                    .addedRowsCount(manifest.addedRowsCount())
-                    .deletedDataFilesCount(manifest.deletedDataFilesCount())
-                    .deletedRowsCount(manifest.deletedRowsCount())
-                    .existingDataFilesCount(manifest.existingDataFilesCount())
-                    .existingRowsCount(manifest.existingRowsCount())
-                    //
-                    .keyMetadata(manifest.keyMetadata())
-                    //
-                    .build();
+                nessieGroupEntryToIcebergManifestFile(manifest, tweakManifestPath.apply(manifest));
             writer.append(icebergManifestFile);
           }
         } catch (IOException e) {

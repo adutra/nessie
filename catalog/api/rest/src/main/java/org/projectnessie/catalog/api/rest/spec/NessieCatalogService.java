@@ -17,6 +17,7 @@ package org.projectnessie.catalog.api.rest.spec;
 
 import static org.projectnessie.model.Validation.REF_NAME_PATH_ELEMENT_REGEX;
 
+import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -33,7 +34,20 @@ import org.projectnessie.model.ContentKey;
 @Path("catalog/v1")
 @jakarta.ws.rs.Path("catalog/v1")
 @Tag(name = "catalog-v1")
-public interface NessieCatalogService extends NessieCatalogServiceBase<Object> {
+public interface NessieCatalogService extends NessieCatalogServiceBase<Object, Object> {
+  @GET
+  @jakarta.ws.rs.GET
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshots")
+  @jakarta.ws.rs.Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshots")
+  @Produces(MediaType.APPLICATION_JSON)
+  @jakarta.ws.rs.Produces(MediaType.APPLICATION_JSON)
+  @Override
+  Object tableSnapshots(
+      @PathParam("ref") @jakarta.ws.rs.PathParam("ref") String ref,
+      @QueryParam("key") @jakarta.ws.rs.QueryParam("key") List<ContentKey> keys,
+      @QueryParam("format") @jakarta.ws.rs.QueryParam("format") String format,
+      @QueryParam("specVersion") @jakarta.ws.rs.QueryParam("specVersion") String specVersion);
+
   @GET
   @jakarta.ws.rs.GET
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshot/{key}")
@@ -69,9 +83,9 @@ public interface NessieCatalogService extends NessieCatalogServiceBase<Object> {
   Object manifestFile(
       @PathParam("ref") @jakarta.ws.rs.PathParam("ref") String ref,
       @PathParam("key") @jakarta.ws.rs.PathParam("key") ContentKey key,
-      @QueryParam("manifest-file") @jakarta.ws.rs.QueryParam("manifest-file") String manifestFile,
       @QueryParam("format") @jakarta.ws.rs.QueryParam("format") String format,
-      @QueryParam("specVersion") @jakarta.ws.rs.QueryParam("specVersion") String specVersion)
+      @QueryParam("specVersion") @jakarta.ws.rs.QueryParam("specVersion") String specVersion,
+      @QueryParam("manifest-file") @jakarta.ws.rs.QueryParam("manifest-file") String manifestFile)
       throws NessieNotFoundException;
 
   @GET
@@ -83,8 +97,8 @@ public interface NessieCatalogService extends NessieCatalogServiceBase<Object> {
   Object dataFile(
       @PathParam("ref") @jakarta.ws.rs.PathParam("ref") String ref,
       @PathParam("key") @jakarta.ws.rs.PathParam("key") ContentKey key,
-      @QueryParam("file") @jakarta.ws.rs.QueryParam("file") String dataFile,
       @QueryParam("type") @jakarta.ws.rs.QueryParam("type") String fileType,
-      @QueryParam("token") @jakarta.ws.rs.QueryParam("token") String fileToken)
+      @QueryParam("token") @jakarta.ws.rs.QueryParam("token") String fileToken,
+      @QueryParam("file") @jakarta.ws.rs.QueryParam("file") String dataFile)
       throws NessieNotFoundException;
 }
