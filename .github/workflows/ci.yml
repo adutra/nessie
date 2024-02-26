@@ -559,6 +559,67 @@ jobs:
               ['helm/**', '.github/**']));
             core.endGroup();
 
+#  docker-testing:
+#    name: CI Docker build and publishing
+#    runs-on: ubuntu-22.04
+#    needs:
+#      - determine-jobs
+#    if: needs.determine-jobs.outputs.docker == 'true'
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+#        with:
+#          fetch-depth: 0
+#      - name: Setup runner
+#        uses: ./.github/actions/setup-runner
+#      - name: Setup Java, Gradle
+#        uses: ./.github/actions/dev-tool-java
+#
+#      - name: Setup docker-registry
+#        run: |
+#          sudo apt-get install -y docker-registry apache2-utils
+#          cat <<! > config.yml
+#          version: 0.1
+#          log:
+#            fields:
+#              service: registry
+#          storage:
+#            cache:
+#              blobdescriptor: inmemory
+#            filesystem:
+#              rootdirectory: /var/lib/docker-registry
+#            delete:
+#              enabled: true
+#          http:
+#            addr: 127.0.0.1:5000
+#            headers:
+#              X-Content-Type-Options: [nosniff]
+#          auth:
+#            htpasswd:
+#              realm: basic-realm
+#              path: /etc/docker/registry/htpasswd
+#          health:
+#            storagedriver:
+#              enabled: true
+#              interval: 10s
+#              threshold: 3
+#          !
+#          sudo mv config.yml /etc/docker/registry/config.yml
+#          sudo htpasswd -cBb /etc/docker/registry/htpasswd micky mouse
+#
+#          sudo service docker-registry restart
+#
+#          echo mouse | docker login -u micky --password-stdin localhost:5000
+#
+#          VERSION="$(cat version.txt)"
+#          DOCKER_VERSION="${VERSION%-SNAPSHOT}"
+#          echo "DOCKER_VERSION=${DOCKER_VERSION}" >> ${GITHUB_ENV}
+#          echo "DOCKER_IMAGE=localhost:5000/nessie-testing" >> ${GITHUB_ENV}
+#          echo "DOCKER_GC_IMAGE=localhost:5000/nessie-gc-testing" >> ${GITHUB_ENV}
+#
+#      - name: Prepare Gradle build cache
+#        uses: ./.github/actions/ci-incr-build-cache-prepare
+#
 #      - name: Docker images publishing
 #        env:
 #          ARTIFACTS: ../build-artifacts
@@ -646,7 +707,7 @@ jobs:
 #          !
 #            exit 1
 #          fi
-#
+
 #  nesqueit:
 #    name: CI NesQuEIT
 #    runs-on: ubuntu-22.04
@@ -816,7 +877,7 @@ jobs:
 #
 #      - name: Set up & Start Minikube
 #        if: env.WF_EXEC != 'false'
-#        uses: medyagh/setup-minikube@v0.0.14
+#        uses: medyagh/setup-minikube@v0.0.15
 #        with:
 #          # If required, use the matrix strategy against this option to test against multiple Kubernetes versions:
 #          kubernetes-version: stable
