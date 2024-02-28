@@ -61,6 +61,6 @@ dependencies {
   testFixturesRuntimeOnly(project(":nessie-versioned-storage-inmemory"))
   testFixturesRuntimeOnly(libs.logback.classic)
   testFixturesApi(project(":nessie-tasks-service-impl"))
-  testFixturesApi(project(":nessie-catalog-files-local"))
+  testFixturesApi(project(":nessie-catalog-files-impl"))
   testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
 }

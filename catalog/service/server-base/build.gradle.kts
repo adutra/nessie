@@ -23,8 +23,7 @@ extra["maven.name"] = "Nessie - Catalog - Server Base Artifact"
 
 dependencies {
   implementation(project(":nessie-catalog-files-api"))
-  implementation(project(":nessie-catalog-files-local"))
-  implementation(project(":nessie-catalog-files-s3"))
+  implementation(project(":nessie-catalog-files-impl"))
   implementation(project(":nessie-catalog-schema-model"))
   implementation(project(":nessie-catalog-service-common"))
   implementation(project(":nessie-catalog-service-impl"))

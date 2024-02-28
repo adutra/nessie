@@ -42,6 +42,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 public class TestS3ObjectIO {
   @InjectSoftAssertions protected SoftAssertions soft;
 
+  @SuppressWarnings("resource")
   @Test
   public void readObjectThrottledThrowsBackendThrottledException() {
     S3Client s3client = mock(S3Client.class);

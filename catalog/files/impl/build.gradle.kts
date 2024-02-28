@@ -19,7 +19,7 @@ plugins {
   id("nessie-jacoco")
 }
 
-extra["maven.name"] = "Nessie - Catalog - Files API"
+extra["maven.name"] = "Nessie - Catalog - Object I/O"
 
 dependencies {
   implementation(project(":nessie-catalog-files-api"))
@@ -29,9 +29,9 @@ dependencies {
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
-  implementation(platform(libs.jackson.bom))
-  implementation("com.fasterxml.jackson.core:jackson-databind")
-  implementation("com.fasterxml.jackson.core:jackson-annotations")
+  implementation(platform(libs.awssdk.bom))
+  implementation("software.amazon.awssdk:s3")
+  implementation("software.amazon.awssdk:url-connection-client")
 
   compileOnly(libs.jakarta.ws.rs.api)
   compileOnly(libs.jakarta.enterprise.cdi.api)
