@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,39 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.files.local;
+package org.projectnessie.catalog.files.adls;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.file.FileSystemNotFoundException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import org.projectnessie.catalog.files.api.ObjectIO;
 
-public class LocalObjectIO implements ObjectIO {
+public class AdlsObjectIO implements ObjectIO {
   @Override
   public InputStream readObject(URI uri) throws IOException {
-    // Awesome implementation of a local object IO :D
-    return fileUri(uri).toURL().openStream();
+    throw new UnsupportedOperationException("IMPLEMENT ME");
   }
 
   @Override
   public OutputStream writeObject(URI uri) throws IOException {
-    // Awesome implementation of a local object IO :D
-    try {
-      return Files.newOutputStream(Paths.get(fileUri(uri)));
-    } catch (FileSystemNotFoundException e) {
-      throw new UnsupportedOperationException(
-          "Writing to " + uri.getScheme() + " URIs is not supported", e);
-    }
-  }
-
-  private static URI fileUri(URI uri) {
-    if (uri.getScheme() == null) {
-      uri = Paths.get(uri.getPath()).toUri();
-    }
-    return uri;
+    throw new UnsupportedOperationException("IMPLEMENT ME");
   }
 }

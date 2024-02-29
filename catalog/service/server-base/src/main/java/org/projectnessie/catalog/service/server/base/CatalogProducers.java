@@ -29,10 +29,14 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.microprofile.context.ThreadContext;
+import org.projectnessie.catalog.files.ResolvingObjectIO;
 import org.projectnessie.catalog.files.api.ObjectIO;
-import org.projectnessie.catalog.files.s3.S3ObjectIO;
+import org.projectnessie.catalog.files.s3.S3Clients;
+import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
 import org.projectnessie.catalog.service.common.config.ImmutableCatalogServerConfig;
+import org.projectnessie.catalog.service.server.config.CatalogS3Config;
+import org.projectnessie.catalog.service.server.config.CatalogSecrets;
 import org.projectnessie.catalog.service.server.config.CatalogServiceConfig;
 import org.projectnessie.nessie.tasks.async.TasksAsync;
 import org.projectnessie.nessie.tasks.async.pool.JavaPoolTasksAsync;
@@ -41,6 +45,7 @@ import org.projectnessie.nessie.tasks.service.TasksServiceConfig;
 import org.projectnessie.nessie.tasks.service.impl.TasksServiceExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /**
  * "Quick and dirty" producers providing connection to Nessie, a "storage" impl and object-store
@@ -58,8 +63,36 @@ public class CatalogProducers {
 
   @Produces
   @Singleton
-  public ObjectIO objectIO(CatalogServiceConfig config) {
-    return new S3ObjectIO(systemUTC(), config.defaultS3RetryAfter());
+  public S3Client s3Client(CatalogS3Config s3config) {
+    return S3Clients.createS3BaseClient(s3config);
+  }
+
+  @Produces
+  @Singleton
+  public SecretsProvider secretsProvider(CatalogSecrets secrets) {
+    return new SecretsProvider() {
+      @Override
+      public String getSecret(String secret) {
+        String value = secrets.secrets().get(secret);
+        if (value != null) {
+          return value;
+        }
+        throw new IllegalArgumentException(
+            "Secret '"
+                + secret
+                + "' is not defined, configure it using the configuration option 'nessie.catalog.secrets."
+                + secret
+                + "'.");
+      }
+    };
+  }
+
+  @Produces
+  @Singleton
+  public ObjectIO objectIO(
+      CatalogS3Config s3config, S3Client s3client, SecretsProvider secretsProvider) {
+    s3client = S3Clients.configuredClient(s3client, s3config, secretsProvider);
+    return new ResolvingObjectIO(s3client, s3config);
   }
 
   /**

@@ -57,7 +57,8 @@ public class TestS3ObjectIO {
     when(s3client.getObject(any(GetObjectRequest.class)))
         .thenThrow(S3Exception.builder().statusCode(429).message("blah").build());
 
-    S3ObjectIO objectIO = new S3ObjectIO(() -> s3client, clock, defaultRetryAfter);
+    S3ObjectIO objectIO =
+        new S3ObjectIO(s3client, clock, S3Config.builder().retryAfter(defaultRetryAfter).build());
 
     soft.assertThatThrownBy(() -> objectIO.readObject(URI.create("s3://hello/foo/bar")))
         .isInstanceOf(BackendThrottledException.class)

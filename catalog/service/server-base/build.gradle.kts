@@ -50,6 +50,9 @@ dependencies {
   implementation(libs.quarkus.logging.sentry)
   implementation("io.micrometer:micrometer-registry-prometheus")
 
+  implementation(platform(libs.awssdk.bom))
+  implementation("software.amazon.awssdk:s3")
+
   implementation(libs.guava)
 
   compileOnly(libs.microprofile.openapi)

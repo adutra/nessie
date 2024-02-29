@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.files.s3;
 
+import static java.time.temporal.ChronoUnit.SECONDS;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,14 +24,12 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.function.Supplier;
 import org.projectnessie.catalog.files.api.BackendThrottledException;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.ObjectIOException;
 import org.projectnessie.catalog.files.local.LocalObjectIO;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Uri;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -39,19 +39,14 @@ public class S3ObjectIO implements ObjectIO {
 
   private static final ObjectIO local = new LocalObjectIO();
 
-  private S3Client s3client;
-  private final Supplier<S3Client> clientSupplier;
+  private final S3Client s3client;
   private final Clock clock;
   private final Duration defaultRetryAfter;
 
-  public S3ObjectIO(Clock clock, Duration defaultRetryAfter) {
-    this(S3ObjectIO::buildS3Client, clock, defaultRetryAfter);
-  }
-
-  public S3ObjectIO(Supplier<S3Client> clientSupplier, Clock clock, Duration defaultRetryAfter) {
-    this.clientSupplier = clientSupplier;
+  public S3ObjectIO(S3Client s3client, Clock clock, S3Config s3Config) {
+    this.s3client = s3client;
     this.clock = clock;
-    this.defaultRetryAfter = defaultRetryAfter;
+    this.defaultRetryAfter = s3Config.retryAfter().orElse(Duration.of(10, SECONDS));
   }
 
   @Override
@@ -59,8 +54,6 @@ public class S3ObjectIO implements ObjectIO {
     if (!"s3".equals(uri.getScheme())) {
       return local.readObject(uri);
     }
-
-    initClient();
 
     S3Uri s3uri = s3client.utilities().parseUri(uri);
 
@@ -85,8 +78,6 @@ public class S3ObjectIO implements ObjectIO {
       return local.writeObject(uri);
     }
 
-    initClient();
-
     return new ByteArrayOutputStream() {
       @Override
       public void close() throws IOException {
@@ -102,15 +93,5 @@ public class S3ObjectIO implements ObjectIO {
             RequestBody.fromBytes(toByteArray()));
       }
     };
-  }
-
-  private void initClient() {
-    if (s3client == null) {
-      s3client = clientSupplier.get();
-    }
-  }
-
-  private static S3Client buildS3Client() {
-    return S3Client.builder().httpClientBuilder(UrlConnectionHttpClient.builder()).build();
   }
 }

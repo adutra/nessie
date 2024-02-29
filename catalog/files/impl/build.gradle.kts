@@ -31,7 +31,14 @@ dependencies {
 
   implementation(platform(libs.awssdk.bom))
   implementation("software.amazon.awssdk:s3")
-  implementation("software.amazon.awssdk:url-connection-client")
+  implementation("software.amazon.awssdk:apache-client")
+
+  implementation(platform(libs.google.cloud.storage.bom))
+  implementation("com.google.cloud:google-cloud-storage")
+
+  implementation(platform(libs.azuresdk.bom))
+  implementation("com.azure:azure-storage-file-datalake")
+  implementation("com.azure:azure-identity")
 
   compileOnly(libs.jakarta.ws.rs.api)
   compileOnly(libs.jakarta.enterprise.cdi.api)
@@ -42,4 +49,6 @@ dependencies {
 
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
+
+  testFixturesApi(project(":nessie-s3mock"))
 }
