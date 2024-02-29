@@ -20,12 +20,15 @@ import static org.projectnessie.model.Validation.REF_NAME_PATH_ELEMENT_REGEX;
 import java.util.List;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.projectnessie.catalog.api.base.transport.CatalogCommit;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 
@@ -100,5 +103,16 @@ public interface NessieCatalogService extends NessieCatalogServiceBase<Object, O
       @QueryParam("type") @jakarta.ws.rs.QueryParam("type") String fileType,
       @QueryParam("token") @jakarta.ws.rs.QueryParam("token") String fileToken,
       @QueryParam("file") @jakarta.ws.rs.QueryParam("file") String dataFile)
+      throws NessieNotFoundException;
+
+  @POST
+  @jakarta.ws.rs.POST
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/commit")
+  @jakarta.ws.rs.Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/commit")
+  @Produces(MediaType.APPLICATION_JSON)
+  @jakarta.ws.rs.Produces(jakarta.ws.rs.core.MediaType.APPLICATION_JSON)
+  Object commit(
+      @PathParam("ref") @jakarta.ws.rs.PathParam("ref") String ref,
+      @RequestBody CatalogCommit commit)
       throws NessieNotFoundException;
 }

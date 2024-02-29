@@ -19,6 +19,8 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.projectnessie.api.v2.params.ReferenceResolver.resolveReferencePathElement;
 import static org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestContent.fromNessieFileContentType;
+import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SEQUENCE_NUMBER;
+import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergMetadataToContent;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessieGroupEntryToIcebergManifestFile;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessiePartitionDefinitionToIceberg;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessieSchemaToIcebergSchema;
@@ -32,12 +34,15 @@ import jakarta.inject.Named;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -47,6 +52,8 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.avro.file.SeekableInput;
 import org.projectnessie.api.v2.params.ParsedReference;
+import org.projectnessie.catalog.api.base.transport.CatalogCommit;
+import org.projectnessie.catalog.api.base.transport.CatalogOperation;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergDataFile;
@@ -56,10 +63,18 @@ import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFileRea
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFileWriter;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListWriter;
 import org.projectnessie.catalog.formats.iceberg.manifest.SeekableStreamInput;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.AssignUUID;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
+import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.IcebergSnapshotTweak;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergCatalogOperation;
+import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.locations.BaseLocation;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestEntry;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
@@ -67,14 +82,21 @@ import org.projectnessie.catalog.model.manifest.NessieFileManifestGroupEntry;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.catalog.service.api.CatalogService;
+import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotReqParams;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
+import org.projectnessie.client.api.CommitMultipleOperationsBuilder;
+import org.projectnessie.client.api.GetContentBuilder;
 import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.error.ErrorCode;
 import org.projectnessie.error.ImmutableNessieError;
 import org.projectnessie.error.NessieContentNotFoundException;
 import org.projectnessie.error.NessieNotFoundException;
+import org.projectnessie.model.Branch;
+import org.projectnessie.model.CommitMeta;
+import org.projectnessie.model.CommitResponse;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.ContentResponse;
@@ -82,6 +104,7 @@ import org.projectnessie.model.GetMultipleContentsResponse;
 import org.projectnessie.model.IcebergTable;
 import org.projectnessie.model.IcebergView;
 import org.projectnessie.model.Namespace;
+import org.projectnessie.model.Operation;
 import org.projectnessie.model.Reference;
 import org.projectnessie.nessie.tasks.api.TasksService;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
@@ -327,6 +350,150 @@ public class CatalogServiceImpl implements CatalogService {
           return SnapshotResponse.forEntity(
               effectiveReference, result, fileName, "application/json");
         });
+  }
+
+  @Override
+  public CompletionStage<Void> commit(String ref, CatalogCommit commit)
+      throws NessieNotFoundException {
+    ParsedReference reference = parseRefPathString(ref);
+
+    GetContentBuilder contentRequest =
+        nessieApi
+            .getContent()
+            .refName(reference.name())
+            .hashOnRef(reference.hashWithRelativeSpec());
+    commit.getOperations().forEach(op -> contentRequest.key(op.getKey()));
+
+    Map<ContentKey, Content> contents = contentRequest.get();
+
+    IcebergStuff icebergStuff = new IcebergStuff(objectIO, persist, tasksService, executor);
+
+    CommitMultipleOperationsBuilder nessieCommit =
+        nessieApi
+            .commitMultipleOperations()
+            .commitMeta(CommitMeta.fromMessage("Iceberg commit"))
+            .branch(Branch.of(reference.name(), reference.hashWithRelativeSpec()));
+
+    CompletionStage<Void> commitBuilderStage = CompletableFuture.completedStage(null);
+    for (CatalogOperation op : commit.getOperations()) {
+      if (op.getType() != Content.Type.ICEBERG_TABLE && op.getType() != Content.Type.ICEBERG_VIEW) {
+        throw new IllegalArgumentException("Unsupported entity type: " + op.getType());
+      }
+
+      IcebergCatalogOperation icebergOp = (IcebergCatalogOperation) op;
+
+      String contentId;
+      CompletionStage<NessieTableSnapshot> snapshotStage;
+      Content content = contents.get(op.getKey());
+      if (content == null) {
+        contentId = null;
+        snapshotStage = newSnapshot(icebergOp.updates());
+      } else {
+        contentId = content.getId();
+        snapshotStage = loadExistingSnapshot(content);
+      }
+
+      CompletionStage<Content> contentStage =
+          snapshotStage
+              .thenApply(
+                  nessieSnapshot ->
+                      NessieModelIceberg.updateSnapshot(nessieSnapshot, icebergOp.updates()))
+              .thenApply(
+                  nessieSnapshot -> {
+                    // TODO: support GZIP
+                    // TODO: support TableProperties.WRITE_METADATA_LOCATION
+                    String location =
+                        String.format(
+                            "%s/metadata/00000-%s.metadata.json",
+                            nessieSnapshot.icebergLocation(), UUID.randomUUID());
+
+                    IcebergTableMetadata icebergMetadata =
+                        storeSnapshot(URI.create(location), nessieSnapshot);
+                    return icebergMetadataToContent(location, icebergMetadata, contentId);
+                  });
+
+      // Form a chain of stages that complete sequentially and populate the commit builder.
+      commitBuilderStage =
+          contentStage.thenCombine(
+              commitBuilderStage,
+              (updated, nothing) -> {
+                nessieCommit.operation(Operation.Put.of(op.getKey(), updated));
+                return null;
+              });
+    }
+
+    return commitBuilderStage.thenApply(
+        v -> {
+          try {
+            CommitResponse commitResponse = nessieCommit.commitWithResponse();
+            // TODO: return commitResponse?
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+
+          return null;
+        });
+  }
+
+  private CompletionStage<NessieTableSnapshot> newSnapshot(List<IcebergMetadataUpdate> updates)
+      throws NessieContentNotFoundException {
+    String icebergUuid =
+        updates.stream()
+            .filter(u -> u instanceof AssignUUID)
+            .map(u -> ((AssignUUID) u).uuid())
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Missing UUID for new table"));
+
+    // Use a transient ID for this snapshot because it is not stored as a Nessie snapshot,
+    // but is used only to generate Iceberg snapshot data. A proper Nessie snapshot will
+    // be created later, when the Iceberg snapshot is loaded after a successful Nessie commit.
+    NessieId nessieId = NessieIdTransient.instance();
+    NessieTable nessieTable =
+        NessieTable.builder()
+            .tableFormat(TableFormat.ICEBERG)
+            .icebergUuid(UUID.fromString(icebergUuid))
+            .nessieContentId(UUID.randomUUID().toString()) // Not used / redefined after commit
+            // TODO: baselocation
+            .baseLocation(BaseLocation.baseLocation(nessieId, "tmp", URI.create("file:///tmp")))
+            .createdTimestamp(Instant.now())
+            .build();
+    return CompletableFuture.completedFuture(
+        NessieTableSnapshot.builder()
+            .snapshotId(nessieId)
+            .entity(nessieTable)
+            .lastUpdatedTimestamp(Instant.now())
+            .icebergLastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
+            .build());
+  }
+
+  private CompletionStage<NessieTableSnapshot> loadExistingSnapshot(Content content)
+      throws NessieContentNotFoundException {
+    ObjId snapshotId = snapshotIdFromContent(content);
+    CompletionStage<NessieTableSnapshot> snapshotStage;
+    try {
+      snapshotStage =
+          new IcebergStuff(objectIO, persist, tasksService, executor)
+              .retrieveIcebergSnapshot(
+                  snapshotId, content, SnapshotFormat.NESSIE_SNAPSHOT_NO_MANIFESTS);
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    return snapshotStage;
+  }
+
+  private IcebergTableMetadata storeSnapshot(URI location, NessieTableSnapshot snapshot) {
+    IcebergTableMetadata tableMetadata =
+        nessieTableSnapshotToIceberg(
+            snapshot, Optional.empty(), IcebergSnapshotTweak.NOOP, p -> {});
+    try (OutputStream out = objectIO.writeObject(location)) {
+      IcebergJson.objectMapper().writeValue(out, tableMetadata);
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
+    return tableMetadata;
   }
 
   // TODO copied from RestV2TreeResource

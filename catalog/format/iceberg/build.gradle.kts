@@ -40,6 +40,7 @@ dependencies {
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
   implementation(project(":nessie-catalog-schema-model"))
+  implementation(project(":nessie-catalog-api-base"))
   implementation(project(":nessie-model"))
 
   implementation(libs.guava)

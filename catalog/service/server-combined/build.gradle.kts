@@ -36,6 +36,8 @@ val quarkusRunner by
 val openapiSource by
   configurations.creating { description = "Used to reference OpenAPI spec files" }
 
+val versionIceberg = libs.versions.iceberg.get()
+
 dependencies {
   // Nessie Catalog
   implementation(project(":nessie-catalog-service-server-base"))
@@ -71,6 +73,12 @@ dependencies {
 
   testFixturesImplementation(platform(libs.junit.bom))
   testFixturesImplementation(libs.bundles.junit.testing)
+
+  intTestImplementation(project(":nessie-catalog-iceberg-catalog"))
+  intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg")
+  intTestImplementation("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
+  intTestImplementation("org.apache.iceberg:iceberg-nessie:$versionIceberg")
+  intTestImplementation(libs.hadoop.common)
 }
 
 val pullOpenApiSpec by tasks.registering(Sync::class)

@@ -23,6 +23,7 @@ import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -44,7 +45,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.RestMulti;
+import org.projectnessie.catalog.api.base.transport.CatalogCommit;
 import org.projectnessie.catalog.api.rest.spec.NessieCatalogServiceBase;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
@@ -53,6 +56,7 @@ import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotReqParams;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
+import org.projectnessie.error.NessieConflictException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
@@ -273,5 +277,17 @@ public class CatalogTransportResource
   private static void nessieResponseHeaders(
       Reference reference, BiConsumer<String, String> header) {
     header.accept("Nessie-Reference", URLEncoder.encode(reference.toPathString()));
+  }
+
+  @POST
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/commit")
+  @Blocking
+  @Override
+  @Produces(MediaType.APPLICATION_JSON)
+  public CompletionStage<Response> commit(
+      @PathParam("ref") String ref, @RequestBody CatalogCommit commit)
+      throws NessieNotFoundException, NessieConflictException {
+
+    return catalogService.commit(ref, commit).thenApply(v -> Response.ok().build());
   }
 }

@@ -15,6 +15,8 @@
  */
 package org.apache.iceberg.nessie;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.iceberg.TableOperations;
@@ -22,9 +24,11 @@ import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.io.DelegateFileIO;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
+import org.apache.iceberg.rest.RESTSerializers;
 import org.projectnessie.catalog.iceberg.httpfileio.HttpFileIO;
 import org.projectnessie.client.api.NessieApiV1;
 import org.projectnessie.client.http.HttpClient;
+import org.projectnessie.client.http.impl.HttpRuntimeConfig;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Namespace;
 import org.projectnessie.model.TableReference;
@@ -40,6 +44,7 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
   private FileIO fileIO;
   // TODO 'client' field is private in NessieCatalog
   private NessieIcebergClient client;
+  private boolean sendUpdatesToServer;
 
   @Override
   public void initialize(String name, Map<String, String> options) {
@@ -55,12 +60,28 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
         api.unwrapClient(HttpClient.class)
             .orElseThrow(() -> new IllegalArgumentException("Nessie client must use HTTP"));
 
+    try {
+      // TODO: make this configurable via public Nessie client API
+      Field configField = httpClient.getClass().getDeclaredField("config");
+      configField.setAccessible(true);
+      HttpRuntimeConfig config = (HttpRuntimeConfig) configField.get(httpClient);
+      ObjectMapper mapper = config.getMapper();
+
+      RESTSerializers.registerAll(mapper); // for MetadataUpdate objects
+
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
     fileIO = new HttpFileIO((DelegateFileIO) fileIO);
 
     this.client = client;
     this.fileIO = fileIO;
 
     super.initialize(name, client, fileIO, catalogOptions);
+
+    this.sendUpdatesToServer =
+        Boolean.parseBoolean(catalogOptions.getOrDefault("send-updates-to-server", "true"));
   }
 
   private Map<String, String> withDefaultOptions(Map<String, String> options) {
@@ -81,7 +102,8 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
         contentKey,
         client.withReference(tr.getReference(), tr.getHash()),
         new RedirectingFileIO((DelegateFileIO) fileIO, contentKey, client),
-        properties());
+        properties(),
+        sendUpdatesToServer);
   }
 
   private TableReference parseTableReference(TableIdentifier tableIdentifier) {

@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.projectnessie.catalog.files.api.ObjectIO;
 
@@ -35,7 +36,9 @@ public class LocalObjectIO implements ObjectIO {
   public OutputStream writeObject(URI uri) throws IOException {
     // Awesome implementation of a local object IO :D
     try {
-      return Files.newOutputStream(Paths.get(fileUri(uri)));
+      Path path = Paths.get(fileUri(uri));
+      Files.createDirectories(path.getParent());
+      return Files.newOutputStream(path);
     } catch (FileSystemNotFoundException e) {
       throw new UnsupportedOperationException(
           "Writing to " + uri.getScheme() + " URIs is not supported", e);

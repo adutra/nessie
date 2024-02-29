@@ -21,9 +21,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.projectnessie.catalog.api.base.transport.CatalogCommit;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.error.NessieConflictException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
@@ -52,6 +54,9 @@ public interface CatalogService {
       CatalogUriResolver catalogUriResolver,
       Consumer<Reference> effectiveReferenceConsumer)
       throws NessieNotFoundException;
+
+  CompletionStage<Void> commit(String ref, CatalogCommit commit)
+      throws NessieNotFoundException, NessieConflictException;
 
   interface CatalogUriResolver {
     URI icebergManifestList(

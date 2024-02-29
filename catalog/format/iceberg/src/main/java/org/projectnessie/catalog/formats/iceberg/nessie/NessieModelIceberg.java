@@ -19,11 +19,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.emptyList;
 import static org.projectnessie.catalog.model.schema.types.NessieType.DEFAULT_TIME_PRECISION;
 
+import com.google.common.base.Preconditions;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -44,6 +46,14 @@ import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFile;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListReader;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergBlobMetadata;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergHistoryEntry;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.AddPartitionSpec;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.AddSchema;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.AddSnapshot;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.AddSortOrder;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.AssignUUID;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.SetLocation;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.SetProperties;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary;
@@ -92,6 +102,8 @@ import org.projectnessie.catalog.model.schema.types.NessieType;
 import org.projectnessie.catalog.model.schema.types.NessieTypeSpec;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
+import org.projectnessie.model.Content;
+import org.projectnessie.model.IcebergTable;
 
 public class NessieModelIceberg {
 
@@ -1033,5 +1045,117 @@ public class NessieModelIceberg {
         .keyMetadata(groupEntry.keyMetadata())
         //
         .build();
+  }
+
+  public static void assignUUID(
+      AssignUUID u, NessieTableSnapshot.Builder builder, NessieTableSnapshot snapshot) {
+    String uuid = u.uuid();
+    Preconditions.checkArgument(uuid != null, "Null entity UUID is not permitted.");
+    Preconditions.checkArgument(
+        uuid.equals(Objects.requireNonNull(snapshot.entity().icebergUuid()).toString()),
+        "UUID mismatch: assigned: %s, new: %s",
+        snapshot.entity().icebergUuid(),
+        uuid);
+  }
+
+  public static void setLocation(
+      SetLocation u, NessieTableSnapshot.Builder builder, NessieTableSnapshot snapshot) {
+    // TODO: set base location in the NessieEntity?
+    builder.icebergLocation(u.location());
+  }
+
+  public static void setProperties(
+      SetProperties u, NessieTableSnapshot.Builder builder, NessieTableSnapshot snapshot) {
+    builder.putAllProperties(u.updates());
+  }
+
+  public static void addPartitionSpec(
+      AddPartitionSpec u, NessieTableSnapshot.Builder builder, NessieTableSnapshot snapshot) {
+    Map<Integer, NessiePartitionField> icebergPartitionFields = new HashMap<>();
+    for (NessiePartitionDefinition partitionDefinition : snapshot.partitionDefinitions()) {
+      collectPartitionFields(partitionDefinition, icebergPartitionFields);
+    }
+
+    IcebergPartitionSpec newSpec = u.spec();
+
+    Map<Integer, NessieField> icebergFields = new HashMap<>();
+    for (NessieSchema schema : snapshot.schemas()) {
+      collectSchemaFields(schema, icebergFields);
+    }
+
+    NessiePartitionDefinition def =
+        icebergPartitionSpecToNessie(newSpec, icebergPartitionFields, icebergFields);
+    builder.addPartitionDefinition(def);
+  }
+
+  public static void addSchema(
+      AddSchema u, NessieTableSnapshot.Builder builder, NessieTableSnapshot snapshot) {
+    Map<Integer, NessieField> icebergFields = new HashMap<>();
+    for (NessieSchema schema : snapshot.schemas()) {
+      collectSchemaFields(schema, icebergFields);
+    }
+
+    IcebergSchema schema = u.schema();
+    NessieSchema nessieSchema = icebergSchemaToNessieSchema(schema, icebergFields);
+    builder.addSchema(nessieSchema); // TODO: last column ID?
+  }
+
+  public static void addSortOrder(
+      AddSortOrder u, NessieTableSnapshot.Builder builder, NessieTableSnapshot snapshot) {
+    Map<Integer, NessieField> icebergFields = new HashMap<>();
+    for (NessieSchema schema : snapshot.schemas()) {
+      collectSchemaFields(schema, icebergFields);
+    }
+
+    IcebergSortOrder sortOrder = u.sortOrder();
+    NessieSortDefinition sortDefinition = icebergSortOrderToNessie(sortOrder, icebergFields);
+
+    builder.addSortDefinition(sortDefinition);
+    if (snapshot.currentSortDefinition() == null) {
+      builder.currentSortDefinition(sortDefinition.sortDefinitionId());
+    }
+  }
+
+  public static void addSnapshot(
+      AddSnapshot u, NessieTableSnapshot.Builder builder, NessieTableSnapshot snapshot) {
+    IcebergSnapshot icebergSnapshot = u.snapshot();
+    Integer schemaId = icebergSnapshot.schemaId();
+    if (schemaId != null) {
+      NessieSchema schema = snapshot.schemaByIcebergId().get(schemaId);
+      builder.currentSchema(schema.id());
+    }
+
+    builder.icebergSnapshotId(icebergSnapshot.snapshotId());
+    builder.icebergSnapshotSequenceNumber(icebergSnapshot.sequenceNumber());
+    builder.icebergLastSequenceNumber(
+        Math.max(
+            safeUnbox(snapshot.icebergLastSequenceNumber(), INITIAL_SEQUENCE_NUMBER),
+            safeUnbox(icebergSnapshot.sequenceNumber(), INITIAL_SEQUENCE_NUMBER)));
+    builder.snapshotCreatedTimestamp(Instant.ofEpochMilli(icebergSnapshot.timestampMs()));
+    builder.icebergSnapshotSummary(icebergSnapshot.summary());
+    builder.icebergManifestListLocation(icebergSnapshot.manifestList());
+    builder.icebergManifestFileLocations(icebergSnapshot.manifests());
+  }
+
+  public static NessieTableSnapshot updateSnapshot(
+      NessieTableSnapshot snapshot, List<IcebergMetadataUpdate> updates) {
+    for (IcebergMetadataUpdate u : updates) {
+      NessieTableSnapshot.Builder builder = NessieTableSnapshot.builder().from(snapshot);
+      u.apply(builder, snapshot);
+      snapshot = builder.build();
+    }
+
+    return snapshot;
+  }
+
+  public static Content icebergMetadataToContent(
+      String location, IcebergTableMetadata snapshot, String contentId) {
+    return IcebergTable.of(
+        location,
+        snapshot.currentSnapshotId(),
+        safeUnbox(snapshot.currentSchemaId(), INITIAL_SCHEMA_ID),
+        safeUnbox(snapshot.defaultSpecId(), INITIAL_SPEC_ID),
+        safeUnbox(snapshot.defaultSortOrderId(), INITIAL_SORT_ORDER_ID),
+        contentId);
   }
 }

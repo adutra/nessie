@@ -32,6 +32,10 @@ dependencies {
 
   implementation(nessieProject("nessie-client"))
   implementation(nessieProject("nessie-catalog-iceberg-httpfileio"))
+  implementation(nessieProject("nessie-catalog-api-base"))
+
+  compileOnly(project(":nessie-immutables"))
+  annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
   // Iceberg jars are deployed independently, e.g. in the fork of Iceberg Spark extensions.
   compileOnly("org.apache.iceberg:iceberg-core:$versionIceberg")

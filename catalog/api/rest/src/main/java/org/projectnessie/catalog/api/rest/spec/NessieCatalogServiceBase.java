@@ -16,6 +16,8 @@
 package org.projectnessie.catalog.api.rest.spec;
 
 import java.util.List;
+import org.projectnessie.catalog.api.base.transport.CatalogCommit;
+import org.projectnessie.error.NessieConflictException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 
@@ -44,4 +46,7 @@ public interface NessieCatalogServiceBase<SINGLE_RESPONSE, MULTI_RESPONSE> {
   SINGLE_RESPONSE dataFile(
       String ref, ContentKey key, String fileType, String fileToken, String dataFile)
       throws NessieNotFoundException;
+
+  SINGLE_RESPONSE commit(String ref, CatalogCommit commit)
+      throws NessieNotFoundException, NessieConflictException;
 }
