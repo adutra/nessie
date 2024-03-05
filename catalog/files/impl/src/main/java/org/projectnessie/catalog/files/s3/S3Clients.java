@@ -101,26 +101,7 @@ public class S3Clients {
                           .region()
                           .ifPresent(region -> s3configBuilder.region(Region.of(region)));
                     })
-                .credentialsProvider(
-                    () -> {
-                      String accessKeyId =
-                          secretsProvider.getSecret(
-                              bucketOptions
-                                  .accessKeyIdRef()
-                                  .orElseThrow(
-                                      () ->
-                                          new IllegalStateException(
-                                              "Secret reference to S3 access key ID is not defined")));
-                      String secretAccessKey =
-                          secretsProvider.getSecret(
-                              bucketOptions
-                                  .secretAccessKeyRef()
-                                  .orElseThrow(
-                                      () ->
-                                          new IllegalStateException(
-                                              "Secret reference to S3 secret access key is not defined")));
-                      return AwsBasicCredentials.create(accessKeyId, secretAccessKey);
-                    });
+                .credentialsProvider(awsCredentialsProvider(bucketOptions, secretsProvider));
 
         // https://cloud.google.com/storage/docs/aws-simple-migration#project-header
         bucketOptions.projectId().ifPresent(prj -> override.putHeader("x-amz-project-id", prj));
@@ -130,6 +111,29 @@ public class S3Clients {
 
         return super.invokeOperation(overridden, operation);
       }
+    };
+  }
+
+  public static AwsCredentialsProvider awsCredentialsProvider(
+      S3BucketOptions bucketOptions, SecretsProvider secretsProvider) {
+    return () -> {
+      String accessKeyId =
+          secretsProvider.getSecret(
+              bucketOptions
+                  .accessKeyIdRef()
+                  .orElseThrow(
+                      () ->
+                          new IllegalStateException(
+                              "Secret reference to S3 access key ID is not defined")));
+      String secretAccessKey =
+          secretsProvider.getSecret(
+              bucketOptions
+                  .secretAccessKeyRef()
+                  .orElseThrow(
+                      () ->
+                          new IllegalStateException(
+                              "Secret reference to S3 secret access key is not defined")));
+      return AwsBasicCredentials.create(accessKeyId, secretAccessKey);
     };
   }
 

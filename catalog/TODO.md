@@ -196,6 +196,16 @@ would automatically be migrated to the Nessie Catalog.
       * `software.amazon.awssdk:url-connection-client:2.20.131`
    1. Note: AWS version `2.20.131` matches Iceberg `1.4.2`.
    1. Run DDL/DML in the Spark session.
+1. **Remote S3 Request Signing**
+  1. Configure S3 credentials in the Catalog Server (not in the Spark Job!), e.g. export `AWS_PROFILE=demo` and set you credentials in `~/.aws/credentials`.
+  1. Start Catalog Server
+  1. Add S3 catalog properties to the Spark Job (warehouse location, region, endpoint URI).
+  1. Use `NessieCatalogIcebergCatalog` in the Spark Job.
+     * Note: this catalog preconfigures Iceberg with some extra properties to enable S3 request signing by default.
+  1. Execute normal DDL / DML
+  1. Actual signing is done in `S3Signer` in the Catalog Server
+    * Note: currently there is a remote call to the Catalog Server for every S3 request (read or write).
+    * TODO: S3 deletes are not supported yet.
 1. Inspect an Iceberg manifest list:
    ```
    wget --content-disposition 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-list/testing.city'

@@ -29,6 +29,8 @@ import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.projectnessie.catalog.api.base.transport.CatalogCommit;
+import org.projectnessie.catalog.api.sign.SigningRequest;
+import org.projectnessie.catalog.api.sign.SigningResponse;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 
@@ -114,5 +116,17 @@ public interface NessieCatalogService extends NessieCatalogServiceBase<Object, O
   Object commit(
       @PathParam("ref") @jakarta.ws.rs.PathParam("ref") String ref,
       @RequestBody CatalogCommit commit)
+      throws NessieNotFoundException;
+
+  @POST
+  @jakarta.ws.rs.POST
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/sign/{key}")
+  @jakarta.ws.rs.Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/sign/{key}")
+  @Produces(MediaType.APPLICATION_JSON)
+  @jakarta.ws.rs.Produces(jakarta.ws.rs.core.MediaType.APPLICATION_JSON)
+  SigningResponse signRequest(
+      @PathParam("ref") @jakarta.ws.rs.PathParam("ref") String ref,
+      @PathParam("key") @jakarta.ws.rs.PathParam("key") ContentKey key,
+      SigningRequest request)
       throws NessieNotFoundException;
 }

@@ -41,4 +41,10 @@ dependencies {
   compileOnly("org.apache.iceberg:iceberg-core:$versionIceberg")
   compileOnly("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
   compileOnly("org.apache.iceberg:iceberg-nessie:$versionIceberg")
+
+  // TODO: S3 request signing... maybe refactor into a separate module?
+  implementation(nessieProject("nessie-catalog-api-base"))
+  compileOnly(platform(libs.awssdk.bom))
+  compileOnly("org.apache.iceberg:iceberg-aws:$versionIceberg")
+  compileOnly("software.amazon.awssdk:s3")
 }

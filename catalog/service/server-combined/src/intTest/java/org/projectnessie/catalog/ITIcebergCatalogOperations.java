@@ -72,7 +72,7 @@ class ITIcebergCatalogOperations {
       PartitionSpec.builderFor(SCHEMA).bucket("id", 5).build();
 
   @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-  private abstract static class Tests {
+  abstract static class Tests {
 
     @TempDir private static Path warehouseDir;
 

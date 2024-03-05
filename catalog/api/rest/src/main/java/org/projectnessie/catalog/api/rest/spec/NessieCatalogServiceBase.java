@@ -17,6 +17,8 @@ package org.projectnessie.catalog.api.rest.spec;
 
 import java.util.List;
 import org.projectnessie.catalog.api.base.transport.CatalogCommit;
+import org.projectnessie.catalog.api.sign.SigningRequest;
+import org.projectnessie.catalog.api.sign.SigningResponse;
 import org.projectnessie.error.NessieConflictException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
@@ -49,4 +51,7 @@ public interface NessieCatalogServiceBase<SINGLE_RESPONSE, MULTI_RESPONSE> {
 
   SINGLE_RESPONSE commit(String ref, CatalogCommit commit)
       throws NessieNotFoundException, NessieConflictException;
+
+  SigningResponse signRequest(String ref, ContentKey key, SigningRequest request)
+      throws NessieNotFoundException;
 }

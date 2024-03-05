@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.service.rest;
 
+import static org.projectnessie.api.v2.params.ReferenceResolver.resolveReferencePathElement;
 import static org.projectnessie.model.Validation.REF_NAME_PATH_ELEMENT_REGEX;
 
 import io.smallrye.common.annotation.Blocking;
@@ -47,9 +48,13 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.RestMulti;
+import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.api.base.transport.CatalogCommit;
 import org.projectnessie.catalog.api.rest.spec.NessieCatalogServiceBase;
+import org.projectnessie.catalog.api.sign.SigningRequest;
+import org.projectnessie.catalog.api.sign.SigningResponse;
 import org.projectnessie.catalog.files.api.ObjectIO;
+import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.service.api.CatalogService;
@@ -69,18 +74,21 @@ public class CatalogTransportResource
 
   private final CatalogService catalogService;
   private final ObjectIO objectIO;
+  private final RequestSigner signer;
 
   @Context UriInfo uriInfo;
 
   @SuppressWarnings("unused")
   public CatalogTransportResource() {
-    this(null, null);
+    this(null, null, null);
   }
 
   @Inject
-  public CatalogTransportResource(CatalogService catalogService, ObjectIO objectIO) {
+  public CatalogTransportResource(
+      CatalogService catalogService, ObjectIO objectIO, RequestSigner signer) {
     this.catalogService = catalogService;
     this.objectIO = objectIO;
+    this.signer = signer;
   }
 
   @GET
@@ -289,5 +297,25 @@ public class CatalogTransportResource
       throws NessieNotFoundException, NessieConflictException {
 
     return catalogService.commit(ref, commit).thenApply(v -> Response.ok().build());
+  }
+
+  @POST
+  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/sign/{key}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public SigningResponse signRequest(
+      @PathParam("ref") String ref, @PathParam("key") ContentKey key, SigningRequest request)
+      throws NessieNotFoundException {
+    ParsedReference reference = parseRefPathString(ref);
+    // TODO access check
+    return signer.sign(reference.name(), key.toPathString(), request);
+  }
+
+  private ParsedReference parseRefPathString(String refPathString) {
+    return resolveReferencePathElement(
+        refPathString,
+        Reference.ReferenceType.BRANCH,
+        () -> {
+          throw new IllegalArgumentException("ref path must specify a branch");
+        });
   }
 }

@@ -22,6 +22,8 @@ plugins {
 extra["maven.name"] = "Nessie - Catalog - Files API"
 
 dependencies {
+  api(project(":nessie-catalog-api-base"))
+
   implementation(libs.guava)
 
   compileOnly(project(":nessie-immutables"))

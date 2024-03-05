@@ -74,9 +74,16 @@ dependencies {
   testFixturesImplementation(platform(libs.junit.bom))
   testFixturesImplementation(libs.bundles.junit.testing)
 
+  intTestImplementation(project(":nessie-s3minio"))
+  intTestImplementation(platform(libs.awssdk.bom))
+  intTestImplementation("software.amazon.awssdk:s3")
+  intTestImplementation(platform(libs.testcontainers.bom))
+  intTestImplementation("org.testcontainers:testcontainers")
+
   intTestImplementation(project(":nessie-catalog-iceberg-catalog"))
   intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg")
   intTestImplementation("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
+  intTestImplementation("org.apache.iceberg:iceberg-aws:$versionIceberg")
   intTestImplementation("org.apache.iceberg:iceberg-nessie:$versionIceberg")
   intTestImplementation(libs.hadoop.common)
 }

@@ -40,10 +40,11 @@ import org.testcontainers.utility.Base58;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 
-final class MinioContainer extends GenericContainer<MinioContainer>
+public final class MinioContainer extends GenericContainer<MinioContainer>
     implements MinioAccess, CloseableResource {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MinioContainer.class);
@@ -112,6 +113,7 @@ final class MinioContainer extends GenericContainer<MinioContainer>
   private String s3endpoint;
   private S3Client s3;
   private URI bucketBaseUri;
+  private String region;
 
   @SuppressWarnings("unused")
   public MinioContainer() {
@@ -137,6 +139,11 @@ final class MinioContainer extends GenericContainer<MinioContainer>
             .forPort(DEFAULT_PORT)
             .forPath(HEALTH_ENDPOINT)
             .withStartupTimeout(Duration.ofMinutes(2)));
+  }
+
+  public MinioContainer withRegion(String region) {
+    this.region = region;
+    return this;
   }
 
   private static String randomString(String prefix) {
@@ -234,6 +241,12 @@ final class MinioContainer extends GenericContainer<MinioContainer>
     return S3Client.builder()
         .httpClientBuilder(UrlConnectionHttpClient.builder())
         .applyMutation(builder -> builder.endpointOverride(URI.create(s3endpoint())))
+        .applyMutation(
+            builder -> {
+              if (region != null) {
+                builder.region(Region.of(region));
+              }
+            })
         // .serviceConfiguration(s3Configuration(s3PathStyleAccess, s3UseArnRegionEnabled))
         // credentialsProvider(s3AccessKeyId, s3SecretAccessKey, s3SessionToken)
         .credentialsProvider(

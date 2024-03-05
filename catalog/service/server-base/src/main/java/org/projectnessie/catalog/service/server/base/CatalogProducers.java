@@ -31,7 +31,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.microprofile.context.ThreadContext;
 import org.projectnessie.catalog.files.ResolvingObjectIO;
 import org.projectnessie.catalog.files.api.ObjectIO;
+import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.files.s3.S3Clients;
+import org.projectnessie.catalog.files.s3.S3Signer;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
 import org.projectnessie.catalog.service.common.config.ImmutableCatalogServerConfig;
@@ -93,6 +95,12 @@ public class CatalogProducers {
       CatalogS3Config s3config, S3Client s3client, SecretsProvider secretsProvider) {
     s3client = S3Clients.configuredClient(s3client, s3config, secretsProvider);
     return new ResolvingObjectIO(s3client, s3config);
+  }
+
+  @Produces
+  @Singleton
+  public RequestSigner signer(CatalogS3Config s3config, SecretsProvider secretsProvider) {
+    return new S3Signer(s3config, secretsProvider);
   }
 
   /**

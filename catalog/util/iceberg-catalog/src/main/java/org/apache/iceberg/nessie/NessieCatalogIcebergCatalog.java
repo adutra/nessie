@@ -25,20 +25,14 @@ import org.apache.iceberg.io.DelegateFileIO;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.rest.RESTSerializers;
-import org.projectnessie.catalog.iceberg.httpfileio.HttpFileIO;
 import org.projectnessie.client.api.NessieApiV1;
 import org.projectnessie.client.http.HttpClient;
 import org.projectnessie.client.http.impl.HttpRuntimeConfig;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Namespace;
 import org.projectnessie.model.TableReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class NessieCatalogIcebergCatalog extends NessieCatalog {
-  private static final Logger LOG = LoggerFactory.getLogger(NessieCatalogIcebergCatalog.class);
-
-  private HttpClient httpClient;
 
   // TODO 'fileIO' field is private in NessieCatalog
   private FileIO fileIO;
@@ -56,7 +50,7 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
       String name, NessieIcebergClient client, FileIO fileIO, Map<String, String> catalogOptions) {
     NessieApiV1 api = client.getApi();
 
-    this.httpClient =
+    HttpClient httpClient =
         api.unwrapClient(HttpClient.class)
             .orElseThrow(() -> new IllegalArgumentException("Nessie client must use HTTP"));
 
@@ -73,11 +67,8 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
       throw new RuntimeException(e);
     }
 
-    fileIO = new HttpFileIO((DelegateFileIO) fileIO);
-
     this.client = client;
     this.fileIO = fileIO;
-
     super.initialize(name, client, fileIO, catalogOptions);
 
     this.sendUpdatesToServer =
@@ -87,6 +78,8 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
   private Map<String, String> withDefaultOptions(Map<String, String> options) {
     HashMap<String, String> result = new HashMap<>();
     result.put("io-impl", "org.apache.iceberg.io.ResolvingFileIO");
+    result.put("s3.client-factory-impl", "org.apache.iceberg.nessie.s3.NessieS3ClientFactory");
+    result.put("s3.remote-signing-enabled", "true");
     result.putAll(options);
     return result;
   }
@@ -101,7 +94,7 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
     return new NessieCatalogTableOperations(
         contentKey,
         client.withReference(tr.getReference(), tr.getHash()),
-        new RedirectingFileIO((DelegateFileIO) fileIO, contentKey, client),
+        new NessieContentAwareFileIO((DelegateFileIO) fileIO, contentKey.toPathString()),
         properties(),
         sendUpdatesToServer);
   }

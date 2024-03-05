@@ -31,9 +31,9 @@ import org.apache.iceberg.exceptions.CommitStateUnknownException;
 import org.apache.iceberg.exceptions.NamespaceNotEmptyException;
 import org.apache.iceberg.exceptions.NoSuchNamespaceException;
 import org.apache.iceberg.exceptions.NoSuchTableException;
-import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.LocationProvider;
 import org.projectnessie.catalog.api.base.transport.ImmutableCatalogCommit;
+import org.projectnessie.catalog.iceberg.httpfileio.HttpFileIO;
 import org.projectnessie.client.api.NessieApiV1;
 import org.projectnessie.client.http.HttpClient;
 import org.projectnessie.client.http.HttpClientException;
@@ -62,19 +62,21 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
   private final NessieIcebergClient client;
   // TODO 'key' field is private in NessieCatalog
   private final ContentKey key;
+  private final NessieContentAwareFileIO contentAwareFileIO;
   private final URI baseUri;
   private final boolean sendUpdatesToServer;
 
   public NessieCatalogTableOperations(
       ContentKey key,
       NessieIcebergClient client,
-      FileIO fileIO,
+      NessieContentAwareFileIO fileIO,
       Map<String, String> catalogOptions,
       boolean sendUpdatesToServer) {
-    super(key, client, fileIO, catalogOptions);
+    super(key, client, new RedirectingFileIO(new HttpFileIO(fileIO), key, client), catalogOptions);
 
     this.client = client;
     this.key = key;
+    this.contentAwareFileIO = fileIO;
     this.sendUpdatesToServer = sendUpdatesToServer;
 
     NessieApiV1 api = client.getApi();
@@ -115,14 +117,13 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
     String refName = client.refName();
 
     try {
-      HttpResponse response =
-          httpClient
-              .newRequest(baseUri)
-              .path("trees/{ref}/commit")
-              .resolveTemplate(
-                  "ref", client.getReference().toPathString()) // TODO: commit hash from meta
-              .unwrap(NessieNotFoundException.class, NessieConflictException.class)
-              .post(commit.build());
+      httpClient
+          .newRequest(baseUri)
+          .path("trees/{ref}/commit")
+          .resolveTemplate(
+              "ref", client.getReference().toPathString()) // TODO: commit hash from meta
+          .unwrap(NessieNotFoundException.class, NessieConflictException.class)
+          .post(commit.build());
     } catch (NessieConflictException ex) {
       if (ex instanceof NessieReferenceConflictException) {
         // Throws a specialized exception, if possible
@@ -193,6 +194,7 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
     }
 
     Reference reference = client.getRef().getReference();
+    contentAwareFileIO.setReference(reference.toPathString());
     try {
       HttpResponse response =
           httpClient

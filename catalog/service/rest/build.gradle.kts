@@ -32,6 +32,7 @@ dependencies {
   implementation(project(":nessie-catalog-schema-model"))
   implementation(project(":nessie-catalog-service-api"))
   implementation(project(":nessie-catalog-service-common"))
+  implementation(project(":nessie-catalog-files-api"))
   implementation(project(":nessie-model"))
   implementation(project(":nessie-client"))
 
