@@ -35,6 +35,7 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.common.util.Retry;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
@@ -102,10 +103,14 @@ public class CustomKeycloakContainer extends ExtendableKeycloakContainer<CustomK
     UserRepresentation user = new UserRepresentation();
 
     user.setUsername(username);
+    user.setFirstName(username);
+    user.setLastName(username);
     user.setEnabled(true);
     user.setCredentials(new ArrayList<>());
     user.setRealmRoles(realmRoles);
     user.setEmail(username + "@gmail.com");
+    user.setEmailVerified(true);
+    user.setRequiredActions(Collections.emptyList());
 
     CredentialRepresentation credential = new CredentialRepresentation();
 
@@ -237,6 +242,7 @@ public class CustomKeycloakContainer extends ExtendableKeycloakContainer<CustomK
 
     withNetworkAliases("keycloak");
     withFeaturesEnabled(config.featuresEnabled().toArray(new String[0]));
+    withStartupAttempts(3);
 
     // This will force all token issuer claims for the configured realm to be
     // equal to getInternalRealmUri(), and in turn equal to getTokenIssuerUri(),
@@ -263,9 +269,14 @@ public class CustomKeycloakContainer extends ExtendableKeycloakContainer<CustomK
     LOGGER.info("Keycloak started, creating realm {}...", config.realmName());
 
     RealmRepresentation realm = createRealm();
-    try (Keycloak adminClient = getKeycloakAdminClient()) {
-      adminClient.realms().create(realm);
-    }
+    Retry.execute(
+        () -> {
+          try (Keycloak adminClient = getKeycloakAdminClient()) {
+            adminClient.realms().create(realm);
+          }
+        },
+        5,
+        1000);
 
     LOGGER.info("Finished setting up Keycloak, external realm auth url: {}", getExternalRealmUri());
   }
