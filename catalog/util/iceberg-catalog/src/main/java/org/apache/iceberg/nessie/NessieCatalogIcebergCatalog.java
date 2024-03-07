@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.iceberg.TableOperations;
 import org.apache.iceberg.catalog.TableIdentifier;
-import org.apache.iceberg.io.DelegateFileIO;
 import org.apache.iceberg.io.FileIO;
+import org.apache.iceberg.io.ResolvingFileIO;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
 import org.apache.iceberg.rest.RESTSerializers;
 import org.projectnessie.client.api.NessieApiV1;
@@ -35,7 +35,7 @@ import org.projectnessie.model.TableReference;
 public class NessieCatalogIcebergCatalog extends NessieCatalog {
 
   // TODO 'fileIO' field is private in NessieCatalog
-  private FileIO fileIO;
+  private ResolvingFileIO fileIO;
   // TODO 'client' field is private in NessieCatalog
   private NessieIcebergClient client;
   private boolean sendUpdatesToServer;
@@ -68,7 +68,7 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
     }
 
     this.client = client;
-    this.fileIO = fileIO;
+    this.fileIO = (ResolvingFileIO) fileIO;
     super.initialize(name, client, fileIO, catalogOptions);
 
     this.sendUpdatesToServer =
@@ -77,10 +77,10 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
 
   private Map<String, String> withDefaultOptions(Map<String, String> options) {
     HashMap<String, String> result = new HashMap<>();
-    result.put("io-impl", "org.apache.iceberg.io.ResolvingFileIO");
     result.put("s3.client-factory-impl", "org.apache.iceberg.nessie.s3.NessieS3ClientFactory");
     result.put("s3.remote-signing-enabled", "true");
     result.putAll(options);
+    result.put("io-impl", "org.apache.iceberg.io.ResolvingFileIO");
     return result;
   }
 
@@ -94,7 +94,7 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
     return new NessieCatalogTableOperations(
         contentKey,
         client.withReference(tr.getReference(), tr.getHash()),
-        new NessieContentAwareFileIO((DelegateFileIO) fileIO, contentKey.toPathString()),
+        fileIO,
         properties(),
         sendUpdatesToServer);
   }

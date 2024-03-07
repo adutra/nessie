@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Map;
-import org.apache.iceberg.nessie.NessieContentAwareFileIO;
+import org.apache.iceberg.nessie.NessieCatalogTableOperations;
 import org.apache.iceberg.nessie.NessieUtil;
 import org.projectnessie.catalog.api.sign.ImmutableSigningRequest;
 import org.projectnessie.catalog.api.sign.SigningRequest;
@@ -58,17 +58,17 @@ public class NessieS3Signer extends AbstractAws4Signer<AwsS3V4SignerParams, Aws4
 
   public NessieS3Signer(Map<String, String> options) {
     this.options = options;
-    contentKey = options.get(NessieContentAwareFileIO.NESSIE_CONTENT_KEY_PROPERTY);
+    contentKey = options.get(NessieCatalogTableOperations.NESSIE_CONTENT_KEY_PROPERTY);
     if (contentKey == null) {
       throw new IllegalArgumentException(
           "Nessie content key must be set in the options: "
-              + NessieContentAwareFileIO.NESSIE_CONTENT_KEY_PROPERTY);
+              + NessieCatalogTableOperations.NESSIE_CONTENT_KEY_PROPERTY);
     }
-    ref = options.get(NessieContentAwareFileIO.NESSIE_CURRENT_REF_PROPERTY);
+    ref = options.get(NessieCatalogTableOperations.NESSIE_CURRENT_REF_PROPERTY);
     if (ref == null) {
       throw new IllegalArgumentException(
           "Nessie current hash must be set in the options: "
-              + NessieContentAwareFileIO.NESSIE_CURRENT_REF_PROPERTY);
+              + NessieCatalogTableOperations.NESSIE_CURRENT_REF_PROPERTY);
     }
   }
 
