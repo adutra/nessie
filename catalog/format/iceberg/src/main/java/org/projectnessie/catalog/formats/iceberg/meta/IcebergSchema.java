@@ -72,6 +72,9 @@ public interface IcebergSchema {
 
   interface Builder {
     @CanIgnoreReturnValue
+    Builder from(IcebergSchema schema);
+
+    @CanIgnoreReturnValue
     Builder clear();
 
     @CanIgnoreReturnValue

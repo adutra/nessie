@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,12 @@ public interface IcebergPartitionSpec {
 
   static IcebergPartitionSpec partitionSpec(int specId, List<IcebergPartitionField> fields) {
     return ImmutableIcebergPartitionSpec.of(specId, fields);
+  }
+
+  IcebergPartitionSpec UNPARTITIONED_SPEC = partitionSpec(0, ImmutableList.of());
+
+  static IcebergPartitionSpec unpartitioned() {
+    return UNPARTITIONED_SPEC;
   }
 
   int specId();

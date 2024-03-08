@@ -15,8 +15,10 @@
  */
 package org.projectnessie.catalog.api.base.transport;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import org.immutables.value.Value;
 import org.projectnessie.model.CommitMeta;
@@ -31,4 +33,31 @@ public interface CatalogCommit {
   CommitMeta getCommitMeta();
 
   List<CatalogOperation> getOperations();
+
+  static Builder builder() {
+    return ImmutableCatalogCommit.builder();
+  }
+
+  interface Builder {
+    @CanIgnoreReturnValue
+    Builder from(CatalogCommit instance);
+
+    @CanIgnoreReturnValue
+    Builder commitMeta(CommitMeta commitMeta);
+
+    @CanIgnoreReturnValue
+    Builder addOperations(CatalogOperation element);
+
+    @CanIgnoreReturnValue
+    Builder addOperations(CatalogOperation... elements);
+
+    @CanIgnoreReturnValue
+    @JsonProperty("operations")
+    Builder operations(Iterable<? extends CatalogOperation> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllOperations(Iterable<? extends CatalogOperation> elements);
+
+    CatalogCommit build();
+  }
 }

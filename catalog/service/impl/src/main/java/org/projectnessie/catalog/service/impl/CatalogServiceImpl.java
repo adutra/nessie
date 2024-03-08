@@ -64,14 +64,17 @@ import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFileWri
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListWriter;
 import org.projectnessie.catalog.formats.iceberg.manifest.SeekableStreamInput;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate.AssignUUID;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
+import org.projectnessie.catalog.formats.iceberg.nessie.IcebergMetadataUpdateState;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.IcebergSnapshotTweak;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCatalogOperation;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergConflictException;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate.AssignUUID;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.locations.BaseLocation;
@@ -254,7 +257,7 @@ public class CatalogServiceImpl implements CatalogService {
           Consumer<Map<String, String>> tablePropertiesTweak =
               properties -> {
                 properties.put("nessie.catalog.content-id", snapshot.entity().nessieContentId());
-                properties.put("nessie.catalog.snapshot-id", snapshot.snapshotId().idAsString());
+                properties.put("nessie.catalog.snapshot-id", snapshot.id().idAsString());
                 properties.put("nessie.commit.id", effectiveReference.getHash());
                 properties.put("nessie.commit.ref", effectiveReference.toPathString());
               };
@@ -264,7 +267,7 @@ public class CatalogServiceImpl implements CatalogService {
               fileName =
                   String.join("/", key.getElements())
                       + '_'
-                      + snapshot.snapshotId().idAsString()
+                      + snapshot.id().idAsString()
                       + ".nessie-metadata.json";
               result = nessieSnapshotResponse(effectiveReference, snapshot);
               break;
@@ -272,7 +275,7 @@ public class CatalogServiceImpl implements CatalogService {
               fileName =
                   String.join("/", key.getElements())
                       + '_'
-                      + snapshot.snapshotId().idAsString()
+                      + snapshot.id().idAsString()
                       + ".nessie-metadata-no-manifests.json";
               result = nessieSnapshotResponse(effectiveReference, snapshot);
               break;
@@ -396,8 +399,19 @@ public class CatalogServiceImpl implements CatalogService {
       CompletionStage<Content> contentStage =
           snapshotStage
               .thenApply(
-                  nessieSnapshot ->
-                      NessieModelIceberg.updateSnapshot(nessieSnapshot, icebergOp.updates()))
+                  nessieSnapshot -> {
+                    try {
+                      for (IcebergUpdateRequirement requirement : icebergOp.requirements()) {
+                        requirement.check(nessieSnapshot, content != null, reference.name());
+                      }
+                      return new IcebergMetadataUpdateState(nessieSnapshot)
+                          .applyUpdates(icebergOp.updates())
+                          .snapshot();
+                    } catch (IllegalStateException | IllegalArgumentException e) {
+                      throw new RuntimeException(
+                          new IcebergConflictException("CommitFailedException", e.getMessage()));
+                    }
+                  })
               .thenApply(
                   nessieSnapshot -> {
                     // TODO: support GZIP
@@ -459,7 +473,7 @@ public class CatalogServiceImpl implements CatalogService {
             .build();
     return CompletableFuture.completedFuture(
         NessieTableSnapshot.builder()
-            .snapshotId(nessieId)
+            .id(nessieId)
             .entity(nessieTable)
             .lastUpdatedTimestamp(Instant.now())
             .icebergLastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
@@ -508,11 +522,7 @@ public class CatalogServiceImpl implements CatalogService {
   }
 
   private static String manifestListFileName(NessieTableSnapshot snapshot) {
-    return "snap-"
-        + snapshot.icebergSnapshotId()
-        + "-1-"
-        + snapshot.snapshotId().idAsString()
-        + ".avro";
+    return "snap-" + snapshot.icebergSnapshotId() + "-1-" + snapshot.id().idAsString() + ".avro";
   }
 
   private static String manifestFileName(NessieId manifestFileId) {
@@ -552,12 +562,12 @@ public class CatalogServiceImpl implements CatalogService {
       public void produce(OutputStream outputStream) throws IOException {
         NessieSchema schema =
             snapshot.schemas().stream()
-                .filter(s -> s.id().equals(snapshot.currentSchema()))
+                .filter(s -> s.id().equals(snapshot.currentSchemaId()))
                 .findFirst()
                 .orElseThrow();
         NessiePartitionDefinition partitionDefinition =
             snapshot.partitionDefinitions().stream()
-                .filter(p -> p.id().equals(snapshot.currentPartitionDefinition()))
+                .filter(p -> p.id().equals(snapshot.currentPartitionDefinitionId()))
                 .findFirst()
                 .orElseThrow();
 
@@ -579,7 +589,7 @@ public class CatalogServiceImpl implements CatalogService {
             "Producing manifest file for manifest-list-entry {} for snapshot {}/{}, schema {}/{}, partition-definition {}/{}",
             nessieFileManifestGroupEntry.manifestId().idAsString(),
             snapshot.icebergSnapshotId(),
-            snapshot.snapshotId().idAsString(),
+            snapshot.id().idAsString(),
             schema.icebergId(),
             schema.id().idAsString(),
             partitionDefinition.icebergId(),
@@ -687,12 +697,12 @@ public class CatalogServiceImpl implements CatalogService {
       public void produce(OutputStream outputStream) throws IOException {
         NessieSchema schema =
             snapshot.schemas().stream()
-                .filter(s -> s.id().equals(snapshot.currentSchema()))
+                .filter(s -> s.id().equals(snapshot.currentSchemaId()))
                 .findFirst()
                 .orElseThrow();
         NessiePartitionDefinition partitionDefinition =
             snapshot.partitionDefinitions().stream()
-                .filter(p -> p.id().equals(snapshot.currentPartitionDefinition()))
+                .filter(p -> p.id().equals(snapshot.currentPartitionDefinitionId()))
                 .findFirst()
                 .orElseThrow();
 
@@ -702,7 +712,7 @@ public class CatalogServiceImpl implements CatalogService {
             "Producing manifest list with {} entries for snapshot {}/{}, schema {}/{}, partition-definition {}/{}",
             nessieFileManifestGroup.manifests().size(),
             snapshot.icebergSnapshotId(),
-            snapshot.snapshotId().idAsString(),
+            snapshot.id().idAsString(),
             schema.icebergId(),
             schema.id().idAsString(),
             partitionDefinition.icebergId(),

@@ -98,7 +98,7 @@ public interface IcebergTableMetadata {
   long currentSnapshotId();
 
   @JsonView(IcebergSpec.IcebergSpecV2.class)
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
   Map<String, IcebergSnapshotRef> refs();

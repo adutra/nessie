@@ -34,11 +34,11 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 /**
  * Represents the state of a {@link NessieView} on a specific Nessie reference (commit).
  *
- * <p>The {@linkplain #snapshotId() ID of a table's snapshot} in the Nessie catalog is derived from
- * relevant fields in a concrete {@linkplain Content Nessie content object}, for example a {@link
+ * <p>The {@linkplain #id() ID of a table's snapshot} in the Nessie catalog is derived from relevant
+ * fields in a concrete {@linkplain Content Nessie content object}, for example a {@link
  * IcebergTable} or {@link DeltaLakeTable}. This guarantees that each distinct state of a table is
  * represented by exactly one {@linkplain NessieViewSnapshot snapshot}. How exactly the {@linkplain
- * #snapshotId() ID} is derived is opaque to a user.
+ * #id() ID} is derived is opaque to a user.
  */
 @NessieImmutable
 @JsonSerialize(as = ImmutableNessieViewSnapshot.class)
@@ -48,6 +48,8 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 // hierarchy..."
 @SuppressWarnings("immutables:subtype")
 public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
+
+  NessieViewSnapshot withId(NessieId id);
 
   @Override
   @Value.NonAttribute
@@ -75,7 +77,7 @@ public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
     Builder from(NessieViewSnapshot instance);
 
     @CanIgnoreReturnValue
-    Builder snapshotId(NessieId snapshotId);
+    Builder id(NessieId id);
 
     @CanIgnoreReturnValue
     Builder putProperty(String key, String value);

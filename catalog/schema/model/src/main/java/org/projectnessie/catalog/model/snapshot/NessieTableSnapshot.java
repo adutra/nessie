@@ -20,6 +20,7 @@ import static org.projectnessie.catalog.model.schema.NessiePartitionDefinition.N
 import static org.projectnessie.catalog.model.schema.NessieSchema.NO_SCHEMA_ID;
 import static org.projectnessie.catalog.model.schema.NessieSortDefinition.NO_SORT_ORDER_ID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -47,11 +48,11 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 /**
  * Represents the state of a {@link NessieTable} on a specific Nessie reference (commit).
  *
- * <p>The {@linkplain #snapshotId() ID of a table's snapshot} in the Nessie catalog is derived from
- * relevant fields in a concrete {@linkplain Content Nessie content object}, for example a {@link
+ * <p>The {@linkplain #id() ID of a table's snapshot} in the Nessie catalog is derived from relevant
+ * fields in a concrete {@linkplain Content Nessie content object}, for example a {@link
  * IcebergTable} or {@link DeltaLakeTable}. This guarantees that each distinct state of a table is
  * represented by exactly one {@linkplain NessieTableSnapshot snapshot}. How exactly the {@linkplain
- * #snapshotId() ID} is derived is opaque to a user.
+ * #id() ID} is derived is opaque to a user.
  */
 @NessieImmutable
 @JsonSerialize(as = ImmutableNessieTableSnapshot.class)
@@ -62,6 +63,8 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @SuppressWarnings("immutables:subtype")
 public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
+  NessieTableSnapshot withId(NessieId id);
+
   @Override
   @Value.NonAttribute
   default String type() {
@@ -71,7 +74,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
-  NessieId currentSchema();
+  NessieId currentSchemaId();
 
   List<NessieSchema> schemas();
 
@@ -85,7 +88,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
-  NessieId currentPartitionDefinition();
+  NessieId currentPartitionDefinitionId();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessiePartitionDefinition> partitionDefinitions();
@@ -100,7 +103,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
-  NessieId currentSortDefinition();
+  NessieId currentSortDefinitionId();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieSortDefinition> sortDefinitions();
@@ -210,6 +213,42 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   // TODO Iceberg external name mapping (see org.apache.iceberg.mapping.NameMappingParser +
   //  org.apache.iceberg.TableProperties.DEFAULT_NAME_MAPPING)
 
+  @Value.Lazy
+  @JsonIgnore
+  @Nullable
+  default NessieSchema currentSchemaObject() {
+    for (NessieSchema schema : schemas()) {
+      if (schema.id().equals(currentSchemaId())) {
+        return schema;
+      }
+    }
+    return null;
+  }
+
+  @Value.Lazy
+  @JsonIgnore
+  @Nullable
+  default NessiePartitionDefinition currentPartitionDefinitionObject() {
+    for (NessiePartitionDefinition partitionDefinition : partitionDefinitions()) {
+      if (partitionDefinition.id().equals(currentPartitionDefinitionId())) {
+        return partitionDefinition;
+      }
+    }
+    return null;
+  }
+
+  @Value.Lazy
+  @JsonIgnore
+  @Nullable
+  default NessieSortDefinition currentSortDefinitionObject() {
+    for (NessieSortDefinition sortDefinition : sortDefinitions()) {
+      if (sortDefinition.id().equals(currentSortDefinitionId())) {
+        return sortDefinition;
+      }
+    }
+    return null;
+  }
+
   static Builder builder() {
     return ImmutableNessieTableSnapshot.builder();
   }
@@ -220,7 +259,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder from(NessieTableSnapshot instance);
 
     @CanIgnoreReturnValue
-    Builder snapshotId(NessieId snapshotId);
+    Builder id(NessieId id);
 
     @CanIgnoreReturnValue
     Builder putProperty(String key, String value);
@@ -238,13 +277,13 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder entity(NessieTable entity);
 
     @CanIgnoreReturnValue
-    Builder currentSchema(@Nullable NessieId currentSchema);
+    Builder currentSchemaId(@Nullable NessieId currentSchemaId);
 
     @CanIgnoreReturnValue
-    Builder currentPartitionDefinition(@Nullable NessieId currentPartitionDefinition);
+    Builder currentPartitionDefinitionId(@Nullable NessieId currentPartitionDefinitionId);
 
     @CanIgnoreReturnValue
-    Builder currentSortDefinition(@Nullable NessieId currentSortDefinition);
+    Builder currentSortDefinitionId(@Nullable NessieId currentSortDefinitionId);
 
     @CanIgnoreReturnValue
     Builder addSchema(NessieSchema element);

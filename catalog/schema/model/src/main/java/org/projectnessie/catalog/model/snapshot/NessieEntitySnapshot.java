@@ -35,7 +35,7 @@ public interface NessieEntitySnapshot<E extends NessieEntity> {
   @JsonTypeId
   String type();
 
-  NessieId snapshotId();
+  NessieId id();
 
   Map<String, String> properties();
 

@@ -32,7 +32,7 @@ public interface NessieSortDefinition {
 
   int NO_SORT_ORDER_ID = -1;
 
-  NessieId sortDefinitionId();
+  NessieId id();
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieSortField> columns();

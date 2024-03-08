@@ -76,6 +76,21 @@ public interface IcebergPartitionField {
 
   interface Builder {
     @CanIgnoreReturnValue
+    Builder from(IcebergPartitionField field);
+
+    @CanIgnoreReturnValue
+    Builder name(String name);
+
+    @CanIgnoreReturnValue
+    Builder transform(String transform);
+
+    @CanIgnoreReturnValue
+    Builder sourceId(int sourceId);
+
+    @CanIgnoreReturnValue
+    Builder fieldId(int fieldId);
+
+    @CanIgnoreReturnValue
     Builder clear();
 
     IcebergPartitionField build();

@@ -77,6 +77,21 @@ public interface IcebergSortField {
     @CanIgnoreReturnValue
     Builder clear();
 
+    @CanIgnoreReturnValue
+    Builder from(IcebergSortField field);
+
+    @CanIgnoreReturnValue
+    Builder transform(String transform);
+
+    @CanIgnoreReturnValue
+    Builder sourceId(int sourceId);
+
+    @CanIgnoreReturnValue
+    Builder direction(String direction);
+
+    @CanIgnoreReturnValue
+    Builder nullOrder(String nullOrder);
+
     IcebergSortField build();
   }
 }

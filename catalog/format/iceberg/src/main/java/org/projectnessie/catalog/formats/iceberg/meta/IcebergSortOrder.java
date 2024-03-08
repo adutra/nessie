@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.Collections;
 import java.util.List;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -39,6 +40,12 @@ public interface IcebergSortOrder {
     return ImmutableIcebergSortOrder.of(orderId, fields);
   }
 
+  IcebergSortOrder UNSORTED_ORDER = sortOrder(0, Collections.emptyList());
+
+  static IcebergSortOrder unsorted() {
+    return UNSORTED_ORDER;
+  }
+
   int orderId();
 
   List<IcebergSortField> fields();
@@ -46,6 +53,24 @@ public interface IcebergSortOrder {
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();
+
+    @CanIgnoreReturnValue
+    Builder from(IcebergSortOrder sortOrder);
+
+    @CanIgnoreReturnValue
+    Builder orderId(int orderId);
+
+    @CanIgnoreReturnValue
+    Builder addField(IcebergSortField element);
+
+    @CanIgnoreReturnValue
+    Builder addFields(IcebergSortField... elements);
+
+    @CanIgnoreReturnValue
+    Builder fields(Iterable<? extends IcebergSortField> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllFields(Iterable<? extends IcebergSortField> elements);
 
     IcebergSortOrder build();
   }

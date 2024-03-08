@@ -80,6 +80,9 @@ public interface IcebergNestedField {
     Builder clear();
 
     @CanIgnoreReturnValue
+    Builder from(IcebergNestedField field);
+
+    @CanIgnoreReturnValue
     Builder id(int id);
 
     @CanIgnoreReturnValue

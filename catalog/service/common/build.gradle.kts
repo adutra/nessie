@@ -22,6 +22,8 @@ plugins {
 extra["maven.name"] = "Nessie - Catalog - Service Common"
 
 dependencies {
+  implementation(project(":nessie-model"))
+
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 

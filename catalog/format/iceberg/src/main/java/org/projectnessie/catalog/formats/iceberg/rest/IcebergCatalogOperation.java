@@ -17,9 +17,11 @@ package org.projectnessie.catalog.formats.iceberg.rest;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import org.projectnessie.catalog.api.base.transport.CatalogOperation;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergMetadataUpdate;
+import org.projectnessie.model.Content;
+import org.projectnessie.model.ContentKey;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 /** Server-side representation of Iceberg metadata updates. */
@@ -27,6 +29,57 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonSerialize(as = ImmutableIcebergCatalogOperation.class)
 @JsonDeserialize(as = ImmutableIcebergCatalogOperation.class)
 public interface IcebergCatalogOperation extends CatalogOperation {
+  @Override
+  ContentKey getKey();
+
+  @Override
+  Content.Type getType();
 
   List<IcebergMetadataUpdate> updates();
+
+  List<IcebergUpdateRequirement> requirements();
+
+  static Builder builder() {
+    return ImmutableIcebergCatalogOperation.builder();
+  }
+
+  interface Builder {
+    @CanIgnoreReturnValue
+    Builder from(CatalogOperation instance);
+
+    @CanIgnoreReturnValue
+    Builder from(IcebergCatalogOperation instance);
+
+    @CanIgnoreReturnValue
+    Builder key(ContentKey key);
+
+    @CanIgnoreReturnValue
+    Builder type(Content.Type type);
+
+    @CanIgnoreReturnValue
+    Builder addUpdate(IcebergMetadataUpdate element);
+
+    @CanIgnoreReturnValue
+    Builder addUpdates(IcebergMetadataUpdate... elements);
+
+    @CanIgnoreReturnValue
+    Builder updates(Iterable<? extends IcebergMetadataUpdate> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllUpdates(Iterable<? extends IcebergMetadataUpdate> elements);
+
+    @CanIgnoreReturnValue
+    Builder addRequirement(IcebergUpdateRequirement element);
+
+    @CanIgnoreReturnValue
+    Builder addRequirements(IcebergUpdateRequirement... elements);
+
+    @CanIgnoreReturnValue
+    Builder requirements(Iterable<? extends IcebergUpdateRequirement> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllRequirements(Iterable<? extends IcebergUpdateRequirement> elements);
+
+    IcebergCatalogOperation build();
+  }
 }
