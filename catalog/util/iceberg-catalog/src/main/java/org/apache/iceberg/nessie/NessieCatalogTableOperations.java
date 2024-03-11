@@ -18,10 +18,8 @@ package org.apache.iceberg.nessie;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.apache.iceberg.MetadataUpdate;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.StructLike;
@@ -34,7 +32,6 @@ import org.apache.iceberg.exceptions.NamespaceNotEmptyException;
 import org.apache.iceberg.exceptions.NoSuchNamespaceException;
 import org.apache.iceberg.exceptions.NoSuchTableException;
 import org.apache.iceberg.io.LocationProvider;
-import org.apache.iceberg.io.ResolvingFileIO;
 import org.projectnessie.catalog.api.base.transport.ImmutableCatalogCommit;
 import org.projectnessie.catalog.iceberg.httpfileio.HttpFileIO;
 import org.projectnessie.client.api.NessieApiV1;
@@ -57,10 +54,6 @@ import org.slf4j.LoggerFactory;
 // TODO Constructor of NessieTableOperations is package-private - therefore this class is in the
 //  org.apache.iceberg.nessie package
 public class NessieCatalogTableOperations extends NessieTableOperations {
-
-  public static final String NESSIE_CONTENT_KEY_PROPERTY = "nessie.internal.content-key";
-  public static final String NESSIE_CURRENT_REF_PROPERTY = "nessie.internal.current-ref";
-
   private static final Logger LOG = LoggerFactory.getLogger(NessieCatalogTableOperations.class);
 
   private final HttpClient httpClient;
@@ -69,21 +62,21 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
   private final NessieIcebergClient client;
   // TODO 'key' field is private in NessieCatalog
   private final ContentKey key;
-  private final ResolvingFileIO resolvingFileIO;
+  private final NessieContentAwareFileIO contentAwareFileIO;
   private final URI baseUri;
   private final boolean sendUpdatesToServer;
 
   public NessieCatalogTableOperations(
       ContentKey key,
       NessieIcebergClient client,
-      ResolvingFileIO fileIO,
+      NessieContentAwareFileIO fileIO,
       Map<String, String> catalogOptions,
       boolean sendUpdatesToServer) {
     super(key, client, new RedirectingFileIO(new HttpFileIO(fileIO), key, client), catalogOptions);
 
     this.client = client;
     this.key = key;
-    this.resolvingFileIO = fileIO;
+    this.contentAwareFileIO = fileIO;
     this.sendUpdatesToServer = sendUpdatesToServer;
 
     NessieApiV1 api = client.getApi();
@@ -91,8 +84,6 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
         api.unwrapClient(HttpClient.class)
             .orElseThrow(() -> new IllegalArgumentException("Nessie client must use HTTP"));
     this.baseUri = resolveCatalogBaseUri();
-
-    resetFileIO(client.getReference());
   }
 
   private URI resolveCatalogBaseUri() {
@@ -202,10 +193,8 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
           e);
     }
 
-    Reference reference = client.getReference();
-
-    resetFileIO(reference);
-
+    Reference reference = client.getRef().getReference();
+    contentAwareFileIO.setReference(reference.toPathString());
     try {
       HttpResponse response =
           httpClient
@@ -261,17 +250,6 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
               throw new IllegalStateException();
             });
       }
-    }
-  }
-
-  private void resetFileIO(Reference reference) {
-    Map<String, String> props = resolvingFileIO.properties();
-    if (!Objects.equals(props.get(NESSIE_CURRENT_REF_PROPERTY), reference.toPathString())
-        || !Objects.equals(props.get(NESSIE_CONTENT_KEY_PROPERTY), key.toPathString())) {
-      props = new LinkedHashMap<>(props);
-      props.put(NESSIE_CURRENT_REF_PROPERTY, reference.toPathString());
-      props.put(NESSIE_CONTENT_KEY_PROPERTY, key.toPathString());
-      resolvingFileIO.initialize(props);
     }
   }
 
