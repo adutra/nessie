@@ -18,13 +18,14 @@ package org.projectnessie.catalog.service.api;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
+import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
 public interface SnapshotReqParams {
-  String ref();
+  ParsedReference ref();
 
   SnapshotFormat snapshotFormat();
 
@@ -32,7 +33,8 @@ public interface SnapshotReqParams {
 
   Optional<NessieId> manifestFileId();
 
-  static SnapshotReqParams forSnapshotHttpReq(String ref, String format, String specVersion) {
+  static SnapshotReqParams forSnapshotHttpReq(
+      ParsedReference ref, String format, String specVersion) {
     SnapshotFormat snapshotFormat;
     OptionalInt reqVersion = OptionalInt.empty();
 
@@ -82,7 +84,8 @@ public interface SnapshotReqParams {
     return ImmutableSnapshotReqParams.of(ref, snapshotFormat, reqVersion, Optional.empty());
   }
 
-  static SnapshotReqParams forManifestListHttpReq(String ref, String format, String specVersion) {
+  static SnapshotReqParams forManifestListHttpReq(
+      ParsedReference ref, String format, String specVersion) {
     SnapshotFormat snapshotFormat;
     OptionalInt reqVersion = OptionalInt.empty();
 
@@ -110,7 +113,7 @@ public interface SnapshotReqParams {
   }
 
   static SnapshotReqParams forManifestFileHttpReq(
-      String ref, String format, String specVersion, String manifestFile) {
+      ParsedReference ref, String format, String specVersion, String manifestFile) {
     SnapshotFormat snapshotFormat;
     NessieId manifestFileId;
     OptionalInt reqVersion = OptionalInt.empty();
@@ -148,7 +151,7 @@ public interface SnapshotReqParams {
         ref, snapshotFormat, reqVersion, Optional.of(manifestFileId));
   }
 
-  static SnapshotReqParams forDataFile(String ref, SnapshotFormat snapshotFormat) {
+  static SnapshotReqParams forDataFile(ParsedReference ref, SnapshotFormat snapshotFormat) {
     return ImmutableSnapshotReqParams.of(
         ref, snapshotFormat, OptionalInt.empty(), Optional.empty());
   }

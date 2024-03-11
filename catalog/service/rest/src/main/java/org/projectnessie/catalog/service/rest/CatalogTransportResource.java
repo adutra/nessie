@@ -15,11 +15,13 @@
  */
 package org.projectnessie.catalog.service.rest;
 
-import static org.projectnessie.api.v2.params.ReferenceResolver.resolveReferencePathElement;
+import static org.projectnessie.catalog.service.api.SnapshotReqParams.forSnapshotHttpReq;
+import static org.projectnessie.catalog.service.rest.ExternalBaseUri.parseRefPathString;
 import static org.projectnessie.model.Validation.REF_NAME_PATH_ELEMENT_REGEX;
 
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -29,21 +31,16 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
-import jakarta.ws.rs.core.UriInfo;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -69,14 +66,10 @@ import org.projectnessie.model.Reference;
 @RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Path("catalog/v1")
-public class CatalogTransportResource
-    implements NessieCatalogServiceBase<CompletionStage<Response>, Multi<Object>> {
+public class CatalogTransportResource extends AbstractCatalogResource
+    implements NessieCatalogServiceBase<Uni<Response>, Multi<Object>> {
 
-  private final CatalogService catalogService;
-  private final ObjectIO objectIO;
   private final RequestSigner signer;
-
-  @Context UriInfo uriInfo;
 
   @SuppressWarnings("unused")
   public CatalogTransportResource() {
@@ -86,8 +79,7 @@ public class CatalogTransportResource
   @Inject
   public CatalogTransportResource(
       CatalogService catalogService, ObjectIO objectIO, RequestSigner signer) {
-    this.catalogService = catalogService;
-    this.objectIO = objectIO;
+    super(catalogService, objectIO);
     this.signer = signer;
   }
 
@@ -102,10 +94,10 @@ public class CatalogTransportResource
       @QueryParam("format") String format,
       @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException {
-    SnapshotReqParams reqParams = SnapshotReqParams.forSnapshotHttpReq(ref, format, specVersion);
+    SnapshotReqParams reqParams = forSnapshotHttpReq(parseRefPathString(ref), format, specVersion);
 
     CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo.getRequestUri(), reqParams.snapshotFormat());
+        new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
 
     AtomicReference<Reference> effectiveReference = new AtomicReference<>();
 
@@ -141,13 +133,13 @@ public class CatalogTransportResource
   @Produces(MediaType.APPLICATION_JSON)
   @Blocking
   @Override
-  public CompletionStage<Response> tableSnapshot(
+  public Uni<Response> tableSnapshot(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
       @QueryParam("format") String format,
       @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException {
-    return snapshotBased(key, SnapshotReqParams.forSnapshotHttpReq(ref, format, specVersion));
+    return snapshotBased(key, forSnapshotHttpReq(parseRefPathString(ref), format, specVersion));
   }
 
   @GET
@@ -155,13 +147,15 @@ public class CatalogTransportResource
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Blocking
   @Override
-  public CompletionStage<Response> manifestList(
+  public Uni<Response> manifestList(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
       @QueryParam("format") String format,
       @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException {
-    return snapshotBased(key, SnapshotReqParams.forManifestListHttpReq(ref, format, specVersion));
+    return snapshotBased(
+        key,
+        SnapshotReqParams.forManifestListHttpReq(parseRefPathString(ref), format, specVersion));
   }
 
   @GET
@@ -169,7 +163,7 @@ public class CatalogTransportResource
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Blocking
   @Override
-  public CompletionStage<Response> manifestFile(
+  public Uni<Response> manifestFile(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
       @QueryParam("format") String format,
@@ -177,7 +171,9 @@ public class CatalogTransportResource
       @QueryParam("manifest-file") String manifestFile)
       throws NessieNotFoundException {
     return snapshotBased(
-        key, SnapshotReqParams.forManifestFileHttpReq(ref, format, specVersion, manifestFile));
+        key,
+        SnapshotReqParams.forManifestFileHttpReq(
+            parseRefPathString(ref), format, specVersion, manifestFile));
   }
 
   @GET
@@ -185,15 +181,17 @@ public class CatalogTransportResource
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Blocking
   @Override
-  public CompletionStage<Response> dataFile(
+  public Uni<Response> dataFile(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
       @QueryParam("type") String fileType,
       @QueryParam("token") String fileToken,
       @QueryParam("file") String dataFile)
       throws NessieNotFoundException {
-    return snapshotResponse(key, SnapshotReqParams.forDataFile(ref, SnapshotFormat.NESSIE_SNAPSHOT))
-        .thenApply(
+    return snapshotResponse(
+            key,
+            SnapshotReqParams.forDataFile(parseRefPathString(ref), SnapshotFormat.NESSIE_SNAPSHOT))
+        .map(
             snapshotResponse -> {
               NessieTableSnapshot tableSnapshot =
                   snapshotResponse
@@ -243,60 +241,28 @@ public class CatalogTransportResource
             });
   }
 
-  private CompletionStage<Response> snapshotBased(
-      ContentKey key, SnapshotReqParams snapshotReqParams) throws NessieNotFoundException {
-    return snapshotResponse(key, snapshotReqParams)
-        .thenApply(CatalogTransportResource::snapshotToResponse);
-  }
-
-  private CompletionStage<SnapshotResponse> snapshotResponse(
-      ContentKey key, SnapshotReqParams snapshotReqParams) throws NessieNotFoundException {
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo.getRequestUri(), snapshotReqParams.snapshotFormat());
-
-    return catalogService.retrieveTableSnapshot(snapshotReqParams, key, catalogUriResolver);
-  }
-
-  private static Response snapshotToResponse(SnapshotResponse snapshot) {
-    // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit
-    //  ID and state of the manifest-list/files to reflect "in-place" changes, like
-    //  compaction/optimization)
-
-    // TODO need the effective Nessie reference incl commit-ID here, add as a HTTP response header?
-
-    Optional<Object> entity = snapshot.entityObject();
-    if (entity.isPresent()) {
-      return finalizeResponse(Response.ok(entity.get()), snapshot);
-    }
-
-    // TODO do we need a BufferedOutputStream via StreamingOutput.write ?
-    return finalizeResponse(Response.ok((StreamingOutput) snapshot::produce), snapshot);
-  }
-
-  private static Response finalizeResponse(
-      Response.ResponseBuilder response, SnapshotResponse snapshot) {
-    response
-        .header("Content-Disposition", "attachment; filename=\"" + snapshot.fileName() + "\"")
-        .header("Content-Type", snapshot.contentType());
-    nessieResponseHeaders(snapshot.effectiveReference(), response::header);
-    return response.build();
-  }
-
-  private static void nessieResponseHeaders(
-      Reference reference, BiConsumer<String, String> header) {
-    header.accept("Nessie-Reference", URLEncoder.encode(reference.toPathString()));
-  }
-
   @POST
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/commit")
   @Blocking
   @Override
   @Produces(MediaType.APPLICATION_JSON)
-  public CompletionStage<Response> commit(
-      @PathParam("ref") String ref, @RequestBody CatalogCommit commit)
+  public Uni<Response> commit(
+      @PathParam("ref") String ref,
+      @RequestBody CatalogCommit commit,
+      @QueryParam("format") String format,
+      @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException, NessieConflictException {
 
-    return catalogService.commit(ref, commit).thenApply(v -> Response.ok().build());
+    ParsedReference reference = parseRefPathString(ref);
+
+    SnapshotReqParams reqParams = forSnapshotHttpReq(reference, format, specVersion);
+
+    CatalogService.CatalogUriResolver catalogUriResolver =
+        new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
+
+    return Uni.createFrom()
+        .completionStage(catalogService.commit(reference, commit, reqParams, catalogUriResolver))
+        .map(v -> Response.ok().build());
   }
 
   @POST
@@ -308,14 +274,5 @@ public class CatalogTransportResource
     ParsedReference reference = parseRefPathString(ref);
     // TODO access check
     return signer.sign(reference.name(), key.toPathString(), request);
-  }
-
-  private ParsedReference parseRefPathString(String refPathString) {
-    return resolveReferencePathElement(
-        refPathString,
-        Reference.ReferenceType.BRANCH,
-        () -> {
-          throw new IllegalArgumentException("ref path must specify a branch");
-        });
   }
 }

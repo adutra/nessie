@@ -16,6 +16,8 @@
 package org.projectnessie.catalog.service.server.tests;
 
 import static java.lang.String.format;
+import static java.net.URLEncoder.encode;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.InstanceOfAssertFactories.optional;
@@ -235,9 +237,9 @@ public class AbstractNessieCoreTests {
     var manifestListUri =
         baseUri.resolve(
             "trees/"
-                + committed.getTargetBranch().toPathString()
+                + encode(committed.getTargetBranch().toPathString(), UTF_8)
                 + "/manifest-list/"
-                + tableName
+                + encode(tableName, UTF_8)
                 + "?x=.avro");
 
     soft.assertThat(manifestListUriFromManifest).isEqualTo(manifestListUri);
@@ -253,9 +255,9 @@ public class AbstractNessieCoreTests {
           baseUri
               .resolve(
                   "trees/"
-                      + committed.getTargetBranch().toPathString()
+                      + encode(committed.getTargetBranch().toPathString(), UTF_8)
                       + "/manifest-file/"
-                      + tableName
+                      + encode(tableName, UTF_8)
                       + "?manifest-file=")
               .toString();
       while (listEntryReader.hasNext()) {
@@ -274,9 +276,9 @@ public class AbstractNessieCoreTests {
         baseUri
             .resolve(
                 "trees/"
-                    + committed.getTargetBranch().toPathString()
+                    + encode(committed.getTargetBranch().toPathString(), UTF_8)
                     + "/data-file/"
-                    + tableName
+                    + encode(tableName, UTF_8)
                     + "?token=")
             .toString();
 

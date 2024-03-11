@@ -95,6 +95,7 @@ import org.projectnessie.client.api.GetContentBuilder;
 import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.error.ErrorCode;
 import org.projectnessie.error.ImmutableNessieError;
+import org.projectnessie.error.NessieConflictException;
 import org.projectnessie.error.NessieContentNotFoundException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.Branch;
@@ -153,7 +154,7 @@ public class CatalogServiceImpl implements CatalogService {
       CatalogUriResolver catalogUriResolver,
       Consumer<Reference> effectiveReferenceConsumer)
       throws NessieNotFoundException {
-    ParsedReference reference = parseRefPathString(reqParams.ref());
+    ParsedReference reference = reqParams.ref();
 
     // TODO remove this log information / move to "trace" / remove sensitive information
     LOGGER.info(
@@ -214,7 +215,7 @@ public class CatalogServiceImpl implements CatalogService {
       SnapshotReqParams reqParams, ContentKey key, CatalogUriResolver catalogUriResolver)
       throws NessieNotFoundException {
 
-    ParsedReference reference = parseRefPathString(reqParams.ref());
+    ParsedReference reference = reqParams.ref();
 
     // TODO remove this log information / move to "trace" / remove sensitive information
     LOGGER.info(
@@ -356,10 +357,12 @@ public class CatalogServiceImpl implements CatalogService {
   }
 
   @Override
-  public CompletionStage<Void> commit(String ref, CatalogCommit commit)
-      throws NessieNotFoundException {
-    ParsedReference reference = parseRefPathString(ref);
-
+  public CompletionStage<Void> commit(
+      ParsedReference reference,
+      CatalogCommit commit,
+      SnapshotReqParams reqParams,
+      CatalogUriResolver catalogUriResolver)
+      throws NessieNotFoundException, NessieConflictException {
     GetContentBuilder contentRequest =
         nessieApi
             .getContent()

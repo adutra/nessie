@@ -49,7 +49,7 @@ public interface NessieCatalogServiceBase<SINGLE_RESPONSE, MULTI_RESPONSE> {
       String ref, ContentKey key, String fileType, String fileToken, String dataFile)
       throws NessieNotFoundException;
 
-  SINGLE_RESPONSE commit(String ref, CatalogCommit commit)
+  SINGLE_RESPONSE commit(String ref, CatalogCommit commit, String format, String specVersion)
       throws NessieNotFoundException, NessieConflictException;
 
   SigningResponse signRequest(String ref, ContentKey key, SigningRequest request)

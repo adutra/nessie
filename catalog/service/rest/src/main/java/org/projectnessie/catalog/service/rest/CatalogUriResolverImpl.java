@@ -15,10 +15,10 @@
  */
 package org.projectnessie.catalog.service.rest;
 
+import static java.net.URLEncoder.encode;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URI;
-import java.net.URLEncoder;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
@@ -31,9 +31,22 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
   private final URI baseUri;
   private final SnapshotFormat snapshotFormat;
 
-  CatalogUriResolverImpl(URI requestUri, SnapshotFormat snapshotFormat) {
+  CatalogUriResolverImpl(ExternalBaseUri requestUri, SnapshotFormat snapshotFormat) {
     this.snapshotFormat = snapshotFormat;
-    baseUri = requestUri.resolve("../..");
+    this.baseUri = requestUri.catalogBaseURI();
+  }
+
+  @Override
+  public URI icebergSnapshot(
+      Reference effectiveReference, ContentKey key, NessieTableSnapshot snapshot) {
+    String format = snapshotFormat.asImported() ? "iceberg_imported" : "iceberg";
+    return baseUri.resolve(
+        "trees/"
+            + encode(effectiveReference.toPathString(), UTF_8)
+            + "/snapshot/"
+            + encode(key.toPathString(), UTF_8)
+            + "?format="
+            + format);
   }
 
   @Override
@@ -43,9 +56,10 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
     return snapshotFormat.asImported()
         ? URI.create(snapshot.icebergManifestListLocation())
         : baseUri.resolve(
-            effectiveReference.toPathString()
+            "trees/"
+                + encode(effectiveReference.toPathString(), UTF_8)
                 + "/manifest-list/"
-                + key.toPathString()
+                + encode(key.toPathString(), UTF_8)
                 + "?x=.avro");
   }
 
@@ -54,11 +68,12 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
       Reference effectiveReference, ContentKey key, NessieId manifestFileId) {
     // TODO memoize toPathString representations
     return baseUri.resolve(
-        effectiveReference.toPathString()
+        "trees/"
+            + encode(effectiveReference.toPathString(), UTF_8)
             + "/manifest-file/"
-            + key.toPathString()
+            + encode(key.toPathString(), UTF_8)
             + "?manifest-file="
-            + URLEncoder.encode(manifestFileId.idAsBase64(), UTF_8)
+            + encode(manifestFileId.idAsBase64(), UTF_8)
             + ".avro");
   }
 
@@ -73,17 +88,18 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
     String fileFormatParam =
         dataFile.endsWith(fileFormat.fileExtension())
             ? ""
-            : "&format=" + URLEncoder.encode(fileFormat.name(), UTF_8);
+            : "&format=" + encode(fileFormat.name(), UTF_8);
     // TODO memoize toPathString representations
     return baseUri.resolve(
-        effectiveReference.toPathString()
+        "trees/"
+            + encode(effectiveReference.toPathString(), UTF_8)
             + "/data-file/"
-            + key.toPathString()
+            + encode(key.toPathString(), UTF_8)
             + "?token="
-            + URLEncoder.encode(fileToken, UTF_8)
+            + encode(fileToken, UTF_8)
             // Keep 'file' parameter at the end
             + "&file="
-            + URLEncoder.encode(dataFile, UTF_8)
+            + encode(dataFile, UTF_8)
             + fileFormatParam);
   }
 }
