@@ -17,11 +17,13 @@ package org.projectnessie.catalog.service.impl;
 
 import static org.projectnessie.catalog.service.impl.EntitySnapshotObj.OBJ_TYPE;
 
+import jakarta.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.files.api.ObjectIO;
+import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
 import org.projectnessie.model.Content;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 import org.projectnessie.nessie.tasks.api.TaskBehavior;
@@ -48,7 +50,12 @@ public interface EntitySnapshotTaskRequest
   @Override
   ObjId objId();
 
+  @Nullable
   Content content();
+
+  @Value.Auxiliary
+  @Nullable
+  NessieEntitySnapshot<?> snapshot();
 
   @Value.Auxiliary
   Persist persist();
@@ -72,7 +79,13 @@ public interface EntitySnapshotTaskRequest
   }
 
   static EntitySnapshotTaskRequest entitySnapshotTaskRequest(
-      ObjId objId, Content content, Persist persist, ObjectIO objectIO, Executor executor) {
-    return ImmutableEntitySnapshotTaskRequest.of(objId, content, persist, objectIO, executor);
+      ObjId objId,
+      Content content,
+      NessieEntitySnapshot<?> snapshot,
+      Persist persist,
+      ObjectIO objectIO,
+      Executor executor) {
+    return ImmutableEntitySnapshotTaskRequest.of(
+        objId, content, snapshot, persist, objectIO, executor);
   }
 }

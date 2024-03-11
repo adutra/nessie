@@ -18,6 +18,7 @@ package org.projectnessie.catalog.service.impl;
 import static java.util.concurrent.CompletableFuture.completedStage;
 import static org.projectnessie.catalog.service.impl.EntitySnapshotTaskRequest.entitySnapshotTaskRequest;
 import static org.projectnessie.catalog.service.impl.ManifestGroupTaskRequest.manifestGroupTaskRequest;
+import static org.projectnessie.catalog.service.impl.Util.nessieIdToObjId;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -61,7 +62,12 @@ public class IcebergStuff {
   public CompletionStage<NessieTableSnapshot> retrieveIcebergSnapshot(
       ObjId snapshotId, Content content, SnapshotFormat format) {
     EntitySnapshotTaskRequest snapshotTaskRequest =
-        entitySnapshotTaskRequest(snapshotId, content, persist, objectIO, executor);
+        entitySnapshotTaskRequest(snapshotId, content, null, persist, objectIO, executor);
+    return triggerIcebergTableSnapshot(format, snapshotTaskRequest);
+  }
+
+  private CompletionStage<NessieTableSnapshot> triggerIcebergTableSnapshot(
+      SnapshotFormat format, EntitySnapshotTaskRequest snapshotTaskRequest) {
     // TODO Handle hash-collision - when entity-snapshot refers to a different(!) snapshot
     return tasksService
         .forPersist(persist)
@@ -78,6 +84,14 @@ public class IcebergStuff {
               }
               return completedStage(mapToTableSnapshot(snapshotObj, null));
             });
+  }
+
+  public CompletionStage<NessieTableSnapshot> storeSnapshot(
+      NessieTableSnapshot snapshot, Content content) {
+    EntitySnapshotTaskRequest snapshotTaskRequest =
+        entitySnapshotTaskRequest(
+            nessieIdToObjId(snapshot.id()), content, snapshot, persist, objectIO, executor);
+    return triggerIcebergTableSnapshot(SnapshotFormat.ICEBERG_MANIFEST_LIST, snapshotTaskRequest);
   }
 
   private CompletionStage<NessieTableSnapshot> retrieveManifestList(EntitySnapshotObj snapshotObj) {
