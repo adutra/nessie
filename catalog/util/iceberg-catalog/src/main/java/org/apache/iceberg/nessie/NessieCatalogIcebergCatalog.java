@@ -95,7 +95,6 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
         contentKey,
         client.withReference(tr.getReference(), tr.getHash()),
         new NessieContentAwareFileIO((DelegateFileIO) fileIO, contentKey.toPathString()),
-        properties(),
         sendUpdatesToServer);
   }
 

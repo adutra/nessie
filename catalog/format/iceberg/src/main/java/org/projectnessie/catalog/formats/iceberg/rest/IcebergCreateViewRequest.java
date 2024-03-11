@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.formats.iceberg.rest;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -34,12 +35,14 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 public interface IcebergCreateViewRequest {
   String name();
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   String location();
 
-  IcebergSchema schema();
-
   IcebergViewVersion viewVersion();
 
+  IcebergSchema schema();
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Map<String, String> properties();
 }

@@ -39,15 +39,15 @@ public interface IcebergManifestFile {
 
   @Nullable
   @jakarta.annotation.Nullable
-  Integer addedDataFilesCount();
+  Integer addedFilesCount();
 
   @Nullable
   @jakarta.annotation.Nullable
-  Integer existingDataFilesCount();
+  Integer existingFilesCount();
 
   @Nullable
   @jakarta.annotation.Nullable
-  Integer deletedDataFilesCount();
+  Integer deletedFilesCount();
 
   @Nullable
   @jakarta.annotation.Nullable
@@ -101,13 +101,13 @@ public interface IcebergManifestFile {
     Builder addedSnapshotId(@Nullable Long addedSnapshotId);
 
     @CanIgnoreReturnValue
-    Builder addedDataFilesCount(@Nullable Integer addedDataFilesCount);
+    Builder addedFilesCount(@Nullable Integer addedFilesCount);
 
     @CanIgnoreReturnValue
-    Builder existingDataFilesCount(@Nullable Integer existingDataFilesCount);
+    Builder existingFilesCount(@Nullable Integer existingFilesCount);
 
     @CanIgnoreReturnValue
-    Builder deletedDataFilesCount(@Nullable Integer deletedDataFilesCount);
+    Builder deletedFilesCount(@Nullable Integer deletedFilesCount);
 
     @CanIgnoreReturnValue
     Builder addedRowsCount(@Nullable Long addedRowsCount);

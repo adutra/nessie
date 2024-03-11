@@ -117,11 +117,11 @@ final class ImportManifestFileWorker {
             //
             // TODO the following block is probably duplicate effort, since
             //  addToNessieFileManifestGroupEntryBuilder() does it as well
-            .addedDataFilesCount(manifestFile.addedDataFilesCount())
+            .addedDataFilesCount(manifestFile.addedFilesCount())
             .addedRowsCount(manifestFile.addedRowsCount())
-            .deletedDataFilesCount(manifestFile.deletedDataFilesCount())
+            .deletedDataFilesCount(manifestFile.deletedFilesCount())
             .deletedRowsCount(manifestFile.deletedRowsCount())
-            .existingDataFilesCount(manifestFile.existingDataFilesCount())
+            .existingDataFilesCount(manifestFile.existingFilesCount())
             .existingRowsCount(manifestFile.existingRowsCount())
             //
             .keyMetadata(manifestFile.keyMetadata());

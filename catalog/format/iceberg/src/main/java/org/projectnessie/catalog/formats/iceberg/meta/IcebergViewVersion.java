@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.formats.iceberg.meta;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -39,6 +40,7 @@ public interface IcebergViewVersion {
 
   Map<String, String> summary();
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   String defaultCatalog();
 

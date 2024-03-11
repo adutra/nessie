@@ -67,6 +67,7 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionFieldSummary;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionStatisticsFile;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshotLogEntry;
@@ -597,6 +598,14 @@ public class NessieModelIceberg {
       }
     }
 
+    for (IcebergPartitionStatisticsFile partitionStatistic : iceberg.partitionStatistics()) {
+      // TODO needed??
+      // TODO add test(s) for this case??
+      partitionStatistic.snapshotId();
+      partitionStatistic.statisticsPath();
+      partitionStatistic.fileSizeInBytes();
+    }
+
     for (IcebergHistoryEntry historyEntry : iceberg.metadataLog()) {
       // TODO needed??
       // TODO add test(s) for this case??
@@ -977,11 +986,11 @@ public class NessieModelIceberg {
             .minSequenceNumber(manifestFile.minSequenceNumber())
             .partitionSpecId(manifestFile.partitionSpecId())
             //
-            .addedDataFilesCount(manifestFile.addedDataFilesCount())
+            .addedDataFilesCount(manifestFile.addedFilesCount())
             .addedRowsCount(manifestFile.addedRowsCount())
-            .deletedDataFilesCount(manifestFile.deletedDataFilesCount())
+            .deletedDataFilesCount(manifestFile.deletedFilesCount())
             .deletedRowsCount(manifestFile.deletedRowsCount())
-            .existingDataFilesCount(manifestFile.existingDataFilesCount())
+            .existingDataFilesCount(manifestFile.existingFilesCount())
             .existingRowsCount(manifestFile.existingRowsCount())
             //
             .keyMetadata(manifestFile.keyMetadata());
@@ -1083,11 +1092,11 @@ public class NessieModelIceberg {
         .partitionSpecId(groupEntry.partitionSpecId())
         .partitions(partitions)
         //
-        .addedDataFilesCount(groupEntry.addedDataFilesCount())
+        .addedFilesCount(groupEntry.addedDataFilesCount())
         .addedRowsCount(groupEntry.addedRowsCount())
-        .deletedDataFilesCount(groupEntry.deletedDataFilesCount())
+        .deletedFilesCount(groupEntry.deletedDataFilesCount())
         .deletedRowsCount(groupEntry.deletedRowsCount())
-        .existingDataFilesCount(groupEntry.existingDataFilesCount())
+        .existingFilesCount(groupEntry.existingDataFilesCount())
         .existingRowsCount(groupEntry.existingRowsCount())
         //
         .keyMetadata(groupEntry.keyMetadata())

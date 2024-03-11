@@ -240,11 +240,11 @@ public class AvroSerializeBench {
                 .sequenceNumber(random.nextLong(1, 10_000_000))
                 .minSequenceNumber(random.nextLong(1, 10_000_000))
                 .addedSnapshotId(random.nextLong(1, Long.MAX_VALUE))
-                .addedDataFilesCount(random.nextInt(1, 250))
+                .addedFilesCount(random.nextInt(1, 250))
                 .addedRowsCount(random.nextLong(500, 10_000_000))
-                .existingDataFilesCount(0)
+                .existingFilesCount(0)
                 .existingRowsCount(0L)
-                .deletedDataFilesCount(0)
+                .deletedFilesCount(0)
                 .deletedRowsCount(0L)
                 .partitions(
                     IntStream.range(1, partitionSpecFields)
@@ -511,11 +511,11 @@ public class AvroSerializeBench {
         default0L.applyAsLong(file.sequenceNumber()),
         default0L.applyAsLong(file.minSequenceNumber()),
         file.addedSnapshotId(),
-        file.addedDataFilesCount(),
+        file.addedFilesCount(),
         file.addedRowsCount(),
-        file.existingDataFilesCount(),
+        file.existingFilesCount(),
         file.existingRowsCount(),
-        file.deletedDataFilesCount(),
+        file.deletedFilesCount(),
         file.deletedRowsCount(),
         file.partitions().stream()
             .map(AvroSerializeBench::toPartitionFieldSummary)

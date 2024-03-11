@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.formats.iceberg.rest;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -35,5 +36,6 @@ public interface IcebergLoadViewResponse {
 
   IcebergViewMetadata metadata();
 
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Map<String, String> config();
 }

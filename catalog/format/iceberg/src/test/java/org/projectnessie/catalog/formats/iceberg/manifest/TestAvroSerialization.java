@@ -218,11 +218,11 @@ public class TestAvroSerialization {
             .keyMetadata(toByteArray(file.keyMetadata()))
             .manifestLength(file.length())
             .manifestPath(file.path())
-            .addedDataFilesCount(file.addedFilesCount())
+            .addedFilesCount(file.addedFilesCount())
             .addedRowsCount(file.addedRowsCount())
-            .existingDataFilesCount(file.existingFilesCount())
+            .existingFilesCount(file.existingFilesCount())
             .existingRowsCount(file.existingRowsCount())
-            .deletedDataFilesCount(file.deletedFilesCount())
+            .deletedFilesCount(file.deletedFilesCount())
             .deletedRowsCount(file.deletedRowsCount())
             .partitions(
                 file.partitions().stream()
@@ -256,11 +256,11 @@ public class TestAvroSerialization {
         default0L.applyAsLong(file.sequenceNumber()),
         default0L.applyAsLong(file.minSequenceNumber()),
         file.addedSnapshotId(),
-        file.addedDataFilesCount(),
+        file.addedFilesCount(),
         file.addedRowsCount(),
-        file.existingDataFilesCount(),
+        file.existingFilesCount(),
         file.existingRowsCount(),
-        file.deletedDataFilesCount(),
+        file.deletedFilesCount(),
         file.deletedRowsCount(),
         file.partitions().stream()
             .map(TestAvroSerialization::toPartitionFieldSummary)
@@ -308,11 +308,11 @@ public class TestAvroSerialization {
                     .manifestLength(123L)
                     .addedSnapshotId(4242L)
                     .content(DATA)
-                    .addedDataFilesCount(10)
+                    .addedFilesCount(10)
                     .addedRowsCount(1000L)
-                    .existingDataFilesCount(20)
+                    .existingFilesCount(20)
                     .existingRowsCount(2000L)
-                    .deletedDataFilesCount(30)
+                    .deletedFilesCount(30)
                     .deletedRowsCount(3000L)
                     .build(),
                 IcebergManifestFile.builder()
@@ -321,11 +321,11 @@ public class TestAvroSerialization {
                     .manifestLength(456L)
                     .addedSnapshotId(666L)
                     .content(DATA)
-                    .addedDataFilesCount(11)
+                    .addedFilesCount(11)
                     .addedRowsCount(1001L)
-                    .existingDataFilesCount(21)
+                    .existingFilesCount(21)
                     .existingRowsCount(2001L)
-                    .deletedDataFilesCount(31)
+                    .deletedFilesCount(31)
                     .deletedRowsCount(3001L)
                     .build())),
         arguments(
@@ -345,11 +345,11 @@ public class TestAvroSerialization {
                     .manifestLength(123L)
                     .addedSnapshotId(4242L)
                     .content(DATA)
-                    .addedDataFilesCount(10)
+                    .addedFilesCount(10)
                     .addedRowsCount(1000L)
-                    .existingDataFilesCount(20)
+                    .existingFilesCount(20)
                     .existingRowsCount(2000L)
-                    .deletedDataFilesCount(30)
+                    .deletedFilesCount(30)
                     .deletedRowsCount(3000L)
                     .build(),
                 IcebergManifestFile.builder()
@@ -360,11 +360,11 @@ public class TestAvroSerialization {
                     .manifestLength(456L)
                     .addedSnapshotId(666L)
                     .content(DELETES)
-                    .addedDataFilesCount(11)
+                    .addedFilesCount(11)
                     .addedRowsCount(1001L)
-                    .existingDataFilesCount(21)
+                    .existingFilesCount(21)
                     .existingRowsCount(2001L)
-                    .deletedDataFilesCount(31)
+                    .deletedFilesCount(31)
                     .deletedRowsCount(3001L)
                     .build())));
   }
@@ -602,7 +602,7 @@ public class TestAvroSerialization {
         .withFormat(FileFormat.valueOf(dataFile.fileFormat().name()))
         .withFileSizeInBytes(dataFile.fileSizeInBytes())
         .withRecordCount(dataFile.recordCount())
-        .withEqualityFieldIds(dataFile.equalityIds())
+        // (deprecated since Iceberg 1.5) .withEqualityFieldIds(dataFile.equalityIds())
         .withPartition(partitionData)
         .withPath(dataFile.filePath())
         .withMetrics(
@@ -632,11 +632,11 @@ public class TestAvroSerialization {
         icebergManifestFile.sequenceNumber(),
         icebergManifestFile.minSequenceNumber(),
         icebergManifestFile.addedSnapshotId(),
-        icebergManifestFile.addedDataFilesCount(),
+        icebergManifestFile.addedFilesCount(),
         icebergManifestFile.addedRowsCount(),
-        icebergManifestFile.existingDataFilesCount(),
+        icebergManifestFile.existingFilesCount(),
         icebergManifestFile.existingRowsCount(),
-        icebergManifestFile.deletedDataFilesCount(),
+        icebergManifestFile.deletedFilesCount(),
         icebergManifestFile.deletedRowsCount(),
         partitions,
         toByteBuffer(icebergManifestFile.keyMetadata()));
@@ -857,11 +857,11 @@ public class TestAvroSerialization {
                 .addedSnapshotId(666L)
                 .sequenceNumber(123L)
                 .minSequenceNumber(111L)
-                .addedDataFilesCount(3)
+                .addedFilesCount(3)
                 .addedRowsCount(33L)
-                .existingDataFilesCount(3)
+                .existingFilesCount(3)
                 .existingRowsCount(33L)
-                .deletedDataFilesCount(3)
+                .deletedFilesCount(3)
                 .deletedRowsCount(33L)
                 .build(),
             null,

@@ -20,7 +20,6 @@ import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import org.apache.iceberg.MetadataUpdate;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.StructLike;
@@ -72,9 +71,8 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
       ContentKey key,
       NessieIcebergClient client,
       NessieContentAwareFileIO fileIO,
-      Map<String, String> catalogOptions,
       boolean sendUpdatesToServer) {
-    super(key, client, new RedirectingFileIO(new HttpFileIO(fileIO), key, client), catalogOptions);
+    super(key, client, new RedirectingFileIO(new HttpFileIO(fileIO), key, client));
 
     this.client = client;
     this.key = key;

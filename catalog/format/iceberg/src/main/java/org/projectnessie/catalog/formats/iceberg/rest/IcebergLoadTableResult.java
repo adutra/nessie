@@ -26,6 +26,9 @@ public interface IcebergLoadTableResult extends IcebergBaseTableResult {
   @Override
   String metadataLocation();
 
+  @Override
+  IcebergTableMetadata metadata();
+
   Map<String, String> config();
 
   interface Builder<R extends IcebergLoadTableResult, B extends Builder<R, B>>

@@ -161,12 +161,12 @@ public class IcebergColumnStatsCollector {
     }
 
     manifestFile
-        .deletedDataFilesCount(deletedDataFilesCount)
+        .deletedFilesCount(deletedDataFilesCount)
         .deletedRowsCount(deletedRowsCount)
         .addedRowsCount(addedRowsCount)
-        .addedDataFilesCount(addedDataFilesCount)
+        .addedFilesCount(addedDataFilesCount)
         .existingRowsCount(existingRowsCount)
-        .existingDataFilesCount(existingDataFilesCount);
+        .existingFilesCount(existingDataFilesCount);
   }
 
   private static final class PartitionFieldSummaryBuilder {

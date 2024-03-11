@@ -103,6 +103,8 @@ public interface IcebergUpdateRequirement {
   @JsonSerialize(as = ImmutableAssertViewUUID.class)
   @JsonDeserialize(as = ImmutableAssertViewUUID.class)
   interface AssertViewUUID extends IcebergUpdateRequirement {
+    String uuid();
+
     @Override
     default void check(
         NessieTableSnapshot snapshot,

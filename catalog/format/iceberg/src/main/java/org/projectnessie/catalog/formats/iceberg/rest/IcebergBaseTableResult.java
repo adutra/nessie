@@ -21,9 +21,9 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
 
 public interface IcebergBaseTableResult {
 
-  String metadataLocation();
-
   IcebergTableMetadata metadata();
+
+  String metadataLocation();
 
   interface Builder<R extends IcebergBaseTableResult, B extends Builder<R, B>> {
     @CanIgnoreReturnValue

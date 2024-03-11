@@ -112,6 +112,8 @@ public interface IcebergTableMetadata {
 
   List<IcebergStatisticsFile> statistics();
 
+  List<IcebergPartitionStatisticsFile> partitionStatistics();
+
   List<IcebergSnapshotLogEntry> snapshotLog();
 
   List<IcebergHistoryEntry> metadataLog();
@@ -279,6 +281,18 @@ public interface IcebergTableMetadata {
 
     @CanIgnoreReturnValue
     Builder addAllStatistics(Iterable<? extends IcebergStatisticsFile> elements);
+
+    @CanIgnoreReturnValue
+    Builder addPartitionStatistic(IcebergPartitionStatisticsFile element);
+
+    @CanIgnoreReturnValue
+    Builder addPartitionStatistics(IcebergPartitionStatisticsFile... elements);
+
+    @CanIgnoreReturnValue
+    Builder partitionStatistics(Iterable<? extends IcebergPartitionStatisticsFile> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllPartitionStatistics(Iterable<? extends IcebergPartitionStatisticsFile> elements);
 
     @CanIgnoreReturnValue
     Builder addSnapshotLog(IcebergSnapshotLogEntry element);
