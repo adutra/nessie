@@ -17,12 +17,13 @@ package org.projectnessie.catalog.formats.iceberg.fixtures;
 
 import static java.util.Collections.singletonList;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField.nestedField;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_COLUMN_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SCHEMA_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SEQUENCE_NUMBER;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SORT_ORDER_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SPEC_ID;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.NO_SNAPSHOT_ID;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.INITIAL_SPEC_ID;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema.INITIAL_COLUMN_ID;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema.INITIAL_SCHEMA_ID;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSortOrder.INITIAL_SORT_ORDER_ID;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata.INITIAL_PARTITION_ID;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata.INITIAL_SEQUENCE_NUMBER;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata.NO_SNAPSHOT_ID;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.binaryType;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.booleanType;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.dateType;
@@ -108,7 +109,7 @@ public class IcebergFixtures {
         .location("table-location")
         .currentSnapshotId(NO_SNAPSHOT_ID)
         .lastColumnId(INITIAL_COLUMN_ID)
-        .lastPartitionId(INITIAL_COLUMN_ID)
+        .lastPartitionId(INITIAL_PARTITION_ID)
         .lastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
         .currentSchemaId(INITIAL_SCHEMA_ID)
         .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
@@ -125,7 +126,7 @@ public class IcebergFixtures {
         .location("table-location")
         .currentSnapshotId(NO_SNAPSHOT_ID)
         .lastColumnId(schemaAllTypes.fields().get(schemaAllTypes.fields().size() - 1).id())
-        .lastPartitionId(INITIAL_COLUMN_ID)
+        .lastPartitionId(INITIAL_PARTITION_ID)
         .lastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
         .currentSchemaId(schemaAllTypes.schemaId())
         .defaultSortOrderId(INITIAL_SORT_ORDER_ID)
@@ -143,7 +144,7 @@ public class IcebergFixtures {
         .location("table-location")
         .currentSnapshotId(11)
         .lastColumnId(schemaAllTypes.fields().get(schemaAllTypes.fields().size() - 1).id())
-        .lastPartitionId(INITIAL_COLUMN_ID)
+        .lastPartitionId(INITIAL_PARTITION_ID)
         .lastSequenceNumber(INITIAL_SEQUENCE_NUMBER)
         .currentSchemaId(schemaAllTypes.schemaId())
         .defaultSortOrderId(INITIAL_SORT_ORDER_ID)

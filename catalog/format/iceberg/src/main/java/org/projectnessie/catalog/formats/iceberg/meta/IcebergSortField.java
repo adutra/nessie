@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.Objects;
 import org.immutables.value.Value;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -71,6 +72,20 @@ public interface IcebergSortField {
         ASC.equals(direction()) || DESC.equals(direction()),
         "Illegal value for direction: %s",
         nullOrder());
+  }
+
+  default boolean satisfies(IcebergSortField other) {
+    if (Objects.equals(this, other)) {
+      return true;
+    } else if (sourceId() != other.sourceId()
+        || !direction().equals(other.direction())
+        || !nullOrder().equals(other.nullOrder())) {
+      return false;
+    }
+
+    // TODO add an `IcebergTransform` type and implement checks for the following
+    //  return transform().satisfiesOrderOf(other.transform());
+    return transform().equals(other.transform());
   }
 
   interface Builder {

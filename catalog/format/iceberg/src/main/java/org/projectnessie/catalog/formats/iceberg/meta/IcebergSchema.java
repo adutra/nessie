@@ -35,6 +35,9 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public interface IcebergSchema {
+  int INITIAL_SCHEMA_ID = 0;
+  int INITIAL_COLUMN_ID = 0;
+
   static Builder builder() {
     return ImmutableIcebergSchema.builder();
   }
@@ -54,6 +57,8 @@ public interface IcebergSchema {
     return 0;
   }
 
+  IcebergSchema withSchemaId(int schemaId);
+
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<Integer> identifierFieldIds();
 
@@ -68,6 +73,14 @@ public interface IcebergSchema {
     //  see org.apache.iceberg.avro.AvroSchemaUtil.convert(org.apache.avro.Schema)
     // TODO "r102" is the partition-spec record-name - need to use the table name
     return IcebergType.structType(fields(), recordName).avroSchema(1);
+  }
+
+  default boolean sameSchema(IcebergSchema anotherSchema) {
+    return fields().equals(anotherSchema.fields())
+        // TODO is the above the same as
+        //   asStruct().equals(anotherSchema.asStruct())
+        //   ??
+        && identifierFieldIds().equals(anotherSchema.identifierFieldIds());
   }
 
   interface Builder {

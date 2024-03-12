@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.model.snapshot;
 
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.function.Function.identity;
 import static org.projectnessie.catalog.model.schema.NessiePartitionDefinition.NO_PARTITION_SPEC_ID;
 import static org.projectnessie.catalog.model.schema.NessieSchema.NO_SCHEMA_ID;
@@ -29,6 +30,7 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -216,37 +218,45 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @Value.Lazy
   @JsonIgnore
   @Nullable
-  default NessieSchema currentSchemaObject() {
+  default Optional<NessieSchema> currentSchemaObject() {
     for (NessieSchema schema : schemas()) {
       if (schema.id().equals(currentSchemaId())) {
-        return schema;
+        return Optional.of(schema);
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   @Value.Lazy
   @JsonIgnore
   @Nullable
-  default NessiePartitionDefinition currentPartitionDefinitionObject() {
+  default Optional<NessiePartitionDefinition> currentPartitionDefinitionObject() {
     for (NessiePartitionDefinition partitionDefinition : partitionDefinitions()) {
       if (partitionDefinition.id().equals(currentPartitionDefinitionId())) {
-        return partitionDefinition;
+        return Optional.of(partitionDefinition);
       }
     }
-    return null;
+    return Optional.empty();
   }
 
   @Value.Lazy
   @JsonIgnore
   @Nullable
-  default NessieSortDefinition currentSortDefinitionObject() {
+  default Optional<NessieSortDefinition> currentSortDefinitionObject() {
     for (NessieSortDefinition sortDefinition : sortDefinitions()) {
       if (sortDefinition.id().equals(currentSortDefinitionId())) {
-        return sortDefinition;
+        return Optional.of(sortDefinition);
       }
     }
-    return null;
+    return Optional.empty();
+  }
+
+  @Value.Check
+  default void check() {
+    // 0 or 1 in icebergLastPartitionId() will cause duplicate field IDs in Avro files!
+    Integer i = icebergLastPartitionId();
+    checkState(
+        i == null || i >= 999, "Iceberg lastPartitionId, if present, must be >= 999, but is %s", i);
   }
 
   static Builder builder() {

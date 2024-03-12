@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.formats.iceberg.rest;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -28,6 +30,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import org.immutables.value.Value;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionStatisticsFile;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
@@ -99,6 +102,10 @@ public interface IcebergMetadataUpdate {
   interface UpgradeFormatVersion extends IcebergMetadataUpdate {
 
     int formatVersion();
+
+    static UpgradeFormatVersion upgradeFormatVersion(int formatVersion) {
+      return ImmutableUpgradeFormatVersion.of(formatVersion);
+    }
 
     @Override
     default void apply(IcebergMetadataUpdateState state) {
@@ -310,6 +317,12 @@ public interface IcebergMetadataUpdate {
       NessieModelIceberg.addPartitionSpec(this, state);
     }
 
+    @Value.Check
+    default void check() {
+      int id = spec().specId();
+      checkState(id >= 0, "Illegal spec-ID %s for %s", id);
+    }
+
     static AddPartitionSpec addPartitionSpec(IcebergPartitionSpec spec) {
       return ImmutableAddPartitionSpec.of(spec);
     }
@@ -363,6 +376,17 @@ public interface IcebergMetadataUpdate {
     @Override
     default void apply(IcebergMetadataUpdateState state) {
       NessieModelIceberg.addSortOrder(this, state);
+    }
+
+    @Value.Check
+    default void check() {
+      int id = sortOrder().orderId();
+      boolean unsorted = sortOrder().isUnsorted();
+      checkState(
+          id > 0 || (unsorted && id == 0),
+          "Illegal order-ID %s for %s",
+          id,
+          unsorted ? "unsorted" : "sort order");
     }
 
     static AddSortOrder addSortOrder(IcebergSortOrder sortOrder) {

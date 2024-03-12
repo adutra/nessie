@@ -15,6 +15,9 @@
  */
 package org.projectnessie.catalog.formats.iceberg.fixtures;
 
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField.nestedField;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField.partitionField;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.MIN_PARTITION_ID;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableProperties.WRITE_METRICS_MAX_INFERRED_COLUMNS;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -28,7 +31,6 @@ import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
@@ -151,8 +153,7 @@ public final class IcebergSchemaGenerator {
     public IcebergGeneratorSpec numColumns(int numColumns) {
       for (int i = 0; i < numColumns; i++, colNum++, fieldId++) {
         IcebergNestedField field =
-            IcebergNestedField.nestedField(
-                fieldId, "col_" + colNum, true, IcebergType.longType(), null);
+            nestedField(fieldId, "col_" + colNum, true, IcebergType.longType(), null);
         schema.addFields(field);
         columnGenerators.put(fieldId, () -> ThreadLocalRandom.current().nextLong(0, 1_000_000));
       }
@@ -163,8 +164,7 @@ public final class IcebergSchemaGenerator {
     public IcebergGeneratorSpec numTextColumns(int amount, int minLength, int maxLength) {
       for (int i = 0; i < amount; i++, colNum++, fieldId++) {
         IcebergNestedField field =
-            IcebergNestedField.nestedField(
-                fieldId, "col_" + colNum, true, IcebergType.stringType(), null);
+            nestedField(fieldId, "col_" + colNum, true, IcebergType.stringType(), null);
         schema.addFields(field);
         columnGenerators.put(fieldId, () -> generateString(minLength, maxLength));
       }
@@ -175,11 +175,10 @@ public final class IcebergSchemaGenerator {
     public IcebergGeneratorSpec numPartitionColumns(int numPartitionColumns) {
       for (int i = 0; i < numPartitionColumns; i++, partNum++, fieldId++) {
         IcebergNestedField field =
-            IcebergNestedField.nestedField(
-                fieldId, "part_" + partNum, true, IcebergType.longType(), null);
+            nestedField(fieldId, "part_" + partNum, true, IcebergType.longType(), null);
         schema.addFields(field);
         part.addFields(
-            IcebergPartitionField.partitionField("p_" + partNum, "identity", fieldId, fieldId));
+            partitionField("p_" + partNum, "identity", fieldId, fieldId + MIN_PARTITION_ID));
         partitionGenerators.put(fieldId, () -> ThreadLocalRandom.current().nextLong(0, 1_000_000));
       }
       return this;
@@ -189,11 +188,10 @@ public final class IcebergSchemaGenerator {
     public IcebergGeneratorSpec numTextPartitionColumns(int amount, int minLength, int maxLength) {
       for (int i = 0; i < amount; i++, partNum++, fieldId++) {
         IcebergNestedField field =
-            IcebergNestedField.nestedField(
-                fieldId, "part_" + partNum, true, IcebergType.stringType(), null);
+            nestedField(fieldId, "part_" + partNum, true, IcebergType.stringType(), null);
         schema.addFields(field);
         part.addFields(
-            IcebergPartitionField.partitionField("p_" + partNum, "identity", fieldId, fieldId));
+            partitionField("p_" + partNum, "identity", fieldId, fieldId + MIN_PARTITION_ID));
         partitionGenerators.put(fieldId, () -> generateString(minLength, maxLength));
       }
       return this;

@@ -92,4 +92,53 @@ public interface NessieId extends Hashable {
   default void hash(NessieIdHasher idHasher) {
     idHasher.hash(id());
   }
+
+  static NessieId transientNessieId() {
+    return NessieIdTransient.INSTANCE;
+  }
+
+  /**
+   * A form of {@link NessieId} that does not contain any data and cannot be compared of serialized.
+   * This {@link NessieId} implementation should be used only in transient objects.
+   */
+  final class NessieIdTransient implements NessieId {
+    private static final NessieId INSTANCE = new NessieIdTransient();
+
+    private NessieIdTransient() {}
+
+    @Override
+    public NessieId compositeWithUUID(UUID id) {
+      throw new UnsupportedOperationException("Transient ID");
+    }
+
+    @Override
+    public UUID uuidFromComposite() {
+      throw new UnsupportedOperationException("Transient ID");
+    }
+
+    @Override
+    public ByteBuffer id() {
+      throw new UnsupportedOperationException("Transient ID");
+    }
+
+    @Override
+    public String idAsString() {
+      throw new UnsupportedOperationException("Transient ID");
+    }
+
+    @Override
+    public String idAsBase64() {
+      throw new UnsupportedOperationException("Transient ID");
+    }
+
+    @Override
+    public byte[] idAsBytes() {
+      throw new UnsupportedOperationException("Transient ID");
+    }
+
+    @Override
+    public String idAsStringWithUUID() {
+      throw new UnsupportedOperationException("Transient ID");
+    }
+  }
 }

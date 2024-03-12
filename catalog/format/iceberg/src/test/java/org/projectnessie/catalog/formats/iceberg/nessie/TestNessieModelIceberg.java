@@ -21,6 +21,8 @@ import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataBare;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataBareWithSchema;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataSimple;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField.partitionField;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.MIN_PARTITION_ID;
 import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,7 +47,6 @@ import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
 import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
@@ -145,8 +146,8 @@ public class TestNessieModelIceberg {
         IcebergPartitionSpec.partitionSpec(
             42,
             singletonList(
-                IcebergPartitionField.partitionField(
-                    "field_part", IcebergTransform.identity().toString(), 123, 999)));
+                partitionField(
+                    "field_part", IcebergTransform.identity().toString(), 123, MIN_PARTITION_ID)));
     soft.assertThat(
             icebergJsonSerializeDeserialize(icebergPartitionSpec, IcebergPartitionSpec.class))
         .isEqualTo(icebergPartitionSpec);

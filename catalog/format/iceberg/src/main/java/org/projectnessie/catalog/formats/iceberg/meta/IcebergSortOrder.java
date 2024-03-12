@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.formats.iceberg.meta;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -23,6 +24,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -31,6 +33,8 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public interface IcebergSortOrder {
+
+  int INITIAL_SORT_ORDER_ID = 1;
 
   static Builder builder() {
     return ImmutableIcebergSortOrder.builder();
@@ -48,7 +52,34 @@ public interface IcebergSortOrder {
 
   int orderId();
 
+  IcebergSortOrder withOrderId(int orderId);
+
   List<IcebergSortField> fields();
+
+  @JsonIgnore
+  default boolean isUnsorted() {
+    return fields().isEmpty();
+  }
+
+  default boolean sameOrder(IcebergSortOrder anotherSortOrder) {
+    return fields().equals(anotherSortOrder.fields());
+  }
+
+  default boolean satisfies(IcebergSortOrder anotherSortOrder) {
+    // any ordering satisfies an unsorted ordering
+    if (anotherSortOrder.isUnsorted()) {
+      return true;
+    }
+
+    // this ordering cannot satisfy an ordering with more sort fields
+    if (anotherSortOrder.fields().size() > fields().size()) {
+      return false;
+    }
+
+    // this ordering has either more or the same number of sort fields
+    return IntStream.range(0, anotherSortOrder.fields().size())
+        .allMatch(index -> fields().get(index).satisfies(anotherSortOrder.fields().get(index)));
+  }
 
   interface Builder {
     @CanIgnoreReturnValue

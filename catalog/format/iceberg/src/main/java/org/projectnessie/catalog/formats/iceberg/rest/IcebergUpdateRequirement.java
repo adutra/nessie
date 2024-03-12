@@ -28,7 +28,11 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.annotation.Nullable;
 import java.util.Objects;
 import java.util.UUID;
+import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
+import org.projectnessie.catalog.model.schema.NessieSchema;
+import org.projectnessie.catalog.model.schema.NessieSortDefinition;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.model.ContentKey;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
@@ -65,7 +69,11 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 })
 public interface IcebergUpdateRequirement {
 
-  void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName);
+  void check(
+      NessieTableSnapshot snapshot,
+      boolean tableExists,
+      String nessieRefName,
+      ContentKey contentKey);
 
   @NessieImmutable
   @JsonTypeName("assert-table-uuid")
@@ -75,7 +83,11 @@ public interface IcebergUpdateRequirement {
     String uuid();
 
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
       UUID tableUuid = snapshot.entity().icebergUuid();
       String tableUuidString = tableUuid != null ? tableUuid.toString() : null;
       checkState(
@@ -92,7 +104,11 @@ public interface IcebergUpdateRequirement {
   @JsonDeserialize(as = ImmutableAssertViewUUID.class)
   interface AssertViewUUID extends IcebergUpdateRequirement {
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
       throw new UnsupportedOperationException("view operations not supported on tables");
     }
   }
@@ -102,9 +118,17 @@ public interface IcebergUpdateRequirement {
   @JsonSerialize(as = ImmutableAssertTableDoesNotExist.class)
   @JsonDeserialize(as = ImmutableAssertTableDoesNotExist.class)
   interface AssertTableDoesNotExist extends IcebergUpdateRequirement {
+    static AssertTableDoesNotExist assertTableDoesNotExist() {
+      return ImmutableAssertTableDoesNotExist.builder().build();
+    }
+
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
-      checkState(!tableExists, "Requirement failed: table already exists");
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
+      checkState(!tableExists, "Requirement failed: table already exists: " + contentKey);
     }
   }
 
@@ -119,7 +143,11 @@ public interface IcebergUpdateRequirement {
     Long snapshotId();
 
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
       checkState(ref().equals(nessieRefName), "Expected Nessie reference name does not match");
       Long id = snapshotId();
       if (id != null) {
@@ -140,7 +168,11 @@ public interface IcebergUpdateRequirement {
     int lastAssignedFieldId();
 
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
       Integer id = snapshot.icebergLastColumnId();
       checkState(
           lastAssignedFieldId() == id,
@@ -158,11 +190,15 @@ public interface IcebergUpdateRequirement {
     int currentSchemaId();
 
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
-      int id = snapshot.currentSchemaObject().icebergId();
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
+      int id = snapshot.currentSchemaObject().map(NessieSchema::icebergId).orElse(-1);
       checkState(
           currentSchemaId() == id,
-          "Requirement failed: current schema id changed: expected %s != %s",
+          "Requirement failed: current schema changed: expected %s != %s",
           id,
           currentSchemaId());
     }
@@ -176,7 +212,11 @@ public interface IcebergUpdateRequirement {
     int lastAssignedPartitionId();
 
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
       Integer id = snapshot.icebergLastPartitionId();
       checkState(
           lastAssignedPartitionId() == id,
@@ -194,11 +234,19 @@ public interface IcebergUpdateRequirement {
     int defaultSpecId();
 
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
-      int id = snapshot.currentPartitionDefinitionObject().icebergId();
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
+      int id =
+          snapshot
+              .currentPartitionDefinitionObject()
+              .map(NessiePartitionDefinition::icebergId)
+              .orElse(-1);
       checkState(
           defaultSpecId() == id,
-          "Requirement failed: default spec id changed: expected %s != %s",
+          "Requirement failed: default partition spec changed: expected %s != %s",
           id,
           defaultSpecId());
     }
@@ -212,8 +260,16 @@ public interface IcebergUpdateRequirement {
     int defaultSortOrderId();
 
     @Override
-    default void check(NessieTableSnapshot snapshot, boolean tableExists, String nessieRefName) {
-      int id = snapshot.currentSortDefinitionObject().icebergSortOrderId();
+    default void check(
+        NessieTableSnapshot snapshot,
+        boolean tableExists,
+        String nessieRefName,
+        ContentKey contentKey) {
+      int id =
+          snapshot
+              .currentSortDefinitionObject()
+              .map(NessieSortDefinition::icebergSortOrderId)
+              .orElse(-1);
       checkState(
           defaultSortOrderId() == id,
           "Requirement failed: default sort order id changed: expected %s != %s",

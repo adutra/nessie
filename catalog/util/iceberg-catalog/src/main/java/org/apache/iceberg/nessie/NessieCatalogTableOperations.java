@@ -18,6 +18,7 @@ package org.apache.iceberg.nessie;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.lang.reflect.Field;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.iceberg.MetadataUpdate;
@@ -25,6 +26,7 @@ import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.StructLike;
 import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableMetadataParser;
+import org.apache.iceberg.UpdateRequirements;
 import org.apache.iceberg.exceptions.AlreadyExistsException;
 import org.apache.iceberg.exceptions.CommitFailedException;
 import org.apache.iceberg.exceptions.CommitStateUnknownException;
@@ -102,11 +104,19 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
     ImmutableIcebergCatalogOperation.Builder op =
         ImmutableIcebergCatalogOperation.builder().key(key).type(Content.Type.ICEBERG_TABLE);
 
+    op.addAllUpdates(metadata.changes());
+
     if (base == null) { // new table
       op.addUpdate(new MetadataUpdate.AssignUUID(metadata.uuid()));
+      op.addUpdate(new MetadataUpdate.UpgradeFormatVersion(metadata.formatVersion()));
+      op.addUpdate(new MetadataUpdate.SetCurrentSchema(-1));
+      op.addUpdate(new MetadataUpdate.SetDefaultPartitionSpec(-1));
+      op.addUpdate(new MetadataUpdate.SetDefaultSortOrder(-1));
+      // TODO re-check the arg of forCreateTable()
+      op.addAllRequirements(UpdateRequirements.forCreateTable(Collections.emptyList()));
+    } else {
+      op.addAllRequirements(UpdateRequirements.forUpdateTable(base, metadata.changes()));
     }
-
-    op.addAllUpdates(metadata.changes());
 
     // TODO: commit message
     ImmutableCatalogCommit.Builder commit =

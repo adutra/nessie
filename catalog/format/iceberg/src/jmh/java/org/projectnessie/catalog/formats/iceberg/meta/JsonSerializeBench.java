@@ -27,6 +27,7 @@ import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot.sna
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshotRef.snapshotRef;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSortField.sortField;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSortOrder.sortOrder;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata.INITIAL_PARTITION_ID;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.stringType;
 
 import java.io.IOException;
@@ -96,7 +97,7 @@ public class JsonSerializeBench {
               .lastColumnId(400)
               .currentSchemaId(schemaVersions)
               .defaultSpecId(partitionSpecVersions)
-              .lastPartitionId(1000)
+              .lastPartitionId(INITIAL_PARTITION_ID)
               .defaultSortOrderId(sortOrderVersions)
               .currentSnapshotId(100000L + snapshotCount - 1)
               .location("file:///blah/blah")

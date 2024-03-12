@@ -19,7 +19,7 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.projectnessie.api.v2.params.ReferenceResolver.resolveReferencePathElement;
 import static org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestContent.fromNessieFileContentType;
-import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.INITIAL_SEQUENCE_NUMBER;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata.INITIAL_SEQUENCE_NUMBER;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergMetadataToContent;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessieGroupEntryToIcebergManifestFile;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.nessiePartitionDefinitionToIceberg;
@@ -369,8 +369,16 @@ public class CatalogServiceImpl implements CatalogService {
             .refName(reference.name())
             .hashOnRef(reference.hashWithRelativeSpec());
     commit.getOperations().forEach(op -> contentRequest.key(op.getKey()));
+    GetMultipleContentsResponse contentsResponse = contentRequest.getWithResponse();
 
-    Map<ContentKey, Content> contents = contentRequest.get();
+    Branch target =
+        Branch.of(
+            reference.name(),
+            reference.hashWithRelativeSpec() != null
+                ? reference.hashWithRelativeSpec()
+                : contentsResponse.getEffectiveReference().getHash());
+
+    Map<ContentKey, Content> contents = contentsResponse.toContentsMap();
 
     IcebergStuff icebergStuff = new IcebergStuff(objectIO, persist, tasksService, executor);
 
@@ -405,9 +413,11 @@ public class CatalogServiceImpl implements CatalogService {
                   nessieSnapshot -> {
                     try {
                       for (IcebergUpdateRequirement requirement : icebergOp.requirements()) {
-                        requirement.check(nessieSnapshot, content != null, reference.name());
+                        requirement.check(
+                            nessieSnapshot, content != null, reference.name(), op.getKey());
                       }
-                      return new IcebergMetadataUpdateState(nessieSnapshot)
+                      return new IcebergMetadataUpdateState(
+                              nessieSnapshot, op.getKey(), target, content != null)
                           .applyUpdates(icebergOp.updates())
                           .snapshot();
                     } catch (IllegalStateException | IllegalArgumentException e) {
@@ -464,7 +474,7 @@ public class CatalogServiceImpl implements CatalogService {
     // Use a transient ID for this snapshot because it is not stored as a Nessie snapshot,
     // but is used only to generate Iceberg snapshot data. A proper Nessie snapshot will
     // be created later, when the Iceberg snapshot is loaded after a successful Nessie commit.
-    NessieId nessieId = NessieIdTransient.instance();
+    NessieId nessieId = NessieId.transientNessieId();
     NessieTable nessieTable =
         NessieTable.builder()
             .tableFormat(TableFormat.ICEBERG)

@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.formats.iceberg.meta;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.emptyList;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField.nestedField;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.structType;
 
@@ -24,7 +25,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +39,9 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public interface IcebergPartitionSpec {
+  int INITIAL_SPEC_ID = 0;
+  int MIN_PARTITION_ID = 1000;
+
   static Builder builder() {
     return ImmutableIcebergPartitionSpec.builder();
   }
@@ -47,13 +50,15 @@ public interface IcebergPartitionSpec {
     return ImmutableIcebergPartitionSpec.of(specId, fields);
   }
 
-  IcebergPartitionSpec UNPARTITIONED_SPEC = partitionSpec(0, ImmutableList.of());
+  IcebergPartitionSpec UNPARTITIONED_SPEC = partitionSpec(0, emptyList());
 
   static IcebergPartitionSpec unpartitioned() {
     return UNPARTITIONED_SPEC;
   }
 
   int specId();
+
+  IcebergPartitionSpec withSpecId(int specId);
 
   List<IcebergPartitionField> fields();
 
@@ -103,6 +108,28 @@ public interface IcebergPartitionSpec {
 
     IcebergStructType struct = structType(partitionFields, recordName);
     return struct.avroSchema(102);
+  }
+
+  default boolean compatibleWith(IcebergPartitionSpec other) {
+    if (equals(other)) {
+      return true;
+    }
+
+    if (fields().size() != other.fields().size()) {
+      return false;
+    }
+
+    for (int i = 0; i < fields().size(); i += 1) {
+      IcebergPartitionField thisField = fields().get(i);
+      IcebergPartitionField thatField = other.fields().get(i);
+      if (thisField.sourceId() != thatField.sourceId()
+          || !thisField.transform().toString().equals(thatField.transform().toString())
+          || !thisField.name().equals(thatField.name())) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   interface Builder {

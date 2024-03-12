@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import org.apache.iceberg.MetadataUpdate;
+import org.apache.iceberg.UpdateRequirement;
 import org.projectnessie.catalog.api.base.transport.CatalogOperation;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -29,4 +30,6 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 public interface IcebergCatalogOperation extends CatalogOperation {
 
   List<MetadataUpdate> updates();
+
+  List<UpdateRequirement> requirements();
 }

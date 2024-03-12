@@ -27,6 +27,7 @@ import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot.sna
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshotRef.snapshotRef;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSortField.sortField;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSortOrder.sortOrder;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata.INITIAL_PARTITION_ID;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.fixedType;
 import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.longType;
 
@@ -70,7 +71,7 @@ public class TestJsonSerialization {
             .lastColumnId(400)
             .currentSchemaId(42)
             .defaultSpecId(3)
-            .lastPartitionId(1000)
+            .lastPartitionId(INITIAL_PARTITION_ID)
             .defaultSortOrderId(2)
             .currentSnapshotId(123456)
             .location("file:///blah/blah")

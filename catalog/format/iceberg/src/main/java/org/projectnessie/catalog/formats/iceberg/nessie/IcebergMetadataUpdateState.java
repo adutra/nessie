@@ -15,13 +15,23 @@
  */
 package org.projectnessie.catalog.formats.iceberg.nessie;
 
+import static java.time.Instant.now;
 import static java.util.Collections.emptyMap;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.model.Branch;
+import org.projectnessie.model.ContentKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Maintains state when applying {@linkplain IcebergMetadataUpdate Iceberg metadata updates} to a
@@ -39,14 +49,29 @@ import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
  * </ul>
  */
 public class IcebergMetadataUpdateState {
-  private final NessieTableSnapshot.Builder builder;
+  private static final Logger LOGGER = LoggerFactory.getLogger(IcebergMetadataUpdateState.class);
 
+  private final NessieTableSnapshot.Builder builder;
+  private final ContentKey key;
+  private final Branch reference;
+  private final boolean tableExists;
+
+  private NessieTableSnapshot snapshot;
   private int lastAddedSchemaId = -1;
   private int lastAddedSpecId = -1;
   private int lastAddedOrderId = -1;
+  private final List<IcebergSnapshot> addedSnapshots = new ArrayList<>();
+  private final Set<Integer> addedSchemaIds = new HashSet<>();
+  private final Set<Integer> addedSpecIds = new HashSet<>();
+  private final Set<Integer> addedOrderIds = new HashSet<>();
 
-  public IcebergMetadataUpdateState(NessieTableSnapshot snapshot) {
+  public IcebergMetadataUpdateState(
+      NessieTableSnapshot snapshot, ContentKey key, Branch reference, boolean tableExists) {
+    this.snapshot = snapshot;
     this.builder = NessieTableSnapshot.builder().from(snapshot);
+    this.key = key;
+    this.reference = reference;
+    this.tableExists = tableExists;
   }
 
   public NessieTableSnapshot.Builder builder() {
@@ -54,36 +79,85 @@ public class IcebergMetadataUpdateState {
   }
 
   public NessieTableSnapshot snapshot() {
-    return builder.build();
+    return snapshot;
+  }
+
+  public List<IcebergSnapshot> addedSnapshots() {
+    return addedSnapshots;
+  }
+
+  public void snapshotAdded(IcebergSnapshot snapshot) {
+    addedSnapshots.add(snapshot);
   }
 
   public int lastAddedSchemaId() {
     return lastAddedSchemaId;
   }
 
-  public void lastAddedSchemaId(int lastAddedSchemaId) {
-    this.lastAddedSchemaId = lastAddedSchemaId;
+  public void schemaAdded(int schemaId) {
+    // TODO reduce log level to trace (or remove logging)
+    LOGGER.info("added schema ID {}", schemaId);
+    if (schemaId >= 0) {
+      addedSchemaIds.add(schemaId);
+    }
+    lastAddedSchemaId = schemaId;
+  }
+
+  public boolean isAddedSchema(int schemaId) {
+    return addedSchemaIds.contains(schemaId);
   }
 
   public int lastAddedSpecId() {
     return lastAddedSpecId;
   }
 
-  public void lastAddedSpecId(int lastAddedSpecId) {
-    this.lastAddedSpecId = lastAddedSpecId;
+  public void specAdded(int specId) {
+    // TODO reduce log level to trace (or remove logging)
+    LOGGER.info("added spec ID {}", specId);
+    if (specId >= 0) {
+      addedSpecIds.add(specId);
+    }
+    lastAddedSpecId = specId;
+  }
+
+  public boolean isAddedSpec(int specId) {
+    return addedSpecIds.contains(specId);
   }
 
   public int lastAddedOrderId() {
     return lastAddedOrderId;
   }
 
-  public void lastAddedOrderId(int lastAddedOrderId) {
-    this.lastAddedOrderId = lastAddedOrderId;
+  public void sortOrderAdded(int orderId) {
+    // TODO reduce log level to trace (or remove logging)
+    LOGGER.info("added order ID {}", orderId);
+    if (orderId >= 0) {
+      addedOrderIds.add(orderId);
+    }
+    lastAddedOrderId = orderId;
+  }
+
+  public boolean isAddedOrder(int orderId) {
+    return addedOrderIds.contains(orderId);
+  }
+
+  public IcebergMetadataUpdateState checkRequirements(List<IcebergUpdateRequirement> requirements) {
+    // TODO reduce log level to trace
+    LOGGER.info("check {} requirements against {}", requirements.size(), key);
+    for (IcebergUpdateRequirement requirement : requirements) {
+      LOGGER.info("check requirement: {}", requirement);
+      requirement.check(snapshot, tableExists, reference.getName(), key);
+    }
+    return this;
   }
 
   public IcebergMetadataUpdateState applyUpdates(List<IcebergMetadataUpdate> updates) {
+    // TODO reduce log level to trace
+    LOGGER.info("apply {} updates to {}", updates.size(), key);
     for (IcebergMetadataUpdate update : updates) {
+      LOGGER.info("apply update: {}", update);
       update.apply(this);
+      snapshot = builder.lastUpdatedTimestamp(now()).build();
     }
     return this;
   }
@@ -99,7 +173,6 @@ public class IcebergMetadataUpdateState {
     if (map == null) {
       map = emptyMap();
     }
-    System.err.println("TRY MAP FIELD " + sourceId + " " + schemaId + " --> " + map.get(sourceId));
     return map.getOrDefault(sourceId, sourceId);
   }
 }

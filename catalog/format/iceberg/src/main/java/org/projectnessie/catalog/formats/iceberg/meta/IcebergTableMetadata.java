@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.formats.iceberg.meta;
 
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.MIN_PARTITION_ID;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -29,7 +31,6 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
-import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -38,6 +39,10 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public interface IcebergTableMetadata {
+
+  long NO_SNAPSHOT_ID = -1;
+  long INITIAL_SEQUENCE_NUMBER = 0;
+  int INITIAL_PARTITION_ID = MIN_PARTITION_ID - 1;
 
   int formatVersion();
 
@@ -117,7 +122,7 @@ public interface IcebergTableMetadata {
   }
 
   default Optional<IcebergSnapshot> snapshotById(long id) {
-    if (id == NessieModelIceberg.NO_SNAPSHOT_ID) {
+    if (id == NO_SNAPSHOT_ID) {
       return Optional.empty();
     }
     for (IcebergSnapshot snapshot : snapshots()) {

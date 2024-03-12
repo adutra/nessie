@@ -15,6 +15,10 @@
  */
 package org.projectnessie.catalog.formats.iceberg.meta;
 
+import static com.google.common.base.Preconditions.checkState;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.MIN_PARTITION_ID;
+import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema.INITIAL_COLUMN_ID;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -73,6 +77,18 @@ public interface IcebergPartitionField {
    * IcebergNestedField#id() column/nested-field} {@link #sourceId() IDs}.
    */
   int fieldId();
+
+  @Value.Check
+  default void check() {
+    checkState(
+        fieldId() >= MIN_PARTITION_ID,
+        "Partition field IDs must be greater than or equal to %s",
+        MIN_PARTITION_ID);
+    checkState(
+        sourceId() >= INITIAL_COLUMN_ID,
+        "Partition source IDs must be greater than or equal to %s",
+        INITIAL_COLUMN_ID);
+  }
 
   interface Builder {
     @CanIgnoreReturnValue

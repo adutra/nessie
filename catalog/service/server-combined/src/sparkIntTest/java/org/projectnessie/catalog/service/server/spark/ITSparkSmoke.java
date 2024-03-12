@@ -85,9 +85,11 @@ public class ITSparkSmoke {
   @Test
   @Order(1)
   public void prepareNamespace() {
-    sql("""
+    sql(
+        """
         CREATE NAMESPACE %s;
-        """, NAMESPACE);
+        """,
+        NAMESPACE);
   }
 
   @ParameterizedTest
@@ -105,13 +107,19 @@ public class ITSparkSmoke {
          TBLPROPERTIES ('format-version' = '%d');
          """,
         tableName, specVersion);
-    sql("""
+    sql(
+        """
          INSERT INTO %s VALUES (1, 'a', 1, 'comment');
-         """, tableName);
+         """,
+        tableName);
 
-    List<Row> rows = sql("""
+    List<Row> rows =
+        sql(
+                """
       SELECT * FROM %s;
-      """, tableName).collectAsList();
+      """,
+                tableName)
+            .collectAsList();
 
     assertThat(rows)
         .hasSize(1)

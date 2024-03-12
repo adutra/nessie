@@ -46,6 +46,10 @@ public interface IcebergTableIdentifier {
     return ImmutableIcebergTableIdentifier.of(namespace, name);
   }
 
+  default ContentKey toNessieContentKey() {
+    return ContentKey.of(namespace().toNessieNamespace(), name());
+  }
+
   static Builder builder() {
     return ImmutableIcebergTableIdentifier.builder();
   }
