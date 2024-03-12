@@ -31,4 +31,8 @@ public interface IcebergViewHistoryEntry {
   long timestampMs();
 
   long versionId();
+
+  static IcebergViewHistoryEntry icebergViewHistoryEntry(long timestampMs, long versionId) {
+    return ImmutableIcebergViewHistoryEntry.of(timestampMs, versionId);
+  }
 }

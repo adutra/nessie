@@ -102,7 +102,7 @@ public class JsonSerializeBench {
               .currentSnapshotId(100000L + snapshotCount - 1)
               .location("file:///blah/blah")
               .lastSequenceNumber(333L)
-              .tableUuid(UUID.randomUUID())
+              .tableUuid(UUID.randomUUID().toString())
               .putRef("main", snapshotRef(100000L + snapshotCount - 1, "branch", null, null, null));
 
       for (int sv = 1; sv <= schemaVersions; sv++) {

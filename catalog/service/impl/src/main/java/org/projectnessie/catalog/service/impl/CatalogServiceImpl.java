@@ -67,7 +67,7 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
-import org.projectnessie.catalog.formats.iceberg.nessie.IcebergMetadataUpdateState;
+import org.projectnessie.catalog.formats.iceberg.nessie.IcebergTableMetadataUpdateState;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.IcebergSnapshotTweak;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCatalogOperation;
@@ -413,10 +413,10 @@ public class CatalogServiceImpl implements CatalogService {
                   nessieSnapshot -> {
                     try {
                       for (IcebergUpdateRequirement requirement : icebergOp.requirements()) {
-                        requirement.check(
+                        requirement.checkForTable(
                             nessieSnapshot, content != null, reference.name(), op.getKey());
                       }
-                      return new IcebergMetadataUpdateState(
+                      return new IcebergTableMetadataUpdateState(
                               nessieSnapshot, op.getKey(), target, content != null)
                           .applyUpdates(icebergOp.updates())
                           .snapshot();
@@ -478,7 +478,7 @@ public class CatalogServiceImpl implements CatalogService {
     NessieTable nessieTable =
         NessieTable.builder()
             .tableFormat(TableFormat.ICEBERG)
-            .icebergUuid(UUID.fromString(icebergUuid))
+            .icebergUuid(icebergUuid)
             .nessieContentId(UUID.randomUUID().toString()) // Not used / redefined after commit
             // TODO: baselocation
             .baseLocation(BaseLocation.baseLocation(nessieId, "tmp", URI.create("file:///tmp")))

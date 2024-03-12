@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.model.snapshot;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -25,7 +26,6 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieView;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.DeltaLakeTable;
 import org.projectnessie.model.IcebergTable;
@@ -49,6 +49,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @SuppressWarnings("immutables:subtype")
 public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
 
+  @Override
   NessieViewSnapshot withId(NessieId id);
 
   @Override
@@ -57,45 +58,45 @@ public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
     return "VIEW";
   }
 
-  @Nullable
-  @jakarta.annotation.Nullable
-  NessieSchema currentSchema();
-
   /** The snapshots of tables and views referenced by this view. */
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<NessieViewDependency> dependencies();
 
   @Override
   NessieView entity();
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  @jakarta.annotation.Nullable
+  Long icebergCurrentVersionId();
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  Map<String, String> icebergVersionSummary();
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  @jakarta.annotation.Nullable
+  String icebergDefaultCatalog();
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable
+  @jakarta.annotation.Nullable
+  List<String> icebergNamespace();
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<NessieViewRepresentation> representations();
 
   static Builder builder() {
     return ImmutableNessieViewSnapshot.builder();
   }
 
   @SuppressWarnings("unused")
-  interface Builder {
+  interface Builder extends NessieEntitySnapshot.Builder<Builder> {
     @CanIgnoreReturnValue
     Builder from(NessieViewSnapshot instance);
 
     @CanIgnoreReturnValue
-    Builder id(NessieId id);
-
-    @CanIgnoreReturnValue
-    Builder putProperty(String key, String value);
-
-    @CanIgnoreReturnValue
-    Builder putProperty(Map.Entry<String, ? extends String> entry);
-
-    @CanIgnoreReturnValue
-    Builder properties(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
-    Builder putAllProperties(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
     Builder entity(NessieView entity);
-
-    @CanIgnoreReturnValue
-    Builder currentSchema(@Nullable NessieSchema currentSchema);
 
     @CanIgnoreReturnValue
     Builder addDependency(NessieViewDependency element);
@@ -108,6 +109,39 @@ public interface NessieViewSnapshot extends NessieEntitySnapshot<NessieView> {
 
     @CanIgnoreReturnValue
     Builder addAllDependencies(Iterable<? extends NessieViewDependency> elements);
+
+    @CanIgnoreReturnValue
+    Builder icebergCurrentVersionId(@Nullable Long icebergCurrentVersionId);
+
+    @CanIgnoreReturnValue
+    Builder putIcebergVersionSummary(String key, String value);
+
+    @CanIgnoreReturnValue
+    Builder putIcebergVersionSummary(Map.Entry<String, ? extends String> entry);
+
+    @CanIgnoreReturnValue
+    Builder icebergVersionSummary(Map<String, ? extends String> entries);
+
+    @CanIgnoreReturnValue
+    Builder putAllIcebergVersionSummary(Map<String, ? extends String> entries);
+
+    @CanIgnoreReturnValue
+    Builder icebergDefaultCatalog(String icebergDefaultCatalog);
+
+    @CanIgnoreReturnValue
+    Builder icebergNamespace(@Nullable Iterable<String> elements);
+
+    @CanIgnoreReturnValue
+    Builder addRepresentation(NessieViewRepresentation element);
+
+    @CanIgnoreReturnValue
+    Builder addRepresentations(NessieViewRepresentation... elements);
+
+    @CanIgnoreReturnValue
+    Builder representations(Iterable<? extends NessieViewRepresentation> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllRepresentations(Iterable<? extends NessieViewRepresentation> elements);
 
     NessieViewSnapshot build();
   }

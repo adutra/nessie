@@ -27,8 +27,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
@@ -37,8 +39,10 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSortOrder;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergStatisticsFile;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergViewRepresentation;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergViewVersion;
-import org.projectnessie.catalog.formats.iceberg.nessie.IcebergMetadataUpdateState;
+import org.projectnessie.catalog.formats.iceberg.nessie.IcebergTableMetadataUpdateState;
+import org.projectnessie.catalog.formats.iceberg.nessie.IcebergViewMetadataUpdateState;
 import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -93,7 +97,19 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 })
 public interface IcebergMetadataUpdate {
 
-  void apply(IcebergMetadataUpdateState state);
+  default void applyToTable(IcebergTableMetadataUpdateState state) {
+    throw new UnsupportedOperationException(
+        "Metadata "
+            + getClass().getSimpleName().replace("Immutable", "")
+            + " update not supported for tables");
+  }
+
+  default void applyToView(IcebergViewMetadataUpdateState state) {
+    throw new UnsupportedOperationException(
+        "Metadata "
+            + getClass().getSimpleName().replace("Immutable", "")
+            + " update not supported for views");
+  }
 
   @NessieImmutable
   @JsonTypeName("upgrade-format-version")
@@ -108,17 +124,13 @@ public interface IcebergMetadataUpdate {
     }
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      Integer currentVersion = state.snapshot().icebergFormatVersion();
-      if (currentVersion == null) {
-        state.builder().icebergFormatVersion(formatVersion());
-      } else if (formatVersion() != currentVersion) {
-        throw new UnsupportedOperationException(
-            "Implement format version update, current version is "
-                + currentVersion
-                + ", requested format version is "
-                + formatVersion());
-      }
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      NessieModelIceberg.upgradeFormatVersion(formatVersion(), state.snapshot(), state.builder());
+    }
+
+    @Override
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.upgradeFormatVersion(formatVersion(), state.snapshot(), state.builder());
     }
   }
 
@@ -131,23 +143,9 @@ public interface IcebergMetadataUpdate {
     List<Long> snapshotIds();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
-    }
-  }
-
-  @NessieImmutable
-  @JsonTypeName("remove-snapshot-ref")
-  @JsonSerialize(as = ImmutableRemoveSnapshotRef.class)
-  @JsonDeserialize(as = ImmutableRemoveSnapshotRef.class)
-  interface RemoveSnapshotRef extends IcebergMetadataUpdate {
-
-    String refName();
-
-    @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      // NOP - This class is used for JSON deserialization only.
-      // Nessie has catalog-level branches and tags.
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      throw new UnsupportedOperationException(
+          "Nessie Catalog does not allow external snapshot management");
     }
   }
 
@@ -161,22 +159,13 @@ public interface IcebergMetadataUpdate {
     List<String> removals();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      NessieModelIceberg.removeProperties(this, state.snapshot(), state.builder());
     }
-  }
-
-  @NessieImmutable
-  @JsonTypeName("remove-statistics")
-  @JsonSerialize(as = ImmutableRemoveStatistics.class)
-  @JsonDeserialize(as = ImmutableRemoveStatistics.class)
-  interface RemoveStatistics extends IcebergMetadataUpdate {
-
-    long snapshotId();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.removeProperties(this, state.snapshot(), state.builder());
     }
   }
 
@@ -189,8 +178,24 @@ public interface IcebergMetadataUpdate {
     IcebergViewVersion viewVersion();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.addViewVersion(this, state);
+    }
+
+    @Value.Check
+    default void check() {
+      Set<String> keys = new HashSet<>();
+      for (IcebergViewRepresentation representation : viewVersion().representations()) {
+        if (!keys.add(representation.representationKey())) {
+          throw new IllegalArgumentException(
+              "Invalid view version: Cannot add multiple queries for dialect "
+                  + representation.representationKey());
+        }
+      }
+    }
+
+    static AddViewVersion addViewVersion(IcebergViewVersion viewVersion) {
+      return ImmutableAddViewVersion.of(viewVersion);
     }
   }
 
@@ -200,11 +205,15 @@ public interface IcebergMetadataUpdate {
   @JsonDeserialize(as = ImmutableSetCurrentViewVersion.class)
   interface SetCurrentViewVersion extends IcebergMetadataUpdate {
 
-    int viewVersionId();
+    long viewVersionId();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.setCurrentViewVersion(this, state);
+    }
+
+    static SetCurrentViewVersion setCurrentViewVersion(long viewVersionId) {
+      return ImmutableSetCurrentViewVersion.of(viewVersionId);
     }
   }
 
@@ -219,7 +228,21 @@ public interface IcebergMetadataUpdate {
     IcebergStatisticsFile statistics();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      throw new UnsupportedOperationException("implement me " + this);
+    }
+  }
+
+  @NessieImmutable
+  @JsonTypeName("remove-statistics")
+  @JsonSerialize(as = ImmutableRemoveStatistics.class)
+  @JsonDeserialize(as = ImmutableRemoveStatistics.class)
+  interface RemoveStatistics extends IcebergMetadataUpdate {
+
+    long snapshotId();
+
+    @Override
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       throw new UnsupportedOperationException("implement me " + this);
     }
   }
@@ -233,7 +256,7 @@ public interface IcebergMetadataUpdate {
     IcebergPartitionStatisticsFile partitionStatistics();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       throw new UnsupportedOperationException("implement me " + this);
     }
   }
@@ -246,7 +269,7 @@ public interface IcebergMetadataUpdate {
     long snapshotId();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       throw new UnsupportedOperationException("implement me " + this);
     }
   }
@@ -259,8 +282,13 @@ public interface IcebergMetadataUpdate {
     String uuid();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      NessieModelIceberg.assignUUID(this, state);
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      NessieModelIceberg.assignUUID(this, state.snapshot());
+    }
+
+    @Override
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.assignUUID(this, state.snapshot());
     }
 
     static AssignUUID assignUUID(String uuid) {
@@ -278,7 +306,12 @@ public interface IcebergMetadataUpdate {
     int lastColumnId();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      NessieModelIceberg.addSchema(this, state);
+    }
+
+    @Override
+    default void applyToView(IcebergViewMetadataUpdateState state) {
       NessieModelIceberg.addSchema(this, state);
     }
 
@@ -296,8 +329,15 @@ public interface IcebergMetadataUpdate {
     int schemaId();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      NessieModelIceberg.setCurrentSchema(this, state);
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      NessieModelIceberg.setCurrentSchema(
+          this, state.lastAddedSchemaId(), state.snapshot(), state.builder());
+    }
+
+    @Override
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.setCurrentSchema(
+          this, state.lastAddedSchemaId(), state.snapshot(), state.builder());
     }
 
     static SetCurrentSchema setCurrentSchema(int schemaId) {
@@ -313,7 +353,7 @@ public interface IcebergMetadataUpdate {
     IcebergPartitionSpec spec();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       NessieModelIceberg.addPartitionSpec(this, state);
     }
 
@@ -340,7 +380,7 @@ public interface IcebergMetadataUpdate {
     int specId();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       NessieModelIceberg.setDefaultPartitionSpec(this, state);
     }
 
@@ -357,12 +397,8 @@ public interface IcebergMetadataUpdate {
     IcebergSnapshot snapshot();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       NessieModelIceberg.addSnapshot(this, state);
-    }
-
-    static AddSnapshot addSnapshot(IcebergSnapshot snapshot) {
-      return ImmutableAddSnapshot.of(snapshot);
     }
   }
 
@@ -374,7 +410,7 @@ public interface IcebergMetadataUpdate {
     IcebergSortOrder sortOrder();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       NessieModelIceberg.addSortOrder(this, state);
     }
 
@@ -407,7 +443,7 @@ public interface IcebergMetadataUpdate {
     int sortOrderId();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       NessieModelIceberg.setDefaultSortOrder(this, state);
     }
 
@@ -424,8 +460,13 @@ public interface IcebergMetadataUpdate {
     String location();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      NessieModelIceberg.setLocation(this, state);
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      NessieModelIceberg.setLocation(this, state.builder());
+    }
+
+    @Override
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.setLocation(this, state.builder());
     }
 
     static SetLocation setLocation(String location) {
@@ -442,8 +483,13 @@ public interface IcebergMetadataUpdate {
     Map<String, String> updates();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
-      NessieModelIceberg.setProperties(this, state);
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      NessieModelIceberg.setProperties(this, state.snapshot(), state.builder());
+    }
+
+    @Override
+    default void applyToView(IcebergViewMetadataUpdateState state) {
+      NessieModelIceberg.setProperties(this, state.snapshot(), state.builder());
     }
 
     static SetProperties setProperties(Map<String, String> updates) {
@@ -475,7 +521,22 @@ public interface IcebergMetadataUpdate {
     Long maxRefAgeMs();
 
     @Override
-    default void apply(IcebergMetadataUpdateState state) {
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
+      // NOP - This class is used for JSON deserialization only.
+      // Nessie has catalog-level branches and tags.
+    }
+  }
+
+  @NessieImmutable
+  @JsonTypeName("remove-snapshot-ref")
+  @JsonSerialize(as = ImmutableRemoveSnapshotRef.class)
+  @JsonDeserialize(as = ImmutableRemoveSnapshotRef.class)
+  interface RemoveSnapshotRef extends IcebergMetadataUpdate {
+
+    String refName();
+
+    @Override
+    default void applyToTable(IcebergTableMetadataUpdateState state) {
       // NOP - This class is used for JSON deserialization only.
       // Nessie has catalog-level branches and tags.
     }

@@ -28,7 +28,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -48,7 +47,7 @@ public interface IcebergTableMetadata {
 
   @Nullable
   @jakarta.annotation.Nullable
-  UUID tableUuid();
+  String tableUuid();
 
   String location();
 
@@ -150,7 +149,7 @@ public interface IcebergTableMetadata {
     Builder formatVersion(int formatVersion);
 
     @CanIgnoreReturnValue
-    Builder tableUuid(UUID tableUuid);
+    Builder tableUuid(String tableUuid);
 
     @CanIgnoreReturnValue
     Builder location(String location);

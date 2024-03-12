@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Map;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergViewMetadata;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -38,4 +39,33 @@ public interface IcebergLoadViewResponse {
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Map<String, String> config();
+
+  static Builder builder() {
+    return ImmutableIcebergLoadViewResponse.builder();
+  }
+
+  interface Builder {
+    @CanIgnoreReturnValue
+    Builder from(IcebergLoadViewResponse instance);
+
+    @CanIgnoreReturnValue
+    Builder metadataLocation(String metadataLocation);
+
+    @CanIgnoreReturnValue
+    Builder metadata(IcebergViewMetadata metadata);
+
+    @CanIgnoreReturnValue
+    Builder putConfig(String key, String value);
+
+    @CanIgnoreReturnValue
+    Builder putConfig(Map.Entry<String, ? extends String> entry);
+
+    @CanIgnoreReturnValue
+    Builder config(Map<String, ? extends String> entries);
+
+    @CanIgnoreReturnValue
+    Builder putAllConfig(Map<String, ? extends String> entries);
+
+    IcebergLoadViewResponse build();
+  }
 }

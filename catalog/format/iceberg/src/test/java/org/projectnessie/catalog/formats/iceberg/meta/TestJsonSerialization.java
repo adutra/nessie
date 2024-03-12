@@ -76,7 +76,7 @@ public class TestJsonSerialization {
             .currentSnapshotId(123456)
             .location("file:///blah/blah")
             .lastSequenceNumber(333L)
-            .tableUuid(UUID.randomUUID())
+            .tableUuid(UUID.randomUUID().toString())
             .addSchemas(
                 IcebergSchema.schema(
                     42,

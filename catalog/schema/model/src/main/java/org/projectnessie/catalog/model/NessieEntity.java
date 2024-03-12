@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.time.Instant;
-import java.util.UUID;
 import javax.annotation.Nullable;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.model.CommitMeta.InstantDeserializer;
@@ -41,7 +40,7 @@ public interface NessieEntity {
 
   @Nullable
   @jakarta.annotation.Nullable
-  UUID icebergUuid();
+  String icebergUuid();
 
   @Nullable
   @jakarta.annotation.Nullable
@@ -58,7 +57,7 @@ public interface NessieEntity {
     B nessieContentId(String nessieContentId);
 
     @CanIgnoreReturnValue
-    B icebergUuid(UUID icebergUuid);
+    B icebergUuid(String icebergUuid);
 
     @CanIgnoreReturnValue
     B tableFormat(TableFormat tableFormat);

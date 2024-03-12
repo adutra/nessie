@@ -27,7 +27,7 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
 import org.projectnessie.model.Branch;
 import org.projectnessie.model.ContentKey;
 import org.slf4j.Logger;
@@ -35,59 +35,46 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Maintains state when applying {@linkplain IcebergMetadataUpdate Iceberg metadata updates} to a
- * {@linkplain NessieTableSnapshot table snapshot}.
+ * {@linkplain org.projectnessie.catalog.model.snapshot.NessieViewSnapshot view snapshot}.
  *
  * <p>State includes:
  *
  * <ul>
  *   <li>Last {@linkplain IcebergMetadataUpdate.AddSchema added schema} id for {@link
  *       IcebergMetadataUpdate.SetCurrentSchema SetCurrentSchema}
- *   <li>Last {@linkplain IcebergMetadataUpdate.AddPartitionSpec added partition spec} id for {@link
- *       IcebergMetadataUpdate.SetDefaultPartitionSpec SetDefaultPartitionSpec}
- *   <li>Last {@linkplain IcebergMetadataUpdate.AddSortOrder added sort order} id for {@link
- *       IcebergMetadataUpdate.SetDefaultSortOrder SetDefaultSortOrder}
  * </ul>
  */
-public class IcebergMetadataUpdateState {
-  private static final Logger LOGGER = LoggerFactory.getLogger(IcebergMetadataUpdateState.class);
+public class IcebergViewMetadataUpdateState {
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(IcebergViewMetadataUpdateState.class);
 
-  private final NessieTableSnapshot.Builder builder;
+  private final NessieViewSnapshot.Builder builder;
   private final ContentKey key;
   private final Branch reference;
-  private final boolean tableExists;
+  private final boolean viewExists;
 
-  private NessieTableSnapshot snapshot;
+  private NessieViewSnapshot snapshot;
   private int lastAddedSchemaId = -1;
-  private int lastAddedSpecId = -1;
-  private int lastAddedOrderId = -1;
+  private long lastAddedVersionId = -1;
   private final List<IcebergSnapshot> addedSnapshots = new ArrayList<>();
   private final Set<Integer> addedSchemaIds = new HashSet<>();
-  private final Set<Integer> addedSpecIds = new HashSet<>();
-  private final Set<Integer> addedOrderIds = new HashSet<>();
+  private final Set<Long> addedVersionIds = new HashSet<>();
 
-  public IcebergMetadataUpdateState(
-      NessieTableSnapshot snapshot, ContentKey key, Branch reference, boolean tableExists) {
+  public IcebergViewMetadataUpdateState(
+      NessieViewSnapshot snapshot, ContentKey key, Branch reference, boolean viewExists) {
     this.snapshot = snapshot;
-    this.builder = NessieTableSnapshot.builder().from(snapshot);
+    this.builder = NessieViewSnapshot.builder().from(snapshot);
     this.key = key;
     this.reference = reference;
-    this.tableExists = tableExists;
+    this.viewExists = viewExists;
   }
 
-  public NessieTableSnapshot.Builder builder() {
+  public NessieViewSnapshot.Builder builder() {
     return builder;
   }
 
-  public NessieTableSnapshot snapshot() {
+  public NessieViewSnapshot snapshot() {
     return snapshot;
-  }
-
-  public List<IcebergSnapshot> addedSnapshots() {
-    return addedSnapshots;
-  }
-
-  public void snapshotAdded(IcebergSnapshot snapshot) {
-    addedSnapshots.add(snapshot);
   }
 
   public int lastAddedSchemaId() {
@@ -107,56 +94,40 @@ public class IcebergMetadataUpdateState {
     return addedSchemaIds.contains(schemaId);
   }
 
-  public int lastAddedSpecId() {
-    return lastAddedSpecId;
+  public long lastAddedVersionId() {
+    return lastAddedVersionId;
   }
 
-  public void specAdded(int specId) {
+  public void versionAdded(long versionId) {
     // TODO reduce log level to trace (or remove logging)
-    LOGGER.info("added spec ID {}", specId);
-    if (specId >= 0) {
-      addedSpecIds.add(specId);
+    LOGGER.info("added version ID {}", versionId);
+    if (versionId >= 0) {
+      addedVersionIds.add(versionId);
     }
-    lastAddedSpecId = specId;
+    lastAddedVersionId = versionId;
   }
 
-  public boolean isAddedSpec(int specId) {
-    return addedSpecIds.contains(specId);
+  public boolean isAddedVersion(long versionId) {
+    return addedVersionIds.contains(versionId);
   }
 
-  public int lastAddedOrderId() {
-    return lastAddedOrderId;
-  }
-
-  public void sortOrderAdded(int orderId) {
-    // TODO reduce log level to trace (or remove logging)
-    LOGGER.info("added order ID {}", orderId);
-    if (orderId >= 0) {
-      addedOrderIds.add(orderId);
-    }
-    lastAddedOrderId = orderId;
-  }
-
-  public boolean isAddedOrder(int orderId) {
-    return addedOrderIds.contains(orderId);
-  }
-
-  public IcebergMetadataUpdateState checkRequirements(List<IcebergUpdateRequirement> requirements) {
+  public IcebergViewMetadataUpdateState checkRequirements(
+      List<IcebergUpdateRequirement> requirements) {
     // TODO reduce log level to trace
     LOGGER.info("check {} requirements against {}", requirements.size(), key);
     for (IcebergUpdateRequirement requirement : requirements) {
       LOGGER.info("check requirement: {}", requirement);
-      requirement.check(snapshot, tableExists, reference.getName(), key);
+      requirement.checkForView(snapshot, viewExists, reference.getName(), key);
     }
     return this;
   }
 
-  public IcebergMetadataUpdateState applyUpdates(List<IcebergMetadataUpdate> updates) {
+  public IcebergViewMetadataUpdateState applyUpdates(List<IcebergMetadataUpdate> updates) {
     // TODO reduce log level to trace
     LOGGER.info("apply {} updates to {}", updates.size(), key);
     for (IcebergMetadataUpdate update : updates) {
       LOGGER.info("apply update: {}", update);
-      update.apply(this);
+      update.applyToView(this);
       snapshot = builder.lastUpdatedTimestamp(now()).build();
     }
     return this;

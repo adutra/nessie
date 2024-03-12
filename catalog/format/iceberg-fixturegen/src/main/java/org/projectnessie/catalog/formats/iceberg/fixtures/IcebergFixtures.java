@@ -104,7 +104,7 @@ public class IcebergFixtures {
 
   public static IcebergTableMetadata.Builder tableMetadataBare() {
     return IcebergTableMetadata.builder()
-        .tableUuid(UUID.randomUUID())
+        .tableUuid(UUID.randomUUID().toString())
         .lastUpdatedMs(111111111L)
         .location("table-location")
         .currentSnapshotId(NO_SNAPSHOT_ID)
@@ -121,7 +121,7 @@ public class IcebergFixtures {
     IcebergSchema schemaAllTypes = icebergSchemaAllTypes();
 
     return IcebergTableMetadata.builder()
-        .tableUuid(UUID.randomUUID())
+        .tableUuid(UUID.randomUUID().toString())
         .lastUpdatedMs(111111111L)
         .location("table-location")
         .currentSnapshotId(NO_SNAPSHOT_ID)
@@ -139,7 +139,7 @@ public class IcebergFixtures {
     IcebergSchema schemaAllTypes = icebergSchemaAllTypes();
 
     return IcebergTableMetadata.builder()
-        .tableUuid(UUID.randomUUID())
+        .tableUuid(UUID.randomUUID().toString())
         .lastUpdatedMs(111111111L)
         .location("table-location")
         .currentSnapshotId(11)

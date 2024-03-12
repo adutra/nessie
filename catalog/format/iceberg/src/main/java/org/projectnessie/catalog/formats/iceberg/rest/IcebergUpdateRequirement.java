@@ -27,11 +27,12 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.annotation.Nullable;
 import java.util.Objects;
-import java.util.UUID;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
+import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
@@ -45,9 +46,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
   @JsonSubTypes.Type(
       value = IcebergUpdateRequirement.AssertViewUUID.class,
       name = "assert-view-uuid"),
-  @JsonSubTypes.Type(
-      value = IcebergUpdateRequirement.AssertTableDoesNotExist.class,
-      name = "assert-create"),
+  @JsonSubTypes.Type(value = IcebergUpdateRequirement.AssertCreate.class, name = "assert-create"),
   @JsonSubTypes.Type(
       value = IcebergUpdateRequirement.AssertRefSnapshotId.class,
       name = "assert-ref-snapshot-id"),
@@ -69,32 +68,54 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 })
 public interface IcebergUpdateRequirement {
 
-  void check(
+  default void checkForTable(
       NessieTableSnapshot snapshot,
       boolean tableExists,
       String nessieRefName,
-      ContentKey contentKey);
+      ContentKey contentKey) {
+    throw new UnsupportedOperationException(
+        "Requirement "
+            + getClass().getSimpleName().replace("Immutable", "")
+            + "not supported for tables");
+  }
+
+  default void checkForView(
+      NessieViewSnapshot snapshot,
+      boolean viewExists,
+      String nessieRefName,
+      ContentKey contentKey) {
+    throw new UnsupportedOperationException(
+        "Requirement "
+            + getClass().getSimpleName().replace("Immutable", "")
+            + " not supported for views");
+  }
+
+  interface AssertUUID extends IcebergUpdateRequirement {
+    String uuid();
+
+    default void check(NessieEntitySnapshot<?> snapshot) {
+      String tableUuid = snapshot.entity().icebergUuid();
+      checkState(
+          uuid().equals(tableUuid),
+          "Requirement failed: UUID does not match: expected %s != %s",
+          tableUuid,
+          uuid());
+    }
+  }
 
   @NessieImmutable
   @JsonTypeName("assert-table-uuid")
   @JsonSerialize(as = ImmutableAssertTableUUID.class)
   @JsonDeserialize(as = ImmutableAssertTableUUID.class)
-  interface AssertTableUUID extends IcebergUpdateRequirement {
-    String uuid();
+  interface AssertTableUUID extends AssertUUID {
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,
         ContentKey contentKey) {
-      UUID tableUuid = snapshot.entity().icebergUuid();
-      String tableUuidString = tableUuid != null ? tableUuid.toString() : null;
-      checkState(
-          uuid().equals(tableUuidString),
-          "Requirement failed: UUID does not match: expected %s != %s",
-          tableUuidString,
-          uuid());
+      check(snapshot);
     }
   }
 
@@ -102,35 +123,47 @@ public interface IcebergUpdateRequirement {
   @JsonTypeName("assert-view-uuid")
   @JsonSerialize(as = ImmutableAssertViewUUID.class)
   @JsonDeserialize(as = ImmutableAssertViewUUID.class)
-  interface AssertViewUUID extends IcebergUpdateRequirement {
-    String uuid();
+  interface AssertViewUUID extends AssertUUID {
 
     @Override
-    default void check(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
+    default void checkForView(
+        NessieViewSnapshot snapshot,
+        boolean viewExists,
         String nessieRefName,
         ContentKey contentKey) {
-      throw new UnsupportedOperationException("view operations not supported on tables");
+      check(snapshot);
     }
   }
 
   @NessieImmutable
   @JsonTypeName("assert-create")
-  @JsonSerialize(as = ImmutableAssertTableDoesNotExist.class)
-  @JsonDeserialize(as = ImmutableAssertTableDoesNotExist.class)
-  interface AssertTableDoesNotExist extends IcebergUpdateRequirement {
-    static AssertTableDoesNotExist assertTableDoesNotExist() {
-      return ImmutableAssertTableDoesNotExist.builder().build();
+  @JsonSerialize(as = ImmutableAssertCreate.class)
+  @JsonDeserialize(as = ImmutableAssertCreate.class)
+  interface AssertCreate extends IcebergUpdateRequirement {
+    static AssertCreate assertTableDoesNotExist() {
+      return ImmutableAssertCreate.builder().build();
     }
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,
         ContentKey contentKey) {
-      checkState(!tableExists, "Requirement failed: table already exists: " + contentKey);
+      check(tableExists, "table", contentKey);
+    }
+
+    @Override
+    default void checkForView(
+        NessieViewSnapshot snapshot,
+        boolean viewExists,
+        String nessieRefName,
+        ContentKey contentKey) {
+      check(viewExists, "table", contentKey);
+    }
+
+    default void check(boolean exists, String entityType, ContentKey contentKey) {
+      checkState(!exists, "Requirement failed: %s already exists: %s", entityType, contentKey);
     }
   }
 
@@ -145,7 +178,7 @@ public interface IcebergUpdateRequirement {
     Long snapshotId();
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,
@@ -170,7 +203,7 @@ public interface IcebergUpdateRequirement {
     int lastAssignedFieldId();
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,
@@ -192,11 +225,24 @@ public interface IcebergUpdateRequirement {
     int currentSchemaId();
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,
         ContentKey contentKey) {
+      check(snapshot);
+    }
+
+    @Override
+    default void checkForView(
+        NessieViewSnapshot snapshot,
+        boolean viewExists,
+        String nessieRefName,
+        ContentKey contentKey) {
+      check(snapshot);
+    }
+
+    default void check(NessieEntitySnapshot<?> snapshot) {
       int id = snapshot.currentSchemaObject().map(NessieSchema::icebergId).orElse(-1);
       checkState(
           currentSchemaId() == id,
@@ -214,7 +260,7 @@ public interface IcebergUpdateRequirement {
     int lastAssignedPartitionId();
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,
@@ -236,7 +282,7 @@ public interface IcebergUpdateRequirement {
     int defaultSpecId();
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,
@@ -262,7 +308,7 @@ public interface IcebergUpdateRequirement {
     int defaultSortOrderId();
 
     @Override
-    default void check(
+    default void checkForTable(
         NessieTableSnapshot snapshot,
         boolean tableExists,
         String nessieRefName,

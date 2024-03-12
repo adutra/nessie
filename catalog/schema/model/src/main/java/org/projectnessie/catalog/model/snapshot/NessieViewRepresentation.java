@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.formats.iceberg.meta;
+package org.projectnessie.catalog.model.snapshot;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -24,7 +23,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.immutables.value.Value;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
@@ -32,31 +30,21 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
   @JsonSubTypes.Type(
-      value = IcebergViewRepresentation.IcebergSQLViewRepresentation.class,
+      value = NessieViewRepresentation.NessieViewSQLRepresentation.class,
       name = "sql"),
 })
-public interface IcebergViewRepresentation {
-
-  @JsonIgnore
-  @Value.NonAttribute
-  String representationKey();
-
+public interface NessieViewRepresentation {
   @NessieImmutable
   @JsonTypeName("sql")
-  @JsonSerialize(as = ImmutableIcebergSQLViewRepresentation.class)
-  @JsonDeserialize(as = ImmutableIcebergSQLViewRepresentation.class)
-  interface IcebergSQLViewRepresentation extends IcebergViewRepresentation {
+  @JsonSerialize(as = ImmutableNessieViewSQLRepresentation.class)
+  @JsonDeserialize(as = ImmutableNessieViewSQLRepresentation.class)
+  interface NessieViewSQLRepresentation extends NessieViewRepresentation {
     String sql();
 
     String dialect();
 
-    @Override
-    default String representationKey() {
-      return dialect();
-    }
-
-    static IcebergSQLViewRepresentation icebergSqlViewRepresentation(String sql, String dialect) {
-      return ImmutableIcebergSQLViewRepresentation.of(sql, dialect);
+    static NessieViewSQLRepresentation nessieViewSQLRepresentation(String sql, String dialect) {
+      return ImmutableNessieViewSQLRepresentation.of(sql, dialect);
     }
   }
 }

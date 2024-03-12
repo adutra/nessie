@@ -18,7 +18,6 @@ package org.projectnessie.catalog.model.snapshot;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.function.Function.identity;
 import static org.projectnessie.catalog.model.schema.NessiePartitionDefinition.NO_PARTITION_SPEC_ID;
-import static org.projectnessie.catalog.model.schema.NessieSchema.NO_SCHEMA_ID;
 import static org.projectnessie.catalog.model.schema.NessieSortDefinition.NO_SORT_ORDER_ID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -27,7 +26,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,10 +36,7 @@ import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
-import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
-import org.projectnessie.model.CommitMeta.InstantDeserializer;
-import org.projectnessie.model.CommitMeta.InstantSerializer;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.DeltaLakeTable;
 import org.projectnessie.model.IcebergTable;
@@ -65,26 +60,13 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @SuppressWarnings("immutables:subtype")
 public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
+  @Override
   NessieTableSnapshot withId(NessieId id);
 
   @Override
   @Value.NonAttribute
   default String type() {
     return "TABLE";
-  }
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @Nullable
-  @jakarta.annotation.Nullable
-  NessieId currentSchemaId();
-
-  List<NessieSchema> schemas();
-
-  @Value.Lazy
-  default Map<Integer, NessieSchema> schemaByIcebergId() {
-    return schemas().stream()
-        .filter(s -> s.icebergId() != NO_SCHEMA_ID)
-        .collect(Collectors.toMap(NessieSchema::icebergId, identity()));
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -102,6 +84,10 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
         .collect(Collectors.toMap(NessiePartitionDefinition::icebergId, identity()));
   }
 
+  default Optional<NessiePartitionDefinition> partitionDefinitionByIcebergId(int specId) {
+    return partitionDefinitions().stream().filter(p -> p.icebergId() == specId).findFirst();
+  }
+
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
@@ -117,13 +103,12 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
         .collect(Collectors.toMap(NessieSortDefinition::icebergSortOrderId, identity()));
   }
 
+  default Optional<NessieSortDefinition> sortDefinitionByIcebergId(int orderId) {
+    return sortDefinitions().stream().filter(s -> s.icebergSortOrderId() == orderId).findFirst();
+  }
+
   @Override
   NessieTable entity();
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @Nullable
-  @jakarta.annotation.Nullable
-  Integer icebergFormatVersion();
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
@@ -143,19 +128,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Nullable
   @jakarta.annotation.Nullable
-  // Can be null, if for example no Iceberg snapshot exists in a table-metadata
-  @JsonSerialize(using = InstantSerializer.class)
-  @JsonDeserialize(using = InstantDeserializer.class)
-  Instant snapshotCreatedTimestamp();
-
-  @JsonSerialize(using = InstantSerializer.class)
-  @JsonDeserialize(using = InstantDeserializer.class)
-  // FIXME is this nullable? The builder method says yes, but the interface says no.
-  Instant lastUpdatedTimestamp();
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @Nullable
-  @jakarta.annotation.Nullable
   Integer icebergLastColumnId();
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -165,11 +137,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   Map<String, String> icebergSnapshotSummary();
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @Nullable
-  @jakarta.annotation.Nullable
-  String icebergLocation();
 
   /**
    * Corresponds to the {@code manifest-list} field in Iceberg snapshots.
@@ -218,18 +185,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @Value.Lazy
   @JsonIgnore
   @Nullable
-  default Optional<NessieSchema> currentSchemaObject() {
-    for (NessieSchema schema : schemas()) {
-      if (schema.id().equals(currentSchemaId())) {
-        return Optional.of(schema);
-      }
-    }
-    return Optional.empty();
-  }
-
-  @Value.Lazy
-  @JsonIgnore
-  @Nullable
   default Optional<NessiePartitionDefinition> currentPartitionDefinitionObject() {
     for (NessiePartitionDefinition partitionDefinition : partitionDefinitions()) {
       if (partitionDefinition.id().equals(currentPartitionDefinitionId())) {
@@ -264,48 +219,18 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   }
 
   @SuppressWarnings("unused")
-  interface Builder {
+  interface Builder extends NessieEntitySnapshot.Builder<Builder> {
     @CanIgnoreReturnValue
     Builder from(NessieTableSnapshot instance);
 
     @CanIgnoreReturnValue
-    Builder id(NessieId id);
-
-    @CanIgnoreReturnValue
-    Builder putProperty(String key, String value);
-
-    @CanIgnoreReturnValue
-    Builder putProperty(Map.Entry<String, ? extends String> entry);
-
-    @CanIgnoreReturnValue
-    Builder properties(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
-    Builder putAllProperties(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
     Builder entity(NessieTable entity);
-
-    @CanIgnoreReturnValue
-    Builder currentSchemaId(@Nullable NessieId currentSchemaId);
 
     @CanIgnoreReturnValue
     Builder currentPartitionDefinitionId(@Nullable NessieId currentPartitionDefinitionId);
 
     @CanIgnoreReturnValue
     Builder currentSortDefinitionId(@Nullable NessieId currentSortDefinitionId);
-
-    @CanIgnoreReturnValue
-    Builder addSchema(NessieSchema element);
-
-    @CanIgnoreReturnValue
-    Builder addSchemas(NessieSchema... elements);
-
-    @CanIgnoreReturnValue
-    Builder schemas(Iterable<? extends NessieSchema> elements);
-
-    @CanIgnoreReturnValue
-    Builder addAllSchemas(Iterable<? extends NessieSchema> elements);
 
     @CanIgnoreReturnValue
     Builder addPartitionDefinition(NessiePartitionDefinition element);
@@ -332,9 +257,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder addAllSortDefinitions(Iterable<? extends NessieSortDefinition> elements);
 
     @CanIgnoreReturnValue
-    Builder icebergFormatVersion(@Nullable Integer icebergFormatVersion);
-
-    @CanIgnoreReturnValue
     Builder icebergSnapshotId(@Nullable Long icebergSnapshotId);
 
     @CanIgnoreReturnValue
@@ -342,12 +264,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
     @CanIgnoreReturnValue
     Builder icebergSnapshotSequenceNumber(@Nullable Long icebergSnapshotSequenceNumber);
-
-    @CanIgnoreReturnValue
-    Builder snapshotCreatedTimestamp(@Nullable Instant snapshotCreatedTimestamp);
-
-    @CanIgnoreReturnValue
-    Builder lastUpdatedTimestamp(@Nullable Instant lastUpdatedTimestamp);
 
     @CanIgnoreReturnValue
     Builder icebergLastColumnId(@Nullable Integer icebergLastColumnId);
@@ -368,11 +284,7 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     Builder putAllIcebergSnapshotSummary(Map<String, ? extends String> entries);
 
     @CanIgnoreReturnValue
-    Builder icebergLocation(String icebergLocation);
-
-    @CanIgnoreReturnValue
-    Builder icebergManifestListLocation(
-        @jakarta.annotation.Nullable String icebergManifestListLocation);
+    Builder icebergManifestListLocation(String icebergManifestListLocation);
 
     @CanIgnoreReturnValue
     Builder addIcebergManifestFileLocation(String element);

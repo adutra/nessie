@@ -15,11 +15,14 @@
  */
 package org.projectnessie.catalog.formats.iceberg.rest;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
+import org.immutables.value.Value;
 import org.projectnessie.catalog.api.base.transport.CatalogOperation;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement.AssertCreate;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -41,6 +44,12 @@ public interface IcebergCatalogOperation extends CatalogOperation {
 
   static Builder builder() {
     return ImmutableIcebergCatalogOperation.builder();
+  }
+
+  @JsonIgnore
+  @Value.NonAttribute
+  default boolean hasAssertCreate() {
+    return requirements().stream().anyMatch(u -> u instanceof AssertCreate);
   }
 
   interface Builder {
