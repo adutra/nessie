@@ -23,9 +23,9 @@ extra_css:
 
 extra:
   versions:
-    java: 0.77.1
-    python: v0.77.1
-    iceberg: 1.4.3
+    java: 0.78.0
+    python: v0.78.0
+    iceberg: 1.5.0
   analytics:
     provider: google
     property: UA-177850801-1

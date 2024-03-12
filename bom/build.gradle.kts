@@ -110,7 +110,6 @@ dependencies {
     api(project(":nessie-catalog-iceberg-httpfileio"))
 
     if (!isIncludedInNesQuEIT()) {
-      api(project(":iceberg-views"))
       api(project(":nessie-spark-antlr-runtime"))
       api(project(":nessie-spark-extensions-grammar"))
       api(project(":nessie-gc-iceberg"))
