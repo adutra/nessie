@@ -18,6 +18,8 @@ package org.projectnessie.catalog.service.api;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Optional;
+import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
+import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
 
 /**
@@ -29,7 +31,12 @@ import org.projectnessie.model.Reference;
  */
 public interface SnapshotResponse {
   static SnapshotResponse forEntity(
-      Reference effectiveReference, Object result, String fileName, String contentType) {
+      Reference effectiveReference,
+      Object result,
+      String fileName,
+      String contentType,
+      ContentKey contentKey,
+      NessieEntitySnapshot<?> nessieSnapshot) {
     return new SnapshotResponse() {
       @Override
       public Optional<Object> entityObject() {
@@ -52,6 +59,16 @@ public interface SnapshotResponse {
       }
 
       @Override
+      public ContentKey contentKey() {
+        return contentKey;
+      }
+
+      @Override
+      public NessieEntitySnapshot<?> nessieSnapshot() {
+        return nessieSnapshot;
+      }
+
+      @Override
       public void produce(OutputStream outputStream) throws IOException {
         throw new UnsupportedOperationException();
       }
@@ -65,6 +82,10 @@ public interface SnapshotResponse {
   String fileName();
 
   String contentType();
+
+  ContentKey contentKey();
+
+  NessieEntitySnapshot<?> nessieSnapshot();
 
   void produce(OutputStream outputStream) throws IOException;
 }

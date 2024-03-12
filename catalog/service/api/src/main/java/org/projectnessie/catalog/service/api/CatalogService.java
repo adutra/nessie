@@ -25,38 +25,44 @@ import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.api.base.transport.CatalogCommit;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
+import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.error.NessieConflictException;
 import org.projectnessie.error.NessieNotFoundException;
+import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
 
 public interface CatalogService {
 
   /**
-   * Retrieves table-snapshot related information, including data file manifests.
+   * Retrieves table or view snapshot related information.
    *
    * @param reqParams Parameters holding the Nessie reference specification, snapshot format and
    *     more.
-   * @param key The table's content key
+   * @param key content key of the table or view
    * @param catalogUriResolver produces URIs for related entities, like Iceberg manifest lists or
    *     manifest files.
+   * @param expectedType The expected content-type.
    * @return The response is either a response object or callback to produce the result. The latter
    *     is useful to return results that are quite big, for example Iceberg manifest lists or
    *     manifest files.
    */
-  CompletionStage<SnapshotResponse> retrieveTableSnapshot(
-      SnapshotReqParams reqParams, ContentKey key, CatalogUriResolver catalogUriResolver)
+  CompletionStage<SnapshotResponse> retrieveSnapshot(
+      SnapshotReqParams reqParams,
+      ContentKey key,
+      CatalogUriResolver catalogUriResolver,
+      Content.Type expectedType)
       throws NessieNotFoundException;
 
-  Stream<Supplier<CompletionStage<SnapshotResponse>>> retrieveTableSnapshots(
+  Stream<Supplier<CompletionStage<SnapshotResponse>>> retrieveSnapshots(
       SnapshotReqParams reqParams,
       List<ContentKey> keys,
       CatalogUriResolver catalogUriResolver,
       Consumer<Reference> effectiveReferenceConsumer)
       throws NessieNotFoundException;
 
-  CompletionStage<Void> commit(
+  CompletionStage<Stream<SnapshotResponse>> commit(
       ParsedReference reference,
       CatalogCommit commit,
       SnapshotReqParams reqParams,
@@ -64,7 +70,8 @@ public interface CatalogService {
       throws NessieNotFoundException, NessieConflictException;
 
   interface CatalogUriResolver {
-    URI icebergSnapshot(Reference effectiveReference, ContentKey key, NessieTableSnapshot snapshot);
+    URI icebergSnapshot(
+        Reference effectiveReference, ContentKey key, NessieEntitySnapshot<?> snapshot);
 
     URI icebergManifestList(
         Reference effectiveReference, ContentKey key, NessieTableSnapshot snapshot);

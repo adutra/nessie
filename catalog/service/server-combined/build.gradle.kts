@@ -85,7 +85,9 @@ dependencies {
   intTestImplementation("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
   intTestImplementation("org.apache.iceberg:iceberg-aws:$versionIceberg")
   intTestImplementation("org.apache.iceberg:iceberg-nessie:$versionIceberg")
-  intTestImplementation(libs.hadoop.common)
+  intTestImplementation("org.apache.iceberg:iceberg-api:$versionIceberg:tests")
+  intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg:tests")
+  intTestImplementation(libs.hadoop.common) { hadoopExcludes() }
 }
 
 val pullOpenApiSpec by tasks.registering(Sync::class)
@@ -224,4 +226,19 @@ nessieQuarkusApp {
   environmentNonInput.put("HTTP_ACCESS_LOG_LEVEL", testLogLevel())
   jvmArgumentsNonInput.add("-XX:SelfDestructTimer=30")
   systemProperties.put("nessie.server.send-stacktrace-to-client", "true")
+}
+
+fun ModuleDependency.hadoopExcludes() {
+  exclude("ch.qos.reload4j", "reload4j")
+  exclude("com.sun.jersey")
+  exclude("commons-cli", "commons-cli")
+  exclude("jakarta.activation", "jakarta.activation-api")
+  exclude("javax.servlet", "javax.servlet-api")
+  exclude("javax.servlet.jsp", "jsp-api")
+  exclude("javax.ws.rs", "javax.ws.rs-api")
+  exclude("log4j", "log4j")
+  exclude("org.slf4j", "slf4j-log4j12")
+  exclude("org.slf4j", "slf4j-reload4j")
+  exclude("org.eclipse.jetty")
+  exclude("org.apache.zookeeper")
 }

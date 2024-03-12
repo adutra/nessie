@@ -17,6 +17,7 @@ package org.projectnessie.catalog.service.rest;
 
 import static org.projectnessie.catalog.service.api.SnapshotReqParams.forSnapshotHttpReq;
 import static org.projectnessie.catalog.service.rest.ExternalBaseUri.parseRefPathString;
+import static org.projectnessie.model.Content.Type.ICEBERG_TABLE;
 import static org.projectnessie.model.Validation.REF_NAME_PATH_ELEMENT_REGEX;
 
 import io.smallrye.common.annotation.Blocking;
@@ -106,7 +107,7 @@ public class CatalogTransportResource extends AbstractCatalogResource
 
     // This operation can block --> @Blocking
     Stream<Supplier<CompletionStage<SnapshotResponse>>> snapshots =
-        catalogService.retrieveTableSnapshots(
+        catalogService.retrieveSnapshots(
             reqParams, keys, catalogUriResolver, effectiveReference::set);
 
     Multi<Object> multi =
@@ -139,7 +140,8 @@ public class CatalogTransportResource extends AbstractCatalogResource
       @QueryParam("format") String format,
       @QueryParam("specVersion") String specVersion)
       throws NessieNotFoundException {
-    return snapshotBased(key, forSnapshotHttpReq(parseRefPathString(ref), format, specVersion));
+    return snapshotBased(
+        key, forSnapshotHttpReq(parseRefPathString(ref), format, specVersion), ICEBERG_TABLE);
   }
 
   @GET
@@ -155,7 +157,8 @@ public class CatalogTransportResource extends AbstractCatalogResource
       throws NessieNotFoundException {
     return snapshotBased(
         key,
-        SnapshotReqParams.forManifestListHttpReq(parseRefPathString(ref), format, specVersion));
+        SnapshotReqParams.forManifestListHttpReq(parseRefPathString(ref), format, specVersion),
+        ICEBERG_TABLE);
   }
 
   @GET
@@ -173,7 +176,8 @@ public class CatalogTransportResource extends AbstractCatalogResource
     return snapshotBased(
         key,
         SnapshotReqParams.forManifestFileHttpReq(
-            parseRefPathString(ref), format, specVersion, manifestFile));
+            parseRefPathString(ref), format, specVersion, manifestFile),
+        ICEBERG_TABLE);
   }
 
   @GET
@@ -190,7 +194,8 @@ public class CatalogTransportResource extends AbstractCatalogResource
       throws NessieNotFoundException {
     return snapshotResponse(
             key,
-            SnapshotReqParams.forDataFile(parseRefPathString(ref), SnapshotFormat.NESSIE_SNAPSHOT))
+            SnapshotReqParams.forDataFile(parseRefPathString(ref), SnapshotFormat.NESSIE_SNAPSHOT),
+            ICEBERG_TABLE)
         .map(
             snapshotResponse -> {
               NessieTableSnapshot tableSnapshot =

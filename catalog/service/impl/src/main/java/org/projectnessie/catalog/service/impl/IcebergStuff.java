@@ -27,9 +27,11 @@ import java.util.concurrent.Executor;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.IcebergTable;
+import org.projectnessie.model.IcebergView;
 import org.projectnessie.nessie.tasks.api.Tasks;
 import org.projectnessie.nessie.tasks.api.TasksService;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
@@ -55,18 +57,19 @@ public class IcebergStuff {
   }
 
   /**
-   * Retrieve the Nessie table snapshot for an {@linkplain IcebergTable Iceberg table snapshot},
-   * either from the Nessie Data Catalog database or imported from the data lake into the Nessie
-   * Data Catalog's database.
+   * Retrieve the Nessie table or view snapshot for an {@linkplain IcebergTable Iceberg table} or
+   * {@linkplain IcebergView Iceberg view} snapshot, either from the Nessie Data Catalog database or
+   * imported from the data lake into the Nessie Data Catalog's database.
    */
-  public CompletionStage<NessieTableSnapshot> retrieveIcebergSnapshot(
+  public <S extends NessieEntitySnapshot<?>> CompletionStage<S> retrieveIcebergSnapshot(
       ObjId snapshotId, Content content, SnapshotFormat format) {
     EntitySnapshotTaskRequest snapshotTaskRequest =
         entitySnapshotTaskRequest(snapshotId, content, null, persist, objectIO, executor);
-    return triggerIcebergTableSnapshot(format, snapshotTaskRequest);
+    return triggerIcebergSnapshot(format, snapshotTaskRequest);
   }
 
-  private CompletionStage<NessieTableSnapshot> triggerIcebergTableSnapshot(
+  @SuppressWarnings("unchecked")
+  private <S extends NessieEntitySnapshot<?>> CompletionStage<S> triggerIcebergSnapshot(
       SnapshotFormat format, EntitySnapshotTaskRequest snapshotTaskRequest) {
     // TODO Handle hash-collision - when entity-snapshot refers to a different(!) snapshot
     return tasksService
@@ -79,19 +82,28 @@ public class IcebergStuff {
                 NessieTableSnapshot tableSnapshot = (NessieTableSnapshot) entitySnapshot;
                 if (format.includesFileManifestGroup()
                     && tableSnapshot.fileManifestGroup() == null) {
-                  return retrieveManifestList(snapshotObj);
+                  return (CompletionStage<S>) retrieveManifestList(snapshotObj);
                 }
+                return completedStage((S) mapToTableSnapshot(snapshotObj, null));
               }
-              return completedStage(mapToTableSnapshot(snapshotObj, null));
+              if (entitySnapshot instanceof NessieViewSnapshot) {
+                return completedStage((S) mapToViewSnapshot(snapshotObj));
+              }
+              throw new IllegalArgumentException(
+                  "Unsupported snapshot type: " + snapshotObj.getClass().getSimpleName());
             });
   }
 
-  public CompletionStage<NessieTableSnapshot> storeSnapshot(
-      NessieTableSnapshot snapshot, Content content) {
+  public <S extends NessieEntitySnapshot<?>> CompletionStage<S> storeSnapshot(
+      S snapshot, Content content) {
     EntitySnapshotTaskRequest snapshotTaskRequest =
         entitySnapshotTaskRequest(
             nessieIdToObjId(snapshot.id()), content, snapshot, persist, objectIO, executor);
-    return triggerIcebergTableSnapshot(SnapshotFormat.ICEBERG_MANIFEST_LIST, snapshotTaskRequest);
+    SnapshotFormat format =
+        snapshot instanceof NessieTableSnapshot
+            ? SnapshotFormat.ICEBERG_MANIFEST_LIST
+            : SnapshotFormat.ICEBERG_TABLE_METADATA;
+    return triggerIcebergSnapshot(format, snapshotTaskRequest);
   }
 
   private CompletionStage<NessieTableSnapshot> retrieveManifestList(EntitySnapshotObj snapshotObj) {
@@ -123,6 +135,19 @@ public class IcebergStuff {
         "Loaded table snapshot with {} schemas and {} partition definitions",
         snapshot.schemas().size(),
         snapshot.partitionDefinitions().size());
+    return snapshot;
+  }
+
+  /** Fetch requested metadata from the database, the snapshot already exists. */
+  NessieViewSnapshot mapToViewSnapshot(@Nonnull EntitySnapshotObj snapshotObj) {
+    LOGGER.debug("Fetching view snapshot from database for snapshot ID {}", snapshotObj.id());
+
+    NessieViewSnapshot viewSnapshot = (NessieViewSnapshot) snapshotObj.snapshot();
+    NessieViewSnapshot.Builder snapshotBuilder = NessieViewSnapshot.builder().from(viewSnapshot);
+
+    NessieViewSnapshot snapshot;
+    snapshot = snapshotBuilder.build();
+    LOGGER.debug("Loaded view snapshot with {} schemas", snapshot.schemas().size());
     return snapshot;
   }
 }

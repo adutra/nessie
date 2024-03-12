@@ -17,6 +17,7 @@ package org.projectnessie.catalog.service.impl;
 
 import static java.util.Objects.requireNonNull;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergTableSnapshotToNessie;
+import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergViewSnapshotToNessie;
 import static org.projectnessie.catalog.model.id.NessieId.emptyNessieId;
 import static org.projectnessie.catalog.model.locations.BaseLocation.baseLocation;
 import static org.projectnessie.catalog.service.impl.Util.nessieIdToObjId;
@@ -30,15 +31,21 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.LongSupplier;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergFileFormat;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergViewMetadata;
+import org.projectnessie.catalog.model.NessieEntity;
 import org.projectnessie.catalog.model.NessieTable;
+import org.projectnessie.catalog.model.NessieView;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
+import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.IcebergTable;
+import org.projectnessie.model.IcebergView;
 import org.projectnessie.versioned.storage.common.exceptions.ObjNotFoundException;
 import org.projectnessie.versioned.storage.common.exceptions.ObjTooLargeException;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
@@ -60,6 +67,16 @@ final class ImportSnapshotWorker {
       try {
         return importIcebergTable(
             (IcebergTable) content, (NessieTableSnapshot) taskRequest.snapshot());
+      } catch (RuntimeException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+    if (content instanceof IcebergView) {
+      try {
+        return importIcebergView(
+            (IcebergView) content, (NessieViewSnapshot) taskRequest.snapshot());
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {
@@ -95,7 +112,8 @@ final class ImportSnapshotWorker {
                     taskRequest.objectIO().readObject(metadataLocation),
                     IcebergTableMetadata.class);
       } catch (IOException e) {
-        throw new IOException("Failed to read table from " + content.getMetadataLocation(), e);
+        throw new IOException(
+            "Failed to read table metadata from " + content.getMetadataLocation(), e);
       }
 
       NessieTable table = entityObjForContent(content, tableMetadata, entityObjId);
@@ -160,6 +178,57 @@ final class ImportSnapshotWorker {
         .taskState(successState());
   }
 
+  private EntitySnapshotObj.Builder importIcebergView(
+      IcebergView content, NessieViewSnapshot snapshot) throws Exception {
+    NessieId snapshotId = objIdToNessieId(taskRequest.objId());
+
+    LOGGER.info(
+        "{} Iceberg view metadata from object store for snapshot ID {} from {}",
+        snapshot == null ? "Fetching" : "Storing",
+        taskRequest.objId(),
+        content.getMetadataLocation());
+
+    ObjId entityObjId =
+        objIdHasher("NessieEntity")
+            .hash(requireNonNull(content.getId(), "Nessie Content has no content ID"))
+            .generate();
+
+    if (snapshot == null) {
+      IcebergViewMetadata viewMetadata;
+      URI metadataLocation = URI.create(content.getMetadataLocation());
+      try {
+        viewMetadata =
+            IcebergJson.objectMapper()
+                .readValue(
+                    taskRequest.objectIO().readObject(metadataLocation), IcebergViewMetadata.class);
+      } catch (IOException e) {
+        throw new IOException(
+            "Failed to read view metadata from " + content.getMetadataLocation(), e);
+      }
+
+      NessieView view =
+          entityObjForContent(
+              content,
+              viewMetadata,
+              entityObjId,
+              () ->
+                  viewMetadata.versions().stream()
+                      .filter(v -> v.versionId() == viewMetadata.currentVersionId())
+                      .findFirst()
+                      .orElseThrow()
+                      .timestampMs());
+
+      snapshot = icebergViewSnapshotToNessie(snapshotId, null, view, viewMetadata);
+    }
+
+    return EntitySnapshotObj.builder()
+        .id(nessieIdToObjId(snapshotId))
+        .entity(entityObjId)
+        .snapshot(snapshot)
+        .content(content)
+        .taskState(successState());
+  }
+
   private NessieTable entityObjForContent(
       IcebergTable content, IcebergTableMetadata tableMetadata, ObjId entityObjId)
       throws ObjTooLargeException {
@@ -186,10 +255,38 @@ final class ImportSnapshotWorker {
     return table;
   }
 
-  private static EntityObj buildEntityObj(ObjId entityObjId, NessieTable table) {
+  private NessieView entityObjForContent(
+      IcebergView content,
+      IcebergViewMetadata viewMetadata,
+      ObjId entityObjId,
+      LongSupplier lastUpdatedMs)
+      throws ObjTooLargeException {
+    NessieView view;
+    try {
+      EntityObj entity = (EntityObj) taskRequest.persist().fetchObj(entityObjId);
+      view = (NessieView) entity.entity();
+    } catch (ObjNotFoundException nf) {
+
+      NessieView.Builder viewBuilder =
+          NessieView.builder()
+              .createdTimestamp(Instant.ofEpochMilli(lastUpdatedMs.getAsLong()))
+              .tableFormat(TableFormat.ICEBERG)
+              .icebergUuid(viewMetadata.viewUuid())
+              .nessieContentId(content.getId());
+
+      view = viewBuilder.build();
+
+      if (taskRequest.persist().storeObj(buildEntityObj(entityObjId, view))) {
+        LOGGER.debug("Persisted new entity object for content ID {}", content.getId());
+      }
+    }
+    return view;
+  }
+
+  private static EntityObj buildEntityObj(ObjId entityObjId, NessieEntity entity) {
     return EntityObj.builder()
         .id(entityObjId)
-        .entity(table)
+        .entity(entity)
         .versionToken(randomObjId().toString())
         .build();
   }

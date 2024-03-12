@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.net.URI;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
+import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
@@ -38,7 +39,7 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
 
   @Override
   public URI icebergSnapshot(
-      Reference effectiveReference, ContentKey key, NessieTableSnapshot snapshot) {
+      Reference effectiveReference, ContentKey key, NessieEntitySnapshot<?> snapshot) {
     String format = snapshotFormat.asImported() ? "iceberg_imported" : "iceberg";
     return baseUri.resolve(
         "trees/"
