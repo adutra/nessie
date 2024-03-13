@@ -275,7 +275,6 @@ jobs:
             -x :nessie-quarkus-cli:intTest \
             -x :nessie-events-quarkus:intTest \
             -x :nessie-catalog-service-server:intTest \
-            -x :nessie-catalog-service-server-combined:intTest \
             $(cat ../persist-prjs.txt) \
             $(cat ../storage-prjs.txt) \
             $(cat ../spark-prjs.txt) \
@@ -416,8 +415,8 @@ jobs:
             :nessie-quarkus-cli:intTest
             :nessie-events-quarkus:intTest
             :nessie-catalog-service-server:intTest
-            :nessie-catalog-service-server-combined:intTest
-            :nessie-catalog-service-server-combined:sparkIntTest
+            :nessie-catalog-service-server:intTest
+            :nessie-catalog-service-server:sparkIntTest
             --scan
 
       - name: Dump quarkus.log

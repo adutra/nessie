@@ -71,10 +71,6 @@ do
       NO_NESSIE_START="true"
       shift
       ;;
-    --no-combined)
-      NO_COMBINED="true"
-      shift
-      ;;
     --clear-warehouse)
       CLEAR_WAREHOUSE="true"
       shift
@@ -107,7 +103,6 @@ if [[ -n "$HELP" ]]; then
   echo "  --container-runtime <runtime>   Container runtime to use. Default: podman if available, docker otherwise"
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
-  echo "  --no-combined                   Do not use combined nessie core + catalog server. Default: false"
   echo "  --clear-warehouse               Clear warehouse directory. Default: false"
   echo "  --debug                         Enable debug mode"
   echo "  --verbose                       Enable verbose mode"
@@ -149,11 +144,7 @@ ${TRINO_DEBUG_OPTS}
 EOF
 
 
-if [[ -z "$NO_COMBINED" ]]; then
-  TRINO_CATALOG_URI="http://${CONTAINER_HOST}:19110/api/v1"
-else
-  TRINO_CATALOG_URI="http://${CONTAINER_HOST}:19120/api/v1"
-fi
+TRINO_CATALOG_URI="http://${CONTAINER_HOST}:19110/api/v1"
 
 cat <<EOF > "$TRINO_TEMP_DIR/catalog/iceberg.properties"
 connector.name=iceberg

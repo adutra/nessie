@@ -73,10 +73,6 @@ do
       NO_CLEAR_IVY_CACHE="true"
       shift
       ;;
-    --no-combined)
-      NO_COMBINED="true"
-      shift
-      ;;
     --clear-warehouse)
       CLEAR_WAREHOUSE="true"
       shift
@@ -110,7 +106,6 @@ if [[ -n "$HELP" ]]; then
   echo "  --container-runtime <runtime>   Container runtime to use. Default: podman if available, docker otherwise"
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
-  echo "  --no-combined                   Do not use combined nessie core + catalog server. Default: false"
   echo "  --clear-warehouse               Clear warehouse directory. Default: false"
   echo "  --debug                         Enable debug mode"
   echo "  --verbose                       Enable verbose mode"
@@ -187,13 +182,8 @@ if [[ -n "$DEBUG" ]]; then
   FLINK_TSKM_DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008"
 fi
 
-if [[ -z "$NO_COMBINED" ]]; then
-  FLINK_CATALOG_URI="http://${CONTAINER_HOST}:19110/api/v2"
-  FLINK_CATALOG_IMPL=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog
-else
-  FLINK_CATALOG_URI="http://${CONTAINER_HOST}:19120/api/v2"
-  FLINK_CATALOG_IMPL=org.apache.iceberg.nessie.NessieCatalog
-fi
+FLINK_CATALOG_URI="http://${CONTAINER_HOST}:19110/api/v2"
+FLINK_CATALOG_IMPL=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog
 
 if [[ -z "$VERBOSE" ]]; then
   FLINK_JOBM_PROMPT="[FLINK JOBM] "
@@ -247,12 +237,7 @@ echo ""
 echo ""
 
 if [[ -n "$DEBUG" ]]; then
-  if [[ -z "$NO_COMBINED" ]]; then
-    echo "Nessie combined debug port: 5006"
-  else
-    echo "Nessie Core debug port: 5005"
-    echo "Nessie Catalog debug port: 5006"
-  fi
+  echo "Nessie Catalog debug port: 5006"
   echo "Flink Job Manager debug port: 5007"
   echo "Flink Task Manager debug port: 5008"
 fi

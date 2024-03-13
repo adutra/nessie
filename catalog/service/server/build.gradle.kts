@@ -24,9 +24,9 @@ plugins {
   alias(libs.plugins.nessie.run)
 }
 
-extra["maven.name"] = "Nessie - Catalog - Server"
+extra["maven.name"] = "Nessie - Catalog - Server with Nessie Core"
 
-description = "Nessie Catalog Server (Quarkus)"
+description = "Nessie Catalog Server with Nessie Core (Quarkus)"
 
 val quarkusRunner by
   configurations.creating {
@@ -36,19 +36,50 @@ val quarkusRunner by
 val openapiSource by
   configurations.creating { description = "Used to reference OpenAPI spec files" }
 
+val versionIceberg = libs.versions.iceberg.get()
+
 dependencies {
-  implementation(project(":nessie-catalog-service-server-base"))
-  implementation(project(":nessie-catalog-service-core-proxy"))
-
+  // Nessie Core
   implementation(project(":nessie-client"))
-  implementation(project(":nessie-versioned-storage-common"))
-  implementation(project(":nessie-versioned-storage-inmemory"))
+  implementation(project(":nessie-combined-cs"))
+  implementation(project(":nessie-services"))
   implementation(project(":nessie-services-config"))
-
-  compileOnly(libs.jakarta.enterprise.cdi.api)
+  implementation(project(":nessie-quarkus-auth"))
+  implementation(project(":nessie-quarkus-common"))
+  implementation(project(":nessie-rest-common"))
+  implementation(project(":nessie-rest-services"))
+  implementation(project(":nessie-tasks-api"))
+  implementation(project(":nessie-tasks-service-async"))
+  implementation(project(":nessie-tasks-service-impl"))
+  implementation(project(":nessie-versioned-spi"))
+  implementation(project(":nessie-versioned-storage-common"))
+  implementation(project(":nessie-catalog-files-api"))
+  implementation(project(":nessie-catalog-files-impl"))
+  implementation(project(":nessie-catalog-schema-model"))
+  implementation(project(":nessie-catalog-service-common"))
+  implementation(project(":nessie-catalog-service-impl"))
+  implementation(project(":nessie-catalog-service-rest"))
 
   implementation(enforcedPlatform(libs.quarkus.bom))
-  implementation("io.quarkus:quarkus-core")
+  implementation("io.quarkus:quarkus-reactive-routes")
+  implementation("io.quarkus:quarkus-resteasy-reactive")
+  implementation("io.quarkus:quarkus-resteasy-reactive-jackson")
+  implementation("io.quarkus:quarkus-smallrye-context-propagation")
+  implementation("io.quarkus:quarkus-hibernate-validator")
+  implementation("io.smallrye:smallrye-open-api-jaxrs")
+  implementation("io.quarkus:quarkus-smallrye-health")
+  implementation("io.quarkus:quarkus-smallrye-openapi")
+  implementation("io.quarkus:quarkus-security")
+  implementation("io.quarkus:quarkus-oidc")
+  implementation("io.quarkus:quarkus-micrometer")
+  implementation("io.quarkus:quarkus-opentelemetry")
+  implementation(libs.quarkus.logging.sentry)
+  implementation("io.micrometer:micrometer-registry-prometheus")
+
+  implementation(platform(libs.awssdk.bom))
+  implementation("software.amazon.awssdk:s3")
+
+  implementation(libs.guava)
 
   openapiSource(project(":nessie-catalog-api-rest", "openapiSource"))
 
@@ -68,7 +99,20 @@ dependencies {
   testFixturesImplementation(platform(libs.junit.bom))
   testFixturesImplementation(libs.bundles.junit.testing)
 
-  nessieQuarkusServer(nessieQuarkusServerRunner())
+  intTestImplementation(project(":nessie-s3minio"))
+  intTestImplementation(platform(libs.awssdk.bom))
+  intTestImplementation("software.amazon.awssdk:s3")
+  intTestImplementation(platform(libs.testcontainers.bom))
+  intTestImplementation("org.testcontainers:testcontainers")
+
+  intTestImplementation(project(":nessie-catalog-iceberg-catalog"))
+  intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg")
+  intTestImplementation("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
+  intTestImplementation("org.apache.iceberg:iceberg-aws:$versionIceberg")
+  intTestImplementation("org.apache.iceberg:iceberg-nessie:$versionIceberg")
+  intTestImplementation("org.apache.iceberg:iceberg-api:$versionIceberg:tests")
+  intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg:tests")
+  intTestImplementation(libs.hadoop.common) { hadoopExcludes() }
 }
 
 val pullOpenApiSpec by tasks.registering(Sync::class)
@@ -146,11 +190,80 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
   tasks.withType<Test>().configureEach { this.enabled = false }
 }
 
+val sparkScala = useSparkScalaVersionsForProject("3.5", "2.13")
+
+testing {
+  suites {
+    register<JvmTestSuite>("sparkIntTest") {
+      useJUnitJupiter(libsRequiredVersion("junit"))
+
+      testType.set("spark-test")
+
+      dependencies {
+        implementation("org.apache.spark:spark-sql_${sparkScala.scalaMajorVersion}") {
+          forSpark(sparkScala.sparkVersion)
+        }
+        implementation("org.apache.spark:spark-core_${sparkScala.scalaMajorVersion}") {
+          forSpark(sparkScala.sparkVersion)
+        }
+        implementation("org.apache.spark:spark-hive_${sparkScala.scalaMajorVersion}") {
+          forSpark(sparkScala.sparkVersion)
+        }
+
+        implementation(libs.assertj.core)
+        compileOnly(libs.errorprone.annotations)
+
+        implementation(
+          "org.apache.iceberg:iceberg-spark-${sparkScala.sparkMajorVersion}_${sparkScala.scalaMajorVersion}:${libs.versions.iceberg.get()}"
+        )
+        implementation("org.apache.iceberg:iceberg-nessie:${libs.versions.iceberg.get()}")
+        implementation(project(":nessie-catalog-iceberg-catalog"))
+      }
+
+      targets.all {
+        testTask.configure {
+
+          // Remove quarkus-specific log manager overrides
+          systemProperties.remove("java.util.logging.manager")
+
+          usesService(
+            gradle.sharedServices.registrations.named("intTestParallelismConstraint").get().service
+          )
+
+          dependsOn("quarkusBuild")
+
+          shouldRunAfter("test")
+
+          forceJavaVersion(sparkScala.runtimeJavaVersion)
+        }
+
+        tasks.named("check").configure { dependsOn(testTask) }
+      }
+    }
+  }
+}
+
 nessieQuarkusApp {
-  includeTask(tasks.named<Test>("intTest"))
+  includeTask(tasks.named<Test>("sparkIntTest"))
+  executableJar.convention {
+    project.layout.buildDirectory.file("quarkus-app/quarkus-run.jar").get().asFile
+  }
   environmentNonInput.put("HTTP_ACCESS_LOG_LEVEL", testLogLevel())
   jvmArgumentsNonInput.add("-XX:SelfDestructTimer=30")
   systemProperties.put("nessie.server.send-stacktrace-to-client", "true")
-  httpListenPortProperty.set("nessie-core.port")
-  httpListenUrlProperty.set("nessie-core.url")
+}
+
+fun ModuleDependency.hadoopExcludes() {
+  exclude("ch.qos.reload4j", "reload4j")
+  exclude("com.sun.jersey")
+  exclude("commons-cli", "commons-cli")
+  exclude("jakarta.activation", "jakarta.activation-api")
+  exclude("javax.servlet", "javax.servlet-api")
+  exclude("javax.servlet.jsp", "jsp-api")
+  exclude("javax.ws.rs", "javax.ws.rs-api")
+  exclude("log4j", "log4j")
+  exclude("org.slf4j", "slf4j-log4j12")
+  exclude("org.slf4j", "slf4j-reload4j")
+  exclude("org.eclipse.jetty")
+  exclude("org.apache.zookeeper")
 }

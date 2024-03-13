@@ -43,13 +43,9 @@ GRADLE_OPTS=("--quiet")
 if [[ -z "$VERBOSE" ]]; then
   GRADLE_OPTS+=("--console=plain")
   REDIRECT="$PROJECT_DIR/build/catalog-demo.log"
-  NESSIE_CORE_PROMPT="[NESSIE CORE] "
-  NESSIE_CATALOG_PROMPT="[NESSIE CTLG] "
   NESSIE_COMBINED_PROMPT="[NESSIE] "
 else
   REDIRECT="/dev/stdout"
-  NESSIE_CORE_PROMPT=$(printf "\r\033[1m\033[33m[NESSIE CORE] \033[0m")
-  NESSIE_CATALOG_PROMPT=$(printf "\r\033[1m\033[32m[NESSIE CTLG] \033[0m")
   NESSIE_COMBINED_PROMPT=$(printf "\r\033[1m\033[32m[NESSIE] \033[0m")
 fi
 
@@ -79,17 +75,8 @@ echo "Building nessie-core server..."
 ./gradlew "${GRADLE_OPTS[@]}" :nessie-quarkus:quarkusBuild
 
 
-if [[ -z "$NO_COMBINED" ]]; then
-
-  echo "Building combined nessie core + catalog server..."
-  ./gradlew "${GRADLE_OPTS[@]}" :nessie-catalog-service-server-combined:quarkusBuild
-
-else
-
-  echo "Building nessie catalog server..."
-  ./gradlew "${GRADLE_OPTS[@]}" :nessie-catalog-service-server:quarkusBuild
-
-fi
+echo "Building combined Nessie Catalog server..."
+./gradlew "${GRADLE_OPTS[@]}" :nessie-catalog-service-server:quarkusBuild
 
 if [[ -n "$DEBUG" ]]; then
   export QUARKUS_LOG_MIN_LEVEL="DEBUG"
@@ -107,51 +94,17 @@ if [[ -n "$DEBUG" ]]; then
 fi
 
 if [[ -z "$NO_NESSIE_START" ]]; then
-  if [[ -z "$NO_COMBINED" ]]; then
+  echo "Starting Nessie Catalog server..."
 
-    echo "Starting combined nessie core + catalog server..."
+  java "${DEBUG_NESSIE_CATALOG[@]}" \
+    -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
+    -jar catalog/service/server-combined/build/quarkus-app/quarkus-run.jar | \
+    sed ''s/^/"$NESSIE_COMBINED_PROMPT"/'' \
+    >> "$REDIRECT" 2>&1 &
 
-    java "${DEBUG_NESSIE_CATALOG[@]}" \
-      -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-      -jar catalog/service/server-combined/build/quarkus-app/quarkus-run.jar | \
-      sed ''s/^/"$NESSIE_COMBINED_PROMPT"/'' \
-      >> "$REDIRECT" 2>&1 &
-
-    sleep 2
-    echo "Waiting for combined nessie core + catalog server to start..."
-    curl --silent --show-error --fail \
-      --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
-      http://localhost:19110/q/health/ready > /dev/null 2>&1
-
-  else
-
-    echo "Starting nessie core server..."
-
-    java "${DEBUG_NESSIE_CORE[@]}" \
-      -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-      -jar servers/quarkus-server/build/quarkus-app/quarkus-run.jar | \
-      sed  ''s/^/"$NESSIE_CORE_PROMPT"/'' \
-      >> "$REDIRECT" 2>&1 &
-
-    sleep 2
-    echo "Waiting for nessie core to start..."
-    curl --silent --show-error --fail \
-      --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
-      http://localhost:19120/q/health/ready > /dev/null 2>&1
-
-    echo "Starting nessie catalog server..."
-
-    java "${DEBUG_NESSIE_CATALOG[@]}" \
-      -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-      -jar catalog/service/server/build/quarkus-app/quarkus-run.jar | \
-      sed  ''s/^/"$NESSIE_CATALOG_PROMPT"/'' \
-      >> "$REDIRECT" 2>&1 &
-
-    sleep 2
-    echo "Waiting for nessie catalog to start..."
-    curl --silent --show-error --fail \
-      --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
-      http://localhost:19110/q/health/ready > /dev/null 2>&1
-
-  fi
+  sleep 2
+  echo "Waiting for Nessie Catalog server to start..."
+  curl --silent --show-error --fail \
+    --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
+    http://localhost:19110/q/health/ready > /dev/null 2>&1
 fi
