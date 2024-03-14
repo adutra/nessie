@@ -66,6 +66,10 @@ public interface CatalogS3Config extends S3Config, S3Options<CatalogS3BucketConf
   @Override
   Optional<URI> endpoint();
 
+  @WithName("domain")
+  @Override
+  Optional<String> domain();
+
   @WithName("cloud")
   @Override
   Optional<Cloud> cloud();

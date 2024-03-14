@@ -29,6 +29,7 @@ dependencies {
   implementation(project(":nessie-catalog-api-base"))
   implementation(project(":nessie-catalog-api-rest"))
   implementation(project(":nessie-catalog-files-api"))
+  implementation(project(":nessie-catalog-files-impl"))
   implementation(project(":nessie-catalog-format-iceberg"))
   implementation(project(":nessie-catalog-schema-model"))
   implementation(project(":nessie-catalog-service-api"))

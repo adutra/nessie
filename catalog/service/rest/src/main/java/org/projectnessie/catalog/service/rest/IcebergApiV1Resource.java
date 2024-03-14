@@ -43,6 +43,9 @@ import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import org.projectnessie.catalog.files.api.ObjectIO;
+import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.s3.S3BucketOptions;
+import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.formats.iceberg.metrics.IcebergMetricsReport;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTableResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTransactionRequest;
@@ -66,6 +69,8 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRegisterTableRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRenameTableRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRestBaseException;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignRequest;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateNamespacePropertiesRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateNamespacePropertiesResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateTableRequest;
@@ -107,17 +112,19 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
 
   @SuppressWarnings("unused")
   public IcebergApiV1Resource() {
-    this(null, null, null, null, null);
+    this(null, null, null, null, null, null, null);
   }
 
   @Inject
   public IcebergApiV1Resource(
       CatalogService catalogService,
       ObjectIO objectIO,
+      RequestSigner signer,
       NessieApiV2 nessieApi,
       CatalogConfig catalogConfig,
-      ExceptionConfig exceptionConfig) {
-    super(catalogService, objectIO, nessieApi, catalogConfig);
+      ExceptionConfig exceptionConfig,
+      S3Options<S3BucketOptions> s3Options) {
+    super(catalogService, objectIO, signer, nessieApi, catalogConfig, s3Options);
     this.exceptionConfig = exceptionConfig;
   }
 
@@ -126,6 +133,24 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   public IcebergConfigResponse getConfig(@QueryParam("warehouse") String warehouse) {
     try {
       return super.getConfig(warehouse);
+    } catch (RuntimeException e) {
+      throw handleException(e, ENTITY_KIND_UNKNOWN);
+    }
+  }
+
+  // TODO inject some path parameters to identify the table in a secure way to then do the
+  //  access-check against the table and eventually sign the request.
+  //  The endpoint can be tweaked sing the S3_SIGNER_ENDPOINT property, signing to be
+  //  enabled via S3_REMOTE_SIGNING_ENABLED.
+  @POST
+  @Path("/{prefix}/s3-sign/{identifier}")
+  @Blocking
+  public IcebergS3SignResponse s3sign(
+      IcebergS3SignRequest request,
+      @PathParam("prefix") String prefix,
+      @PathParam("identifier") String identifier) {
+    try {
+      return super.s3sign(request, prefix, identifier);
     } catch (RuntimeException e) {
       throw handleException(e, ENTITY_KIND_UNKNOWN);
     }

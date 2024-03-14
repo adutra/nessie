@@ -42,4 +42,14 @@ public interface SigningRequest {
   String body();
 
   Map<String, List<String>> headers();
+
+  static SigningRequest signingRequest(
+      URI uri,
+      String method,
+      String region,
+      String bucket,
+      String body,
+      Map<String, List<String>> headers) {
+    return ImmutableSigningRequest.of(uri, method, region, bucket, body, headers);
+  }
 }

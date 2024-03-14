@@ -73,11 +73,7 @@ public class ITIcebergViewsCatalog extends ViewCatalogTests<RESTCatalog> {
         "nessie-iceberg-api",
         ImmutableMap.of(
             CatalogProperties.URI,
-            String.format("http://127.0.0.1:%d/iceberg/", catalogServerPort),
-            CatalogProperties.FILE_IO_IMPL,
-            "org.apache.iceberg.io.ResolvingFileIO",
-            "prefix",
-            "main"));
+            String.format("http://127.0.0.1:%d/iceberg/", catalogServerPort)));
     catalogs.add(catalog);
     currentCatalog = catalog;
     return catalog;

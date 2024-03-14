@@ -15,6 +15,10 @@
  */
 package org.projectnessie.catalog.files.s3;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.util.Optional;
 import org.projectnessie.catalog.api.sign.ImmutableSigningResponse;
 import org.projectnessie.catalog.api.sign.SigningRequest;
@@ -23,7 +27,10 @@ import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.signer.AwsS3V4Signer;
+import software.amazon.awssdk.auth.signer.internal.SignerConstant;
 import software.amazon.awssdk.auth.signer.params.AwsS3V4SignerParams;
+import software.amazon.awssdk.auth.signer.params.SignerChecksumParams;
+import software.amazon.awssdk.core.checksums.Algorithm;
 import software.amazon.awssdk.http.SdkHttpFullRequest;
 import software.amazon.awssdk.http.SdkHttpMethod;
 import software.amazon.awssdk.regions.Region;
@@ -34,6 +41,9 @@ public class S3Signer implements RequestSigner {
   private final S3Options<? extends S3BucketOptions> s3Options;
   private final SecretsProvider secretsProvider;
 
+  static final String EMPTY_BODY_SHA256 =
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
   public S3Signer(S3Options<? extends S3BucketOptions> s3Options, SecretsProvider secretsProvider) {
     this.s3Options = s3Options;
     this.secretsProvider = secretsProvider;
@@ -42,9 +52,10 @@ public class S3Signer implements RequestSigner {
   @Override
   public SigningResponse sign(String ref, String key, SigningRequest clientRequest) {
 
-    if ("post".equalsIgnoreCase(clientRequest.method())
-        && clientRequest.uri().getQuery().contains("delete")) {
-      String body = clientRequest.body();
+    URI uri = clientRequest.uri();
+    String body = clientRequest.body();
+
+    if ("post".equalsIgnoreCase(clientRequest.method()) && uri.getQuery().contains("delete")) {
       if (body == null || body.isEmpty()) {
         throw new IllegalArgumentException("DELETE requests must have a non-empty body");
       }
@@ -55,21 +66,37 @@ public class S3Signer implements RequestSigner {
     AwsCredentialsProvider credentialsProvider =
         S3Clients.awsCredentialsProvider(bucketOptions, secretsProvider);
 
-    SdkHttpFullRequest request =
+    SdkHttpFullRequest.Builder request =
         SdkHttpFullRequest.builder()
-            .uri(clientRequest.uri())
+            .uri(uri)
+            .protocol(uri.getScheme())
             .method(SdkHttpMethod.fromValue(clientRequest.method()))
-            .headers(clientRequest.headers())
-            .build();
+            .headers(clientRequest.headers());
+
+    if (body == null) {
+      request.putHeader(SignerConstant.X_AMZ_CONTENT_SHA256, EMPTY_BODY_SHA256);
+    } else {
+      request.contentStreamProvider(() -> new ByteArrayInputStream(body.getBytes(UTF_8)));
+    }
 
     AwsS3V4SignerParams params =
         AwsS3V4SignerParams.builder()
             .signingRegion(Region.of(clientRequest.region()))
             .signingName("s3")
             .awsCredentials(credentialsProvider.resolveCredentials())
+            .enableChunkedEncoding(false)
+            .timeOffset(0)
+            .doubleUrlEncode(false)
+            .enablePayloadSigning(false)
+            .checksumParams(
+                SignerChecksumParams.builder()
+                    .algorithm(Algorithm.SHA256)
+                    .isStreamingRequest(false)
+                    .checksumHeaderName(SignerConstant.X_AMZ_CONTENT_SHA256)
+                    .build())
             .build();
 
-    SdkHttpFullRequest signed = signer.sign(request, params);
+    SdkHttpFullRequest signed = signer.sign(request.build(), params);
 
     return ImmutableSigningResponse.of(signed.getUri(), signed.headers());
   }

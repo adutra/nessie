@@ -17,6 +17,8 @@ package org.projectnessie.catalog.service.rest;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
+import static java.net.URLEncoder.encode;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.UUID.randomUUID;
 import static org.projectnessie.api.v2.params.ParsedReference.parsedReference;
@@ -39,6 +41,7 @@ import static org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpda
 import static org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate.SetLocation.setLocation;
 import static org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate.SetProperties.setProperties;
 import static org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate.UpgradeFormatVersion.upgradeFormatVersion;
+import static org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignResponse.icebergS3SignResponse;
 import static org.projectnessie.catalog.service.rest.DecodedPrefix.decodedPrefix;
 import static org.projectnessie.catalog.service.rest.NamespaceRef.namespaceRef;
 import static org.projectnessie.catalog.service.rest.TableRef.tableRef;
@@ -76,7 +79,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.api.base.transport.CatalogCommit;
+import org.projectnessie.catalog.api.sign.SigningRequest;
+import org.projectnessie.catalog.api.sign.SigningResponse;
 import org.projectnessie.catalog.files.api.ObjectIO;
+import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNamespace;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
@@ -111,6 +118,8 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRegisterTableRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRenameTableRequest;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignRequest;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateNamespacePropertiesRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateNamespacePropertiesResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
@@ -151,55 +160,138 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
   private final NessieApiV2 nessieApi;
   private final CatalogConfig catalogConfig;
+  private final S3Options<?> s3Options;
+  private final RequestSigner signer;
+
+  /**
+   * This is the <em>base</em> signer URI, it is effectively evaluated like a <em>{@code
+   * static}</em> field, so only once per JVM (class loader).
+   *
+   * <p>Defaults to the REST catalog URI.
+   */
+  public static final String S3_SIGNER_URI = "s3.signer.uri";
+
+  /**
+   * This is the signer endpoint (like {@code v1/aws/s3/sign}), it is evaluated per {@code S3FileIO}
+   * instance.
+   */
+  public static final String S3_SIGNER_ENDPOINT = "s3.signer.endpoint";
+
+  /** Boolean property that enables remote signing for tables. */
+  public static final String S3_REMOTE_SIGNING_ENABLED = "s3.remote-signing-enabled";
+
+  public static final String S3_ENDPOINT = "s3.endpoint";
+  public static final String S3_ACCESS_POINTS_PREFIX = "s3.endpoints.";
+  public static final String S3_PATH_STYLE_ACCESS = "s3.path-style-access";
+
+  public static final String PREFIX = "prefix";
+  public static final String FILE_IO_IMPL = "io-impl";
+  public static final String WAREHOUSE_LOCATION = "warehouse";
+  public static final String TABLE_DEFAULT_PREFIX = "table-default.";
+  public static final String TABLE_OVERRIDE_PREFIX = "table-override.";
 
   protected IcebergApiV1ResourceBase(
       CatalogService catalogService,
       ObjectIO objectIO,
+      RequestSigner signer,
       NessieApiV2 nessieApi,
-      CatalogConfig catalogConfig) {
+      CatalogConfig catalogConfig,
+      S3Options<?> s3Options) {
     super(catalogService, objectIO);
     this.nessieApi = nessieApi;
+    this.signer = signer;
     this.catalogConfig = catalogConfig;
+    this.s3Options = s3Options;
   }
 
   public IcebergConfigResponse getConfig(String warehouse) {
 
-    IcebergConfigResponse.Builder config = IcebergConfigResponse.builder();
     WarehouseConfig w = catalogConfig.getWarehouse(warehouse);
 
     // TODO re-check the stuff that's returned from this function - there'll be a lot to be changed
     //  here, out of scope of the initial PR that adds Iceberg's REST endpoints.
 
-    // Pass Nessie client properties to the client
-    Map<String, String> clientCoreProperties =
-        new HashMap<>(catalogConfig.icebergClientCoreProperties());
-    // TODO really need a client ID ??
-    clientCoreProperties.putIfAbsent(CONF_NESSIE_OAUTH2_CLIENT_ID, "nessie-catalog-core-client");
-    // TODO a non-secret secret is not a secret ...
-    clientCoreProperties.putIfAbsent(CONF_NESSIE_OAUTH2_CLIENT_SECRET, "secret");
-    config.putAllDefaults(clientCoreProperties);
+    String defaultBranch = Optional.ofNullable(catalogConfig.defaultBranch().name()).orElse("main");
 
-    config.putAllDefaults(w.icebergConfigDefaults());
-    config.putAllOverrides(w.icebergConfigOverrides());
+    Map<String, String> configDefaults = new HashMap<>();
+    Map<String, String> configOverrides = new HashMap<>();
+
+    // Pass Nessie client properties to the client
+
+    configDefaults.put(FILE_IO_IMPL, "org.apache.iceberg.io.ResolvingFileIO");
+
+    s3Options
+        .endpoint()
+        .ifPresent(x -> configDefaults.put(S3_ENDPOINT, s3Options.resolveS3Endpoint().toString()));
+    s3Options
+        .buckets()
+        .forEach(
+            (bucket, cfg) -> {
+              if (cfg.endpoint().isPresent()) {
+                configDefaults.put(
+                    S3_ACCESS_POINTS_PREFIX + bucket, cfg.resolveS3Endpoint().toString());
+              }
+            });
+
+    configDefaults.put(PREFIX, encode(defaultBranch, UTF_8));
+
+    // TODO really need a client ID ??
+    configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_ID, "nessie-catalog-core-client");
+    // TODO a non-secret secret is not a secret ...
+    configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_SECRET, "secret");
+    configDefaults.putAll(catalogConfig.icebergClientCoreProperties());
+    configDefaults.putAll(w.icebergConfigDefaults());
 
     // The following properties are passed back to clients to automatically configure their Nessie
     // client. These properties are _not_ user configurable properties.
-    config.putOverride("nessie.default-branch.name", catalogConfig.defaultBranch().name());
-    config.putOverride("nessie.is-nessie-catalog", "true");
+    configOverrides.put("nessie.default-branch.name", defaultBranch);
+    configOverrides.put("nessie.is-nessie-catalog", "true");
     // Make sure that `nessie.core-base-uri` always returns a `/` terminated URI.
-    config.putOverride("nessie.core-base-uri", uriInfo.coreRootURI().toString());
+    configOverrides.put("nessie.core-base-uri", uriInfo.coreRootURI().toString());
     // Make sure that `nessie.catalog-base-uri` always returns a `/` terminated URI.
-    config.putOverride("nessie.catalog-base-uri", uriInfo.catalogBaseURI().toString());
-    config.putOverride("nessie.prefix-pattern", "{ref}|{warehouse}");
+    configOverrides.put("nessie.catalog-base-uri", uriInfo.catalogBaseURI().toString());
+    configOverrides.put("nessie.prefix-pattern", "{ref}|{warehouse}");
+
+    // TODO ?   config.putOverride(S3_SIGNER_URI, ...)
 
     URI oauthUri = uriInfo.oauthTokensUri();
 
     // "Just" Nessie client specific configs
-    config.putOverride(CONF_NESSIE_AUTH_TYPE, "OAUTH2");
-    config.putOverride(CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT, oauthUri.toString());
+    configOverrides.put(CONF_NESSIE_AUTH_TYPE, "OAUTH2");
+    configOverrides.put(CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT, oauthUri.toString());
 
-    return config.build();
+    configOverrides.putAll(w.icebergConfigOverrides());
+
+    return IcebergConfigResponse.builder()
+        .defaults(configDefaults)
+        .overrides(configOverrides)
+        .build();
   }
+
+  //
+  // S3 request signing
+  //
+
+  public IcebergS3SignResponse s3sign(
+      IcebergS3SignRequest request, String prefix, String identifier) {
+    ParsedReference ref = decodePrefix(prefix).parsedReference();
+
+    URI uri = URI.create(request.uri());
+
+    String bucket = s3Options.extractBucket(uri);
+
+    SigningRequest signingRequest =
+        SigningRequest.signingRequest(
+            uri, request.method(), request.region(), bucket, request.body(), request.headers());
+
+    SigningResponse signed = signer.sign(ref.name(), identifier, signingRequest);
+
+    return icebergS3SignResponse(signed.uri().toString(), signed.headers());
+  }
+
+  //
+  // OAuth proxy
+  //
 
   public IcebergOAuthTokenResponse getToken(IcebergOAuthTokenRequest request)
       throws IcebergOAuthTokenEndpointException {
@@ -442,7 +534,13 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               snapshot, Optional.empty(), NessieModelIceberg.IcebergSnapshotTweak.NOOP, map -> {});
 
       return Uni.createFrom()
-          .item(loadTableResult(null, stagedTableMetadata, IcebergCreateTableResponse.builder()));
+          .item(
+              loadTableResult(
+                  null,
+                  stagedTableMetadata,
+                  IcebergCreateTableResponse.builder(),
+                  prefix,
+                  tableRef.contentKey()));
     }
     LOGGER.info("Create-table for table '{}' on '{}'", tableRef.contentKey(), target.getName());
 
@@ -456,7 +554,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     return createOrUpdateTable(tableRef, warehouse, updateTableReq)
         .map(
             snap ->
-                loadTableResultFromSnapshotResponse(snap, IcebergCreateTableResponse.builder()));
+                loadTableResultFromSnapshotResponse(
+                    snap, IcebergCreateTableResponse.builder(), prefix, tableRef.contentKey()));
   }
 
   public void dropTable(String prefix, String namespace, String table, Boolean purgeRequested)
@@ -531,7 +630,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                   committed.getTargetBranch().getName(),
                   committed.getTargetBranch().getHash(),
                   Reference.ReferenceType.BRANCH),
-              null));
+              null),
+          prefix);
     } else if (nessieCatalogUri) {
       throw new IllegalArgumentException(
           "Cannot register an Iceberg table using the URI "
@@ -579,7 +679,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                 committed.getTargetBranch().getName(),
                 committed.getTargetBranch().getHash(),
                 committed.getTargetBranch().getType()),
-            null));
+            null),
+        prefix);
   }
 
   public IcebergListTablesResponse listTables(
@@ -605,7 +706,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     TableRef tableRef = decodeTableRef(prefix, namespace, table);
     WarehouseConfig warehouse = catalogConfig.getWarehouse(tableRef.warehouse());
 
-    return loadTable(tableRef);
+    return loadTable(tableRef, prefix);
   }
 
   public void tableExists(String prefix, String namespace, String table) throws IOException {
@@ -903,7 +1004,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         .map(snap -> loadViewResultFromSnapshotResponse(snap, IcebergLoadViewResponse.builder()));
   }
 
-  private Uni<IcebergLoadTableResponse> loadTable(TableRef tableRef)
+  private Uni<IcebergLoadTableResponse> loadTable(TableRef tableRef, String prefix)
       throws NessieNotFoundException {
     ContentKey key = tableRef.contentKey();
 
@@ -911,7 +1012,10 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
             key,
             SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg_imported", null),
             ICEBERG_TABLE)
-        .map(snap -> loadTableResultFromSnapshotResponse(snap, IcebergLoadTableResponse.builder()));
+        .map(
+            snap ->
+                loadTableResultFromSnapshotResponse(
+                    snap, IcebergLoadTableResponse.builder(), prefix, key));
   }
 
   private void renameContent(
@@ -1159,6 +1263,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     WarehouseConfig warehouse = catalogConfig.getWarehouse(tableRef.warehouse());
     ContentKey key = tableRef.contentKey();
 
+    // TODO do we need to URLEncode the path elements of the Namespace and ContentKey ?
+
     Namespace ns = key.getNamespace();
     if (!ns.isEmpty()) {
       List<ContentKey> parentNamespaces = new ArrayList<>();
@@ -1168,7 +1274,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         parentNamespaces.add(namespace.toContentKey());
       }
 
-      String baseLocation = warehouse.location() + "/" + ns;
+      String baseLocation = concatLocation(warehouse.location(), ns.toString());
       try {
         ParsedReference parsedRef = requireNonNull(tableRef.reference());
         GetMultipleContentsResponse namespacesResp =
@@ -1194,14 +1300,21 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         // do nothing we want the same behavior that if the location is not defined
       }
 
-      location = baseLocation + "/" + key.getName();
+      location = concatLocation(baseLocation, key.getName());
     } else {
-      location = warehouse.location() + "/" + key.getName();
+      location = concatLocation(warehouse.location(), key.getName());
     }
     // Different tables with same table name can exist across references in Nessie.
     // To avoid sharing same table path between two tables with same name, use uuid in the table
     // path.
     return location + "_" + UUID.randomUUID();
+  }
+
+  private String concatLocation(String location, String key) {
+    if (location.endsWith("/")) {
+      return location + key;
+    }
+    return location + "/" + key;
   }
 
   private ContentResponse fetchIcebergTable(TableRef tableRef) throws NessieNotFoundException {
@@ -1243,12 +1356,27 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   }
 
   private <R extends IcebergLoadTableResult, B extends IcebergLoadTableResult.Builder<R, B>>
-      R loadTableResult(String metadataLocation, IcebergTableMetadata tableMetadata, B builder) {
+      R loadTableResult(
+          String metadataLocation,
+          IcebergTableMetadata tableMetadata,
+          B builder,
+          String prefix,
+          ContentKey contentKey) {
     return builder
         .metadata(tableMetadata)
         .metadataLocation(metadataLocation)
         // TODO this is the place to add vended authorization tokens for file/object access
-        // .config(...)
+        .putConfig(S3_REMOTE_SIGNING_ENABLED, "true")
+        .putConfig(
+            S3_SIGNER_ENDPOINT,
+            uriInfo
+                .icebergBaseURI()
+                .resolve(
+                    format(
+                        "%s/s3-sign/%s",
+                        encode(prefix, UTF_8), encode(contentKey.toPathString(), UTF_8)))
+                .toString())
+        .putConfig(S3_PATH_STYLE_ACCESS, s3Options.pathStyleAccess() ? "true" : "false")
         .build();
   }
 
@@ -1265,9 +1393,11 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   }
 
   private <R extends IcebergLoadTableResult, B extends IcebergLoadTableResult.Builder<R, B>>
-      R loadTableResultFromSnapshotResponse(SnapshotResponse snap, B builder) {
+      R loadTableResultFromSnapshotResponse(
+          SnapshotResponse snap, B builder, String prefix, ContentKey contentKey) {
     IcebergTableMetadata tableMetadata = (IcebergTableMetadata) snap.entityObject().orElseThrow();
-    return loadTableResult(snapshotMetadataLocation(snap), tableMetadata, builder);
+    return loadTableResult(
+        snapshotMetadataLocation(snap), tableMetadata, builder, prefix, contentKey);
   }
 
   private IcebergLoadViewResponse loadViewResultFromSnapshotResponse(

@@ -15,13 +15,13 @@
  */
 package org.projectnessie.catalog.files.s3;
 
-import static java.lang.String.format;
-
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Function;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -35,6 +35,8 @@ import software.amazon.awssdk.services.s3.S3ServiceClientConfiguration;
 import software.amazon.awssdk.services.s3.model.S3Request;
 
 public class S3Clients {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(S3Clients.class);
 
   /**
    * Builds the base S3 client with the shared HTTP client, configured with the minimum amount of
@@ -84,6 +86,17 @@ public class S3Clients {
 
         S3BucketOptions bucketOptions = s3options.effectiveOptionsForBucket(bucketName);
 
+        URI endpoint = bucketOptions.resolveS3Endpoint();
+
+        // TODO reduce log level to TRACE
+        if (LOGGER.isInfoEnabled()) {
+          LOGGER.info(
+              "Building S3-client for bucket {} using endpoint {} with {}",
+              bucketName,
+              endpoint,
+              toLogString(bucketOptions));
+        }
+
         AwsRequestOverrideConfiguration.Builder override =
             request
                 .overrideConfiguration()
@@ -95,7 +108,7 @@ public class S3Clients {
                       S3ServiceClientConfiguration.Builder s3configBuilder =
                           (S3ServiceClientConfiguration.Builder) config;
 
-                      s3configBuilder.endpointOverride(resolveS3Endpoint(bucketOptions));
+                      s3configBuilder.endpointOverride(endpoint);
 
                       bucketOptions
                           .region()
@@ -112,6 +125,23 @@ public class S3Clients {
         return super.invokeOperation(overridden, operation);
       }
     };
+  }
+
+  private static String toLogString(S3BucketOptions options) {
+    return "S3BucketOptions{"
+        + "cloud="
+        + options.cloud().map(Cloud::name).orElse("<undefined>")
+        + ", endpoint="
+        + options.endpoint().map(URI::toString).orElse("<undefined>")
+        + ", region="
+        + options.region().orElse("<undefined>")
+        + ", projectId="
+        + options.projectId().orElse("<undefined>")
+        + ", accessKeyIdRef="
+        + options.accessKeyIdRef().orElse("<undefined>")
+        + ", secretAccessKeyRef="
+        + options.secretAccessKeyRef().orElse("<undefined>")
+        + "}";
   }
 
   public static AwsCredentialsProvider awsCredentialsProvider(
@@ -142,44 +172,6 @@ public class S3Clients {
     public AwsCredentials resolveCredentials() {
       throw new IllegalStateException(
           "Invalid access path to S3Client - must wrap with credentials-providing delegate");
-    }
-  }
-
-  private static URI resolveS3Endpoint(S3BucketOptions options) {
-    Cloud cloud =
-        options
-            .cloud()
-            .orElseThrow(() -> new IllegalStateException("Must configure the cloud type"));
-    switch (cloud) {
-      case AMAZON:
-        return options
-            .endpoint()
-            .orElseGet(
-                () ->
-                    URI.create(
-                        format(
-                            "https://s3.%s.amazonaws.com/",
-                            options
-                                .region()
-                                .orElseThrow(
-                                    () ->
-                                        new IllegalArgumentException(
-                                            "Must configure the AWS region")))));
-      case GOOGLE:
-        return options.endpoint().orElseGet(() -> URI.create("https://storage.googleapis.com/"));
-      case MICROSOFT:
-        throw new IllegalArgumentException("Cloud " + cloud + " not supported for S3");
-      case PRIVATE:
-        return options
-            .endpoint()
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "No endpoint provided, but cloud "
-                            + cloud
-                            + " requires an explicit endpoint."));
-      default:
-        throw new IllegalArgumentException("Unknown cloud " + cloud);
     }
   }
 }

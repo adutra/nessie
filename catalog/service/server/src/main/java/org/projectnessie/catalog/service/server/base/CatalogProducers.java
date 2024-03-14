@@ -32,7 +32,9 @@ import org.eclipse.microprofile.context.ThreadContext;
 import org.projectnessie.catalog.files.ResolvingObjectIO;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.s3.S3BucketOptions;
 import org.projectnessie.catalog.files.s3.S3Clients;
+import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.files.s3.S3Signer;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
@@ -67,6 +69,15 @@ public class CatalogProducers {
   @Singleton
   public S3Client s3Client(CatalogS3Config s3config) {
     return S3Clients.createS3BaseClient(s3config);
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes", "UnnecessaryLocalVariable"})
+  @Produces
+  @Singleton
+  public S3Options<S3BucketOptions> s3options(CatalogS3Config s3config) {
+    S3Options opts = s3config;
+    S3Options<S3BucketOptions> r = opts;
+    return r;
   }
 
   @Produces

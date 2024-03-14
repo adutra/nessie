@@ -37,6 +37,10 @@ public interface ExternalBaseUri {
     return externalBaseURI().resolve("catalog/v1/");
   }
 
+  default URI icebergBaseURI() {
+    return externalBaseURI().resolve("iceberg/v1/");
+  }
+
   default URI oauthTokensUri() {
     return externalBaseURI().resolve("iceberg/v1/oauth/tokens");
   }
