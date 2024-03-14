@@ -98,7 +98,7 @@ import org.slf4j.LoggerFactory;
 @RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces({MediaType.APPLICATION_JSON})
-@Path("iceberg/v1")
+@Path("iceberg")
 public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IcebergApiV1Resource.class);
@@ -128,11 +128,27 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
     this.exceptionConfig = exceptionConfig;
   }
 
+  /** Exposes the Iceberg REST configuration for the Nessie default branch. */
   @GET
-  @Path("config")
+  @Path("/v1/config")
   public IcebergConfigResponse getConfig(@QueryParam("warehouse") String warehouse) {
     try {
-      return super.getConfig(warehouse);
+      return super.getConfig(null, warehouse);
+    } catch (RuntimeException e) {
+      throw handleException(e, ENTITY_KIND_UNKNOWN);
+    }
+  }
+
+  /**
+   * Exposes the Iceberg REST configuration for the named Nessie {@code reference} in the
+   * {@code @Path} parameter.
+   */
+  @GET
+  @Path("{reference}/v1/config")
+  public IcebergConfigResponse getConfig(
+      @PathParam("reference") String reference, @QueryParam("warehouse") String warehouse) {
+    try {
+      return super.getConfig(reference, warehouse);
     } catch (RuntimeException e) {
       throw handleException(e, ENTITY_KIND_UNKNOWN);
     }
@@ -143,7 +159,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   //  The endpoint can be tweaked sing the S3_SIGNER_ENDPOINT property, signing to be
   //  enabled via S3_REMOTE_SIGNING_ENABLED.
   @POST
-  @Path("/{prefix}/s3-sign/{identifier}")
+  @Path("/v1/{prefix}/s3-sign/{identifier}")
   @Blocking
   public IcebergS3SignResponse s3sign(
       IcebergS3SignRequest request,
@@ -157,7 +173,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/oauth/tokens")
+  @Path("/v1/oauth/tokens")
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @Blocking
   public IcebergOAuthTokenResponse getToken(IcebergOAuthTokenRequest request)
@@ -170,7 +186,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces")
+  @Path("/v1/{prefix}/namespaces")
   @Blocking
   public IcebergCreateNamespaceResponse createNamespace(
       @PathParam("prefix") String prefix,
@@ -183,7 +199,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @DELETE
-  @Path("/{prefix}/namespaces/{namespace}")
+  @Path("/v1/{prefix}/namespaces/{namespace}")
   @Blocking
   public void dropNamespace(
       @PathParam("prefix") String prefix, @PathParam("namespace") String namespace) {
@@ -195,7 +211,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @GET
-  @Path("/{prefix}/namespaces")
+  @Path("/v1/{prefix}/namespaces")
   @Blocking
   public IcebergListNamespacesResponse listNamespaces(
       @PathParam("prefix") String prefix,
@@ -210,7 +226,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @HEAD
-  @Path("/{prefix}/namespaces/{namespace}")
+  @Path("/v1/{prefix}/namespaces/{namespace}")
   @Blocking
   public void namespaceExists(
       @PathParam("prefix") String prefix, @PathParam("namespace") String namespace) {
@@ -222,7 +238,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @GET
-  @Path("/{prefix}/namespaces/{namespace}")
+  @Path("/v1/{prefix}/namespaces/{namespace}")
   @Blocking
   public IcebergGetNamespaceResponse loadNamespaceMetadata(
       @PathParam("prefix") String prefix, @PathParam("namespace") String namespace) {
@@ -234,7 +250,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces/{namespace}/properties")
+  @Path("/v1/{prefix}/namespaces/{namespace}/properties")
   @Blocking
   public IcebergUpdateNamespacePropertiesResponse updateProperties(
       @PathParam("prefix") String prefix,
@@ -248,7 +264,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces/{namespace}/tables")
+  @Path("/v1/{prefix}/namespaces/{namespace}/tables")
   @Blocking
   public Uni<IcebergCreateTableResponse> createTable(
       @PathParam("prefix") String prefix,
@@ -265,7 +281,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces/{namespace}/register")
+  @Path("/v1/{prefix}/namespaces/{namespace}/register")
   @Blocking
   public Uni<IcebergLoadTableResponse> registerTable(
       @PathParam("prefix") String prefix,
@@ -281,7 +297,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @DELETE
-  @Path("/{prefix}/namespaces/{namespace}/tables/{table}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/tables/{table}")
   @Blocking
   public void dropTable(
       @PathParam("prefix") String prefix,
@@ -296,7 +312,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @GET
-  @Path("/{prefix}/namespaces/{namespace}/tables")
+  @Path("/v1/{prefix}/namespaces/{namespace}/tables")
   @Blocking
   public IcebergListTablesResponse listTables(
       @PathParam("prefix") String prefix,
@@ -311,7 +327,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @GET
-  @Path("/{prefix}/namespaces/{namespace}/tables/{table}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/tables/{table}")
   @Blocking
   public Uni<IcebergLoadTableResponse> loadTable(
       @PathParam("prefix") String prefix,
@@ -328,7 +344,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/tables/rename")
+  @Path("/v1/{prefix}/tables/rename")
   @Blocking
   public void renameTable(
       @PathParam("prefix") String prefix,
@@ -342,7 +358,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @HEAD
-  @Path("/{prefix}/namespaces/{namespace}/tables/{table}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/tables/{table}")
   @Blocking
   public void tableExists(
       @PathParam("prefix") String prefix,
@@ -356,7 +372,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces/{namespace}/tables/{table}/metrics")
+  @Path("/v1/{prefix}/namespaces/{namespace}/tables/{table}/metrics")
   @Blocking
   public void reportMetrics(
       @PathParam("prefix") String prefix,
@@ -371,7 +387,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces/{namespace}/tables/{table}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/tables/{table}")
   @Blocking
   public Uni<IcebergCommitTableResponse> updateTable(
       @PathParam("prefix") String prefix,
@@ -388,7 +404,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/transactions/commit")
+  @Path("/v1/{prefix}/transactions/commit")
   @Blocking
   public Uni<Void> commitTransaction(
       @PathParam("prefix") String prefix,
@@ -403,7 +419,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces/{namespace}/views")
+  @Path("/v1/{prefix}/namespaces/{namespace}/views")
   @Blocking
   public Uni<IcebergLoadViewResponse> createView(
       @PathParam("prefix") String prefix,
@@ -419,7 +435,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @DELETE
-  @Path("/{prefix}/namespaces/{namespace}/views/{view}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/views/{view}")
   @Blocking
   public void dropView(
       @PathParam("prefix") String prefix,
@@ -434,7 +450,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @GET
-  @Path("/{prefix}/namespaces/{namespace}/views")
+  @Path("/v1/{prefix}/namespaces/{namespace}/views")
   @Blocking
   public IcebergListTablesResponse listViews(
       @PathParam("prefix") String prefix,
@@ -449,7 +465,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @GET
-  @Path("/{prefix}/namespaces/{namespace}/views/{view}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/views/{view}")
   @Blocking
   public Uni<IcebergLoadViewResponse> loadView(
       @PathParam("prefix") String prefix,
@@ -463,7 +479,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/views/rename")
+  @Path("/v1/{prefix}/views/rename")
   @Blocking
   public void renameView(
       @PathParam("prefix") String prefix,
@@ -477,7 +493,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @HEAD
-  @Path("/{prefix}/namespaces/{namespace}/views/{view}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/views/{view}")
   @Blocking
   public void viewExists(
       @PathParam("prefix") String prefix,
@@ -491,7 +507,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   }
 
   @POST
-  @Path("/{prefix}/namespaces/{namespace}/views/{view}")
+  @Path("/v1/{prefix}/namespaces/{namespace}/views/{view}")
   @Blocking
   public Uni<IcebergLoadViewResponse> updateView(
       @PathParam("prefix") String prefix,

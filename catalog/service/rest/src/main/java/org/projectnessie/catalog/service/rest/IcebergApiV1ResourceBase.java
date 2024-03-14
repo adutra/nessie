@@ -204,14 +204,20 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     this.s3Options = s3Options;
   }
 
-  public IcebergConfigResponse getConfig(String warehouse) {
+  public IcebergConfigResponse getConfig(String reference, String warehouse) {
 
     WarehouseConfig w = catalogConfig.getWarehouse(warehouse);
 
     // TODO re-check the stuff that's returned from this function - there'll be a lot to be changed
     //  here, out of scope of the initial PR that adds Iceberg's REST endpoints.
 
-    String defaultBranch = Optional.ofNullable(catalogConfig.defaultBranch().name()).orElse("main");
+    String branch = reference;
+    if (branch == null) {
+      branch = catalogConfig.defaultBranch().name();
+    }
+    if (branch == null) {
+      branch = "main";
+    }
 
     Map<String, String> configDefaults = new HashMap<>();
     Map<String, String> configOverrides = new HashMap<>();
@@ -233,7 +239,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               }
             });
 
-    configDefaults.put(PREFIX, encode(defaultBranch, UTF_8));
+    configDefaults.put(PREFIX, encode(branch, UTF_8));
 
     // TODO really need a client ID ??
     configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_ID, "nessie-catalog-core-client");
@@ -244,7 +250,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     // The following properties are passed back to clients to automatically configure their Nessie
     // client. These properties are _not_ user configurable properties.
-    configOverrides.put("nessie.default-branch.name", defaultBranch);
+    configOverrides.put("nessie.default-branch.name", branch);
     configOverrides.put("nessie.is-nessie-catalog", "true");
     // Make sure that `nessie.core-base-uri` always returns a `/` terminated URI.
     configOverrides.put("nessie.core-base-uri", uriInfo.coreRootURI().toString());
@@ -261,6 +267,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     configOverrides.put(CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT, oauthUri.toString());
 
     configOverrides.putAll(w.icebergConfigOverrides());
+
+    configOverrides.put("uri", uriInfo.icebergBaseURI().toString());
 
     return IcebergConfigResponse.builder()
         .defaults(configDefaults)
@@ -1373,7 +1381,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                 .icebergBaseURI()
                 .resolve(
                     format(
-                        "%s/s3-sign/%s",
+                        "v1/%s/s3-sign/%s",
                         encode(prefix, UTF_8), encode(contentKey.toPathString(), UTF_8)))
                 .toString())
         .putConfig(S3_PATH_STYLE_ACCESS, s3Options.pathStyleAccess() ? "true" : "false")
