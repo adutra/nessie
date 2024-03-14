@@ -205,6 +205,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   }
 
   public IcebergConfigResponse getConfig(String reference, String warehouse) {
+    // TODO does it make sense to use a separate endpoint (service) just to expose configs,
+    //   because those are accessed rather anonymously?
 
     WarehouseConfig w = catalogConfig.getWarehouse(warehouse);
 
@@ -1377,6 +1379,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         .putConfig(S3_REMOTE_SIGNING_ENABLED, "true")
         .putConfig(
             S3_SIGNER_ENDPOINT,
+            // TODO does it make sense to use a separate endpoint (service) just for signing?
             uriInfo
                 .icebergBaseURI()
                 .resolve(
