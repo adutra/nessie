@@ -23,7 +23,7 @@ import org.projectnessie.catalog.api.base.transport.CatalogTransportFactory;
 
 // TODO this interface appears as a configurable in Quarkus Server (autocompletion in application.properties).
 //  Need to refactor this nessie-catalog-api-base module.
-@ConfigMapping(prefix = "nessie.catalog")
+@ConfigMapping(prefix = "nessie.catalog-client")
 public interface NessieCatalogClientConfig {
   Transport transport();
 
@@ -31,7 +31,7 @@ public interface NessieCatalogClientConfig {
 
   Ref ref();
 
-  @ConfigMapping(prefix = "nessie.catalog.transport")
+  @ConfigMapping(prefix = "nessie.catalog-client.transport")
   interface Transport {
     @WithDefault("REST")
     String name();
