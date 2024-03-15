@@ -21,6 +21,7 @@ import static org.projectnessie.catalog.formats.iceberg.rest.IcebergErrorRespons
 
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
+import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -131,6 +132,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   /** Exposes the Iceberg REST configuration for the Nessie default branch. */
   @GET
   @Path("/v1/config")
+  @PermitAll
   public IcebergConfigResponse getConfig(@QueryParam("warehouse") String warehouse) {
     try {
       return super.getConfig(null, warehouse);
@@ -145,6 +147,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
    */
   @GET
   @Path("{reference}/v1/config")
+  @PermitAll
   public IcebergConfigResponse getConfig(
       @PathParam("reference") String reference, @QueryParam("warehouse") String warehouse) {
     try {
@@ -175,7 +178,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   @POST
   @Path("/v1/oauth/tokens")
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-  @Blocking
+  @PermitAll
   public IcebergOAuthTokenResponse getToken(IcebergOAuthTokenRequest request)
       throws IcebergOAuthTokenEndpointException {
     try {
