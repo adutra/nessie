@@ -21,7 +21,8 @@ import java.net.URI;
 import java.util.Optional;
 import org.projectnessie.catalog.api.base.transport.CatalogTransportFactory;
 
-// TODO this interface appears as a configurable in Quarkus Server (autocompletion in application.properties).
+// TODO this interface appears as a configurable in Quarkus Server (autocompletion in
+// application.properties).
 //  Need to refactor this nessie-catalog-api-base module.
 @ConfigMapping(prefix = "nessie.catalog-client")
 public interface NessieCatalogClientConfig {
