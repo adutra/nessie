@@ -18,7 +18,7 @@ package org.projectnessie.catalog.api.rest;
 import io.smallrye.config.ConfigMapping;
 import java.util.Optional;
 
-@ConfigMapping(prefix = "nessie.catalog.rest")
+@ConfigMapping(prefix = "nessie.catalog-client.rest")
 public interface RestCatalogTransportConfig {
   Optional<Authentication> authentication();
 

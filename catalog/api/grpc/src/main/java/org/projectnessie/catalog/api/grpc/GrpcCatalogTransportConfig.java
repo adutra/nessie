@@ -17,5 +17,5 @@ package org.projectnessie.catalog.api.grpc;
 
 import io.smallrye.config.ConfigMapping;
 
-@ConfigMapping(prefix = "nessie.catalog.grpc")
+@ConfigMapping(prefix = "nessie.catalog-client.grpc")
 public interface GrpcCatalogTransportConfig {}

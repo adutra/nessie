@@ -17,5 +17,5 @@ package org.projectnessie.catalog.api.direct;
 
 import io.smallrye.config.ConfigMapping;
 
-@ConfigMapping(prefix = "nessie.catalog.direct")
+@ConfigMapping(prefix = "nessie.catalog-client.direct")
 public interface DirectCatalogTransportConfig {}

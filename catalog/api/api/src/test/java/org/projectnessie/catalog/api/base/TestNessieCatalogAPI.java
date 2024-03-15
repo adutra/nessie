@@ -26,11 +26,11 @@ public class TestNessieCatalogAPI {
         NessieCatalogAPI.builder()
             .withProperties(
                 Map.of(
-                    "nessie.catalog.uri",
+                    "nessie.catalog-client.uri",
                     "http://127.0.0.1:42",
-                    "nessie.catalog.transport.name",
+                    "nessie.catalog-client.transport.name",
                     "config-test",
-                    "nessie.catalog.configtest.a.a1",
+                    "nessie.catalog-client.configtest.a.a1",
                     "foo"),
                 "test-config")
             .build();
