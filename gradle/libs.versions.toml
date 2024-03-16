@@ -4,7 +4,7 @@
 antlr4 = "4.13.1"
 bouncycastle = "1.70"
 checkstyle = "10.14.1"
-errorprone = "2.26.0"
+errorprone = "2.26.1"
 errorproneSlf4j = "0.1.22"
 gatling = "3.10.4"
 googleJavaFormat = "1.21.0"
@@ -12,7 +12,7 @@ hadoop = "3.3.6"
 iceberg = "1.5.0" # While bumping this version, 'nessieClientVersion' must also be updated.
 immutables = "2.10.1"
 jacoco = "0.8.11"
-jandex = "3.1.6"
+jandex = "3.1.7"
 jmh = "1.37"
 junit = "5.10.2"
 keycloak = "24.0.1"
@@ -26,7 +26,7 @@ opentracing = "0.33.0"
 picocli = "4.7.5"
 protobuf = "3.25.3"
 quarkusPlatform = "3.8.2"
-quarkusPlugin = "3.8.2"
+quarkusPlugin = "3.8.3"
 slf4j = "1.7.36"
 smallryeConfig = "2.13.3"
 undertow = "2.2.28.Final"
@@ -36,12 +36,12 @@ junit-testing = ["assertj-core", "mockito-core", "mockito-junit-jupiter", "junit
 
 [libraries]
 agroal-pool = { module = "io.agroal:agroal-pool", version = "2.3" }
-agrona = { module = "org.agrona:agrona", version = "1.20.0" }
+agrona = { module = "org.agrona:agrona", version = "1.21.0" }
 antlr-antlr4 = { module = "org.antlr:antlr4", version.ref = "antlr4" }
 antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr4" }
 assertj-core = { module = "org.assertj:assertj-core", version = "3.25.3" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
-awaitility = { module = "org.awaitility:awaitility", version = "4.2.0" }
+awaitility = { module = "org.awaitility:awaitility", version = "4.2.1" }
 awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.25.6" }
 azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.21" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
@@ -56,13 +56,13 @@ errorprone-core = { module = "com.google.errorprone:error_prone_core", version.r
 errorprone-slf4j = { module = "jp.skypencil.errorprone.slf4j:errorprone-slf4j", version.ref = "errorproneSlf4j" }
 findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version = "3.0.2" }
 gatling-charts-highcharts = { module = "io.gatling.highcharts:gatling-charts-highcharts", version.ref = "gatling" }
-google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.35.1" }
+google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.36.0" }
 google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.18" }
 google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.14" }
-google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.35.0" }
+google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.36.0" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "googleJavaFormat" }
 grpc-bom = { module = "io.grpc:grpc-bom", version = "1.57.1" }
-guava = { module = "com.google.guava:guava", version = "33.0.0-jre" }
+guava = { module = "com.google.guava:guava", version = "33.1.0-jre" }
 h2 = { module = "com.h2database:h2", version = "2.2.224" }
 hadoop-aws = { module = "org.apache.hadoop:hadoop-aws", version.ref = "hadoop" }
 hadoop-azure = { module = "org.apache.hadoop:hadoop-azure", version.ref = "hadoop" }
@@ -73,7 +73,7 @@ iceberg-bom = { module = "org.apache.iceberg:iceberg-bom", version.ref = "iceber
 immutables-builder = { module = "org.immutables:builder", version.ref = "immutables" }
 immutables-value-annotations = { module = "org.immutables:value-annotations", version.ref = "immutables" }
 immutables-value-processor = { module = "org.immutables:value-processor", version.ref = "immutables" }
-jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version = "2.16.2" }
+jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version = "2.17.0" }
 jacoco-ant = { module = "org.jacoco:org.jacoco.ant", version.ref = "jacoco" }
 jacoco-report = { module = "org.jacoco:org.jacoco.report", version.ref = "jacoco" }
 jacoco-maven-plugin = { module = "org.jacoco:jacoco-maven-plugin", version.ref = "jacoco" }
@@ -118,7 +118,7 @@ opentracing-util = { module = "io.opentracing:opentracing-util", version.ref = "
 parquet-column = { module = "org.apache.parquet:parquet-column", version = "1.13.1" }
 picocli = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
 picocli-codegen = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
-postgresql = { module = "org.postgresql:postgresql", version = "42.7.2" }
+postgresql = { module = "org.postgresql:postgresql", version = "42.7.3" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 quarkus-amazon-services-bom = { module = "io.quarkus.platform:quarkus-amazon-services-bom", version.ref = "quarkusPlatform" }
 quarkus-bom = { module = "io.quarkus.platform:quarkus-bom", version.ref = "quarkusPlatform" }
@@ -149,7 +149,7 @@ testcontainers-keycloak = { module = "com.github.dasniko:testcontainers-keycloak
 threeten-extra = { module = "org.threeten:threeten-extra", version = "1.7.2" }
 undertow-core = { module = "io.undertow:undertow-core", version.ref = "undertow" }
 undertow-servlet = { module = "io.undertow:undertow-servlet", version.ref = "undertow" }
-vertx-core = { module = "io.vertx:vertx-core", version = "4.5.4" }
+vertx-core = { module = "io.vertx:vertx-core", version = "4.5.5" }
 weld-se-core = { module = "org.jboss.weld.se:weld-se-core", version = "5.1.2.Final" }
 wiremock = { module = "com.github.tomakehurst:wiremock-jre8-standalone", version = "2.35.2" }
 zstd-jni = { module = "com.github.luben:zstd-jni", version = "1.5.5-11" }
