@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
@@ -54,6 +55,7 @@ public final class MinioContainer extends GenericContainer<MinioContainer>
 
   static {
     URL resource = MinioContainer.class.getResource("Dockerfile-minio-version");
+    Objects.requireNonNull(resource, "Dockerfile-minio-version not found");
     try (InputStream in = resource.openConnection().getInputStream()) {
       String[] imageTag =
           Arrays.stream(new String(in.readAllBytes(), UTF_8).split("\n"))
@@ -86,9 +88,9 @@ public final class MinioContainer extends GenericContainer<MinioContainer>
   private static final String MINIO_DOMAIN_NAME;
 
   /**
-   * Domain must start with s3 to be recognized as a S3 endpoint by the AWS SDK with virtual host
-   * style addressing. The bucket name is expected to be the first part of the domain name, e.g.
-   * "bucket.s3.127-0-0-1.nip.io".
+   * Domain must start with "s3" in order to be recognized as an S3 endpoint by the AWS SDK with
+   * virtual-host-style addressing. The bucket name is expected to be the first part of the domain
+   * name, e.g. "bucket.s3.127-0-0-1.nip.io".
    */
   private static final String MINIO_DOMAIN_NIP = "s3.127-0-0-1.nip.io";
 
@@ -99,7 +101,7 @@ public final class MinioContainer extends GenericContainer<MinioContainer>
   static {
     String name;
     try {
-      InetAddress.getByName(MINIO_DOMAIN_NIP);
+      InetAddress ignored = InetAddress.getByName(MINIO_DOMAIN_NIP);
       name = MINIO_DOMAIN_NIP;
     } catch (UnknownHostException e) {
       LOGGER.warn(
