@@ -45,10 +45,6 @@ import static org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignRespon
 import static org.projectnessie.catalog.service.rest.DecodedPrefix.decodedPrefix;
 import static org.projectnessie.catalog.service.rest.NamespaceRef.namespaceRef;
 import static org.projectnessie.catalog.service.rest.TableRef.tableRef;
-import static org.projectnessie.client.NessieConfigConstants.CONF_NESSIE_AUTH_TYPE;
-import static org.projectnessie.client.NessieConfigConstants.CONF_NESSIE_OAUTH2_CLIENT_ID;
-import static org.projectnessie.client.NessieConfigConstants.CONF_NESSIE_OAUTH2_CLIENT_SECRET;
-import static org.projectnessie.client.NessieConfigConstants.CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT;
 import static org.projectnessie.model.CommitMeta.fromMessage;
 import static org.projectnessie.model.Content.Type.ICEBERG_TABLE;
 import static org.projectnessie.model.Content.Type.ICEBERG_VIEW;
@@ -184,11 +180,12 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   public static final String S3_ACCESS_POINTS_PREFIX = "s3.endpoints.";
   public static final String S3_PATH_STYLE_ACCESS = "s3.path-style-access";
 
-  public static final String PREFIX = "prefix";
+  public static final String ICEBERG_PREFIX = "prefix";
+  public static final String ICEBERG_URI = "uri";
   public static final String FILE_IO_IMPL = "io-impl";
-  public static final String WAREHOUSE_LOCATION = "warehouse";
-  public static final String TABLE_DEFAULT_PREFIX = "table-default.";
-  public static final String TABLE_OVERRIDE_PREFIX = "table-override.";
+  public static final String ICEBERG_WAREHOUSE_LOCATION = "warehouse";
+  public static final String ICEBERG_TABLE_DEFAULT_PREFIX = "table-default.";
+  public static final String ICEBERG_TABLE_OVERRIDE_PREFIX = "table-override.";
 
   protected IcebergApiV1ResourceBase(
       CatalogService catalogService,
@@ -240,37 +237,42 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                     S3_ACCESS_POINTS_PREFIX + bucket, cfg.resolveS3Endpoint().toString());
               }
             });
+    // TODO ?   config.putOverride(S3_SIGNER_URI, ...)
 
-    configDefaults.put(PREFIX, encode(branch, UTF_8));
-
-    // TODO really need a client ID ??
-    configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_ID, "nessie-catalog-core-client");
-    // TODO a non-secret secret is not a secret ...
-    configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_SECRET, "secret");
     configDefaults.putAll(catalogConfig.icebergClientCoreProperties());
     configDefaults.putAll(w.icebergConfigDefaults());
 
-    // The following properties are passed back to clients to automatically configure their Nessie
-    // client. These properties are _not_ user configurable properties.
-    configOverrides.put("nessie.default-branch.name", branch);
+    // Marker property telling clients that the backend is a Nessie Catalog.
     configOverrides.put("nessie.is-nessie-catalog", "true");
+
     // Make sure that `nessie.core-base-uri` always returns a `/` terminated URI.
     configOverrides.put("nessie.core-base-uri", uriInfo.coreRootURI().toString());
     // Make sure that `nessie.catalog-base-uri` always returns a `/` terminated URI.
     configOverrides.put("nessie.catalog-base-uri", uriInfo.catalogBaseURI().toString());
+    // Iceberg base URI exposed twice for Spark SQL extensions, which update the `uri` config when
+    // the branch is changed.
+    configOverrides.put("nessie.iceberg-base-uri", uriInfo.icebergBaseURI().toString());
+
+    configOverrides.put(ICEBERG_URI, uriInfo.icebergBaseURI().toString());
+
+    // 'prefix-pattern' is just for information at the moment...
     configOverrides.put("nessie.prefix-pattern", "{ref}|{warehouse}");
+    // The following properties are passed back to clients to automatically configure their Nessie
+    // client. These properties are _not_ user configurable properties.
+    configOverrides.put("nessie.default-branch.name", branch);
+    // Set the "default" prefix
+    configDefaults.put(ICEBERG_PREFIX, encode(branch, UTF_8));
 
-    // TODO ?   config.putOverride(S3_SIGNER_URI, ...)
-
-    URI oauthUri = uriInfo.oauthTokensUri();
-
+    // URI oauthUri = uriInfo.oauthTokensUri();
     // "Just" Nessie client specific configs
-    configOverrides.put(CONF_NESSIE_AUTH_TYPE, "OAUTH2");
-    configOverrides.put(CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT, oauthUri.toString());
+    // configOverrides.put(CONF_NESSIE_AUTH_TYPE, "OAUTH2");
+    // configOverrides.put(CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT, oauthUri.toString());
+    // TODO really need a client ID ??
+    // configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_ID, "nessie-catalog-core-client");
+    // TODO a non-secret secret is not a secret ...
+    // configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_SECRET, "secret");
 
     configOverrides.putAll(w.icebergConfigOverrides());
-
-    configOverrides.put("uri", uriInfo.icebergBaseURI().toString());
 
     return IcebergConfigResponse.builder()
         .defaults(configDefaults)
@@ -535,7 +537,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
       NessieTableSnapshot snapshot =
           new IcebergTableMetadataUpdateState(
-                  newIcebergTableSnapshot(updates), tableRef.contentKey(), target, false)
+                  newIcebergTableSnapshot(updates), tableRef.contentKey(), false)
               .applyUpdates(updates)
               .snapshot();
 

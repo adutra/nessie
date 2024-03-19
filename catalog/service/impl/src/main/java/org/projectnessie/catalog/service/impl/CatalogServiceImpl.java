@@ -462,12 +462,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     IcebergStuff icebergStuff = new IcebergStuff(objectIO, persist, tasksService, executor);
 
-    MultiTableUpdate multiTableUpdate =
-        new MultiTableUpdate(
-            nessieApi
-                .commitMultipleOperations()
-                .commitMeta(CommitMeta.fromMessage("Iceberg commit"))
-                .branch(target));
+    CommitMultipleOperationsBuilder nessieCommit =
+        nessieApi.commitMultipleOperations().branch(target);
+
+    MultiTableUpdate multiTableUpdate = new MultiTableUpdate(nessieCommit);
 
     // TODO reduce log level to trace or remove logging
     LOGGER.info(
@@ -476,6 +474,7 @@ public class CatalogServiceImpl implements CatalogService {
         target.getName(),
         target.getHash());
 
+    String message = null;
     CompletionStage<MultiTableUpdate> commitBuilderStage = completedStage(null);
     for (CatalogOperation op : commit.getOperations()) {
       Content content = contents.get(op.getKey());
@@ -483,14 +482,21 @@ public class CatalogServiceImpl implements CatalogService {
         commitBuilderStage =
             applyIcebergTableCommitOperation(
                 target, op, content, multiTableUpdate, commitBuilderStage);
+        message = format("Update table %s", op.getKey());
       } else if (op.getType().equals(Content.Type.ICEBERG_VIEW)) {
         commitBuilderStage =
             applyIcebergViewCommitOperation(
                 target, op, content, multiTableUpdate, commitBuilderStage);
+        message = format("Update view %s", op.getKey());
       } else {
         throw new IllegalArgumentException("(Yet) unsupported entity type: " + op.getType());
       }
     }
+
+    if (commit.getOperations().size() > 1) {
+      message = format("Iceberg commit with %d operations", commit.getOperations().size());
+    }
+    nessieCommit.commitMeta(CommitMeta.fromMessage(message));
 
     return commitBuilderStage.thenApply(
         updates -> {
@@ -597,7 +603,7 @@ public class CatalogServiceImpl implements CatalogService {
                         reference.getName(),
                         reference.getHash());
                     return new IcebergTableMetadataUpdateState(
-                            nessieSnapshot, op.getKey(), reference, content != null)
+                            nessieSnapshot, op.getKey(), content != null)
                         .checkRequirements(icebergOp.requirements())
                         .applyUpdates(icebergOp.updates())
                         .snapshot();
@@ -680,7 +686,7 @@ public class CatalogServiceImpl implements CatalogService {
                         reference.getName(),
                         reference.getHash());
                     return new IcebergViewMetadataUpdateState(
-                            nessieSnapshot, op.getKey(), reference, content != null)
+                            nessieSnapshot, op.getKey(), content != null)
                         .checkRequirements(icebergOp.requirements())
                         .applyUpdates(icebergOp.updates())
                         .snapshot();

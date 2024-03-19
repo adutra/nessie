@@ -58,7 +58,7 @@ dependencies {
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
 
-  nessieQuarkusServer(nessieQuarkusServerRunner())
+  nessieQuarkusServer(nessieProject("nessie-catalog-service-server", "quarkusRunner"))
 }
 
 nessieQuarkusApp {
@@ -75,4 +75,9 @@ tasks.named<ShadowJar>("shadowJar").configure {
     include(dependency("org.projectnessie.nessie:.*:.*"))
     include(dependency("org.projectnessie.nessie-integrations:.*:.*"))
   }
+}
+
+tasks.named<Test>("intTest").configure {
+  // Spark keeps a lot of stuff around in the JVM, breaking tests against different Iceberg catalogs, so give every test class its own JVM
+  forkEvery = 1
 }

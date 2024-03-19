@@ -19,7 +19,6 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.connector.catalog.CatalogPlugin
 import org.apache.spark.sql.execution.datasources.v2.NessieUtils.unquoteRefName
-import org.projectnessie.client.api.NessieApiV1
 import org.projectnessie.error.{
   NessieConflictException,
   NessieNotFoundException,
@@ -38,14 +37,16 @@ abstract class BaseCreateReferenceExec(
 ) extends NessieExec(catalog = catalog, currentCatalog = currentCatalog) {
 
   override protected def runInternal(
-      api: NessieApiV1
+      bridge: CatalogBridge
   ): Seq[InternalRow] = {
     val sourceRef =
       if (createdFrom.isDefined) {
-        api.getReference.refName(createdFrom.map(unquoteRefName).get).get()
+        bridge.api.getReference
+          .refName(createdFrom.map(unquoteRefName).get)
+          .get()
       } else {
         try {
-          NessieUtils.getCurrentRef(api, currentCatalog, catalog)
+          bridge.getCurrentRef
         } catch {
           case e: NessieNotFoundException =>
             throw new NessieReferenceNotFoundException(
@@ -55,21 +56,23 @@ abstract class BaseCreateReferenceExec(
         }
       }
     val refName = unquoteRefName(branch)
-    val ref =
+    val ref = {
       if (isBranch) Branch.of(refName, sourceRef.getHash)
       else Tag.of(refName, sourceRef.getHash)
-    try {
-      api.createReference
-        .reference(ref)
-        .sourceRefName(sourceRef.getName)
-        .create()
-    } catch {
-      case e: NessieConflictException =>
-        if (failOnCreate) {
-          throw e
-        }
     }
-    val result = api.getReference.refName(ref.getName).get()
+    val result =
+      try {
+        bridge.api.createReference
+          .reference(ref)
+          .sourceRefName(sourceRef.getName)
+          .create()
+      } catch {
+        case e: NessieConflictException =>
+          if (failOnCreate) {
+            throw e
+          }
+          bridge.api.getReference.refName(ref.getName).get()
+      }
 
     singleRowForRef(result)
   }

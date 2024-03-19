@@ -23,7 +23,6 @@ import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, MapData}
 import org.apache.spark.sql.connector.catalog.CatalogPlugin
 import org.apache.spark.sql.execution.datasources.v2.NessieUtils.unquoteRefName
 import org.apache.spark.unsafe.types.UTF8String
-import org.projectnessie.client.api.NessieApiV1
 
 import scala.collection.JavaConverters._
 
@@ -35,14 +34,14 @@ abstract class BaseShowLogExec(
 ) extends NessieExec(catalog = catalog, currentCatalog = currentCatalog) {
 
   override protected def runInternal(
-      api: NessieApiV1
+      bridge: CatalogBridge
   ): Seq[InternalRow] = {
     val refName = branch
       .map(unquoteRefName)
       .getOrElse(
-        NessieUtils.getCurrentRef(api, currentCatalog, catalog).getName
+        bridge.getCurrentRef.getName
       )
-    val stream = api.getCommitLog.refName(refName).stream()
+    val stream = bridge.api.getCommitLog.refName(refName).stream()
 
     stream.iterator.asScala
       .map(entry =>

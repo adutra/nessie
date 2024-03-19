@@ -18,7 +18,6 @@ package org.apache.spark.sql.execution.datasources.v2
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.connector.catalog.CatalogPlugin
-import org.projectnessie.client.api.NessieApiV1
 
 abstract class BaseShowReferenceExec(
     output: Seq[Attribute],
@@ -27,10 +26,10 @@ abstract class BaseShowReferenceExec(
 ) extends NessieExec(catalog = catalog, currentCatalog = currentCatalog) {
 
   override protected def runInternal(
-      api: NessieApiV1
+      bridge: CatalogBridge
   ): Seq[InternalRow] = {
 
-    val ref = NessieUtils.getCurrentRef(api, currentCatalog, catalog)
+    val ref = bridge.getCurrentRef
     // todo have to figure out if this is delta or iceberg and extract the ref accordingly
     singleRowForRef(ref)
   }

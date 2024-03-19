@@ -28,7 +28,6 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
-import org.projectnessie.model.Branch;
 import org.projectnessie.model.ContentKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +49,6 @@ public class IcebergViewMetadataUpdateState {
 
   private final NessieViewSnapshot.Builder builder;
   private final ContentKey key;
-  private final Branch reference;
   private final boolean viewExists;
 
   private NessieViewSnapshot snapshot;
@@ -61,11 +59,10 @@ public class IcebergViewMetadataUpdateState {
   private final Set<Long> addedVersionIds = new HashSet<>();
 
   public IcebergViewMetadataUpdateState(
-      NessieViewSnapshot snapshot, ContentKey key, Branch reference, boolean viewExists) {
+      NessieViewSnapshot snapshot, ContentKey key, boolean viewExists) {
     this.snapshot = snapshot;
     this.builder = NessieViewSnapshot.builder().from(snapshot);
     this.key = key;
-    this.reference = reference;
     this.viewExists = viewExists;
   }
 
@@ -117,7 +114,7 @@ public class IcebergViewMetadataUpdateState {
     LOGGER.info("check {} requirements against {}", requirements.size(), key);
     for (IcebergUpdateRequirement requirement : requirements) {
       LOGGER.info("check requirement: {}", requirement);
-      requirement.checkForView(snapshot, viewExists, reference.getName(), key);
+      requirement.checkForView(snapshot, viewExists, key);
     }
     return this;
   }

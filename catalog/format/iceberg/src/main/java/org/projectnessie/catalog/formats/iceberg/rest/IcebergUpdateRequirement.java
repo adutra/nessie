@@ -69,10 +69,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 public interface IcebergUpdateRequirement {
 
   default void checkForTable(
-      NessieTableSnapshot snapshot,
-      boolean tableExists,
-      String nessieRefName,
-      ContentKey contentKey) {
+      NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
     throw new UnsupportedOperationException(
         "Requirement "
             + getClass().getSimpleName().replace("Immutable", "")
@@ -80,10 +77,7 @@ public interface IcebergUpdateRequirement {
   }
 
   default void checkForView(
-      NessieViewSnapshot snapshot,
-      boolean viewExists,
-      String nessieRefName,
-      ContentKey contentKey) {
+      NessieViewSnapshot snapshot, boolean viewExists, ContentKey contentKey) {
     throw new UnsupportedOperationException(
         "Requirement "
             + getClass().getSimpleName().replace("Immutable", "")
@@ -111,10 +105,7 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
       check(snapshot);
     }
   }
@@ -127,10 +118,7 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForView(
-        NessieViewSnapshot snapshot,
-        boolean viewExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieViewSnapshot snapshot, boolean viewExists, ContentKey contentKey) {
       check(snapshot);
     }
   }
@@ -146,19 +134,13 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
       check(tableExists, "table", contentKey);
     }
 
     @Override
     default void checkForView(
-        NessieViewSnapshot snapshot,
-        boolean viewExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieViewSnapshot snapshot, boolean viewExists, ContentKey contentKey) {
       check(viewExists, "table", contentKey);
     }
 
@@ -179,11 +161,9 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
-      checkState(ref().equals(nessieRefName), "Expected Nessie reference name does not match");
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
+      // Cannot really check the reference name, because the ref-name in a table-metadata is
+      // something very different from Nessie references
       Long id = snapshotId();
       if (id != null) {
         checkState(
@@ -204,10 +184,7 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
       Integer id = snapshot.icebergLastColumnId();
       checkState(
           lastAssignedFieldId() == id,
@@ -226,19 +203,13 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
       check(snapshot);
     }
 
     @Override
     default void checkForView(
-        NessieViewSnapshot snapshot,
-        boolean viewExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieViewSnapshot snapshot, boolean viewExists, ContentKey contentKey) {
       check(snapshot);
     }
 
@@ -261,10 +232,7 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
       Integer id = snapshot.icebergLastPartitionId();
       checkState(
           lastAssignedPartitionId() == id,
@@ -283,10 +251,7 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
       int id =
           snapshot
               .currentPartitionDefinitionObject()
@@ -309,10 +274,7 @@ public interface IcebergUpdateRequirement {
 
     @Override
     default void checkForTable(
-        NessieTableSnapshot snapshot,
-        boolean tableExists,
-        String nessieRefName,
-        ContentKey contentKey) {
+        NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
       int id =
           snapshot
               .currentSortDefinitionObject()

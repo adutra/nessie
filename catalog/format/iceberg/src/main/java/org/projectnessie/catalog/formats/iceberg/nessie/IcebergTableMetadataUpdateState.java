@@ -28,7 +28,6 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
-import org.projectnessie.model.Branch;
 import org.projectnessie.model.ContentKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,6 @@ public class IcebergTableMetadataUpdateState {
 
   private final NessieTableSnapshot.Builder builder;
   private final ContentKey key;
-  private final Branch reference;
   private final boolean tableExists;
 
   private NessieTableSnapshot snapshot;
@@ -67,11 +65,10 @@ public class IcebergTableMetadataUpdateState {
   private final Set<Integer> addedOrderIds = new HashSet<>();
 
   public IcebergTableMetadataUpdateState(
-      NessieTableSnapshot snapshot, ContentKey key, Branch reference, boolean tableExists) {
+      NessieTableSnapshot snapshot, ContentKey key, boolean tableExists) {
     this.snapshot = snapshot;
     this.builder = NessieTableSnapshot.builder().from(snapshot);
     this.key = key;
-    this.reference = reference;
     this.tableExists = tableExists;
   }
 
@@ -148,7 +145,7 @@ public class IcebergTableMetadataUpdateState {
     LOGGER.info("check {} requirements against {}", requirements.size(), key);
     for (IcebergUpdateRequirement requirement : requirements) {
       LOGGER.info("check requirement: {}", requirement);
-      requirement.checkForTable(snapshot, tableExists, reference.getName(), key);
+      requirement.checkForTable(snapshot, tableExists, key);
     }
     return this;
   }
