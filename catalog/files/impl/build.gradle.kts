@@ -31,6 +31,7 @@ dependencies {
 
   implementation(platform(libs.awssdk.bom))
   implementation("software.amazon.awssdk:s3")
+  implementation("software.amazon.awssdk:regions")
   implementation("software.amazon.awssdk:apache-client")
 
   implementation(platform(libs.google.cloud.storage.bom))

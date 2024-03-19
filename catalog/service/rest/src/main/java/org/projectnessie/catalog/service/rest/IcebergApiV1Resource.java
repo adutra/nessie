@@ -93,8 +93,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements no logic, but the required, special exception handling when returning {@link Uni
- * Uni<>}s, delegates to {@link IcebergApiV1ResourceBase}.
+ * Implements no logic, but the required, special exception handling when returning {@link Uni}s,
+ * delegates to {@link IcebergApiV1ResourceBase}.
  */
 @RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)

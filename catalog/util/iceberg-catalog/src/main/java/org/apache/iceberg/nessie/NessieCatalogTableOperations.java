@@ -202,7 +202,7 @@ public class NessieCatalogTableOperations extends NessieTableOperations {
     }
 
     Reference reference = client.getRef().getReference();
-    contentAwareFileIO.setReference(reference.toPathString());
+    contentAwareFileIO.updateReference(baseUri, reference.toPathString());
     try {
       HttpResponse response =
           httpClient

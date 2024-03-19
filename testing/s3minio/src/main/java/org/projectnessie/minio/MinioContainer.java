@@ -84,7 +84,13 @@ public final class MinioContainer extends GenericContainer<MinioContainer>
   private static final String DEFAULT_STORAGE_DIRECTORY = "/data";
   private static final String HEALTH_ENDPOINT = "/minio/health/ready";
   private static final String MINIO_DOMAIN_NAME;
-  private static final String MINIO_DOMAIN_NIP = "minio.127-0-0-1.nip.io";
+
+  /**
+   * Domain must start with s3 to be recognized as a S3 endpoint by the AWS SDK with virtual host
+   * style addressing. The bucket name is expected to be the first part of the domain name, e.g.
+   * "bucket.s3.127-0-0-1.nip.io".
+   */
+  private static final String MINIO_DOMAIN_NIP = "s3.127-0-0-1.nip.io";
 
   static boolean canRunOnMacOs() {
     return MINIO_DOMAIN_NAME.equals(MINIO_DOMAIN_NIP);

@@ -78,7 +78,6 @@ public class NessieCatalogIcebergCatalog extends NessieCatalog {
   private Map<String, String> withDefaultOptions(Map<String, String> options) {
     HashMap<String, String> result = new HashMap<>();
     result.put("io-impl", "org.apache.iceberg.io.ResolvingFileIO");
-    result.put("s3.client-factory-impl", "org.apache.iceberg.nessie.s3.NessieS3ClientFactory");
     result.put("s3.remote-signing-enabled", "true");
     result.putAll(options);
     return result;

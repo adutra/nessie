@@ -15,13 +15,19 @@
  */
 package org.apache.iceberg.nessie;
 
+import static java.lang.String.format;
+import static java.net.URLEncoder.encode;
+
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
+import org.apache.iceberg.aws.s3.signer.S3V4RestSignerClient;
 import org.apache.iceberg.hadoop.HadoopConfigurable;
 import org.apache.iceberg.io.BulkDeletionFailureException;
 import org.apache.iceberg.io.DelegateFileIO;
@@ -33,8 +39,7 @@ import org.projectnessie.catalog.iceberg.httpfileio.ReferencedCloseables;
 
 public class NessieContentAwareFileIO implements HadoopConfigurable, DelegateFileIO, Serializable {
 
-  public static final String NESSIE_CONTENT_KEY_PROPERTY = "nessie.internal.content-key";
-  public static final String NESSIE_CURRENT_REF_PROPERTY = "nessie.internal.current-ref";
+  // Implementation note: this class must be Serializable to allow it to be used in Spark.
 
   private final String contentKey;
   private DelegateFileIO delegate;
@@ -45,11 +50,17 @@ public class NessieContentAwareFileIO implements HadoopConfigurable, DelegateFil
     this.contentKey = contentKey;
   }
 
-  public void setReference(String reference) {
+  public void updateReference(URI catalogBaseUri, String reference) {
     if (!Objects.equals(this.reference, reference)) {
       Map<String, String> properties = new LinkedHashMap<>(delegate.properties());
-      properties.put(NESSIE_CONTENT_KEY_PROPERTY, contentKey);
-      properties.put(NESSIE_CURRENT_REF_PROPERTY, reference);
+      try {
+        String p =
+            format("trees/%s/sign/%s", encode(reference, "UTF-8"), encode(contentKey, "UTF-8"));
+        URI signerEndpoint = catalogBaseUri.resolve(p);
+        properties.put(S3V4RestSignerClient.S3_SIGNER_ENDPOINT, signerEndpoint.toString());
+      } catch (UnsupportedEncodingException e) {
+        throw new RuntimeException(e);
+      }
       Configuration conf =
           delegate instanceof HadoopConfigurable ? ((HadoopConfigurable) delegate).getConf() : null;
       delegate.close();

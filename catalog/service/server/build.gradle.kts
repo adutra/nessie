@@ -102,6 +102,7 @@ dependencies {
   intTestImplementation(project(":nessie-s3minio"))
   intTestImplementation(platform(libs.awssdk.bom))
   intTestImplementation("software.amazon.awssdk:s3")
+  intTestImplementation("software.amazon.awssdk:sts")
   intTestImplementation(platform(libs.testcontainers.bom))
   intTestImplementation("org.testcontainers:testcontainers")
 
@@ -233,6 +234,8 @@ testing {
           dependsOn("quarkusBuild")
 
           shouldRunAfter("test")
+
+          forkEvery = 1
 
           forceJavaVersion(sparkScala.runtimeJavaVersion)
         }

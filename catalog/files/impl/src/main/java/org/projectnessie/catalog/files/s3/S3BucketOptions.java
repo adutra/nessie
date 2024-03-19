@@ -20,8 +20,8 @@ import static java.lang.String.format;
 
 import java.net.URI;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Utilities;
 
 public interface S3BucketOptions {
   /**
@@ -63,25 +63,24 @@ public interface S3BucketOptions {
    */
   Optional<String> secretAccessKeyRef();
 
-  Pattern AWS_HOST_PATTERN = Pattern.compile("^(.*)[.]s3[.](.*)[.]amazonws[.]com$");
-
   default String extractBucket(URI uri) {
     Cloud cloud =
         cloud().orElseThrow(() -> new IllegalStateException("Must configure the cloud type"));
     switch (cloud) {
       case AMAZON:
-        String host = uri.getHost();
-        // Example: my-bucket.s3.us-east-1.amazonaws.com
-        Matcher matcher = AWS_HOST_PATTERN.matcher(host);
-        checkArgument(matcher.matches(), "%s is not an AWS S3 URL", host);
-        return matcher.group(1);
+        S3Utilities utilities =
+            S3Utilities.builder()
+                .endpoint(endpoint().orElse(null))
+                .region(region().map(Region::of).orElse(null))
+                .build();
+        return utilities.parseUri(uri).bucket().orElse(null);
       case GOOGLE:
         return "gcs"; // TODO there are no buckets in GCS, right?
       case PRIVATE:
         String path = uri.getPath();
         URI endpoint = resolveS3Endpoint();
         String basePath = endpoint.getPath();
-        host = uri.getHost();
+        String host = uri.getHost();
         if (domain().isPresent()) {
           String domain = domain().get();
           if (domain.equals(host)) {

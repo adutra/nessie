@@ -74,7 +74,7 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
 
   protected static final Namespace NS = Namespace.of("newdb");
 
-  private final List<RESTCatalog> catalogs = new ArrayList<>();
+  protected final List<RESTCatalog> catalogs = new ArrayList<>();
 
   @Override
   protected RESTCatalog catalog() {

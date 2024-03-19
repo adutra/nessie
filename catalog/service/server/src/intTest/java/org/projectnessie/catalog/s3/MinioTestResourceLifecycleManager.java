@@ -15,8 +15,6 @@
  */
 package org.projectnessie.catalog.s3;
 
-import static org.projectnessie.catalog.files.s3.Cloud.PRIVATE;
-
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
 import org.projectnessie.minio.MinioContainer;
@@ -33,13 +31,13 @@ public class MinioTestResourceLifecycleManager implements QuarkusTestResourceLif
   public Map<String, String> start() {
     minio.start();
     return ImmutableMap.<String, String>builder()
-        .put("nessie.catalog.service.s3.cloud", PRIVATE.name())
         .put("nessie.catalog.service.s3.endpoint", minio.s3endpoint())
         .put("nessie.catalog.service.s3.region", TEST_REGION)
         .put("nessie.catalog.service.s3.access-key-id-ref", "awsAccessKeyId")
         .put("nessie.catalog.service.s3.secret-access-key-ref", "awsSecretAccessKey")
         .put("nessie.catalog.secrets.awsAccessKeyId", minio.accessKey())
         .put("nessie.catalog.secrets.awsSecretAccessKey", minio.secretKey())
+        .put("nessie.catalog.default-warehouse.location", minio.s3BucketUri("").toString())
         .build();
   }
 

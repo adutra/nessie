@@ -31,7 +31,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
  *   <li>the {@link IcebergTableIdentifier}, encoded in the {@link IcebergTableIdentifier#name()},
  *       for example as {@code my.namespace.`table-name@my-branch#SOME_COMMIT_ID`},
  *   <li>the {@code prefix} REST path parameter, see for example the {@code @Path} annotation of
- *       {@link IcebergApiV1Resource#loadTable(String, String, String)},
+ *       {@link IcebergApiV1Resource#loadTable(String, String, String, String, String)},
  *   <li>the default branch
  * </ol>
  *
@@ -39,7 +39,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
  *
  * <ol>
  *   <li>the {@code prefix} REST path parameter, see for example the {@code @Path} annotation of
- *       {@link IcebergApiV1Resource#loadTable(String, String, String)},
+ *       {@link IcebergApiV1Resource#loadTable(String, String, String, String, String)},
  *   <li>the default warehouse
  * </ol>
  *
