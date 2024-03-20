@@ -106,7 +106,6 @@ dependencies {
   intTestImplementation(platform(libs.testcontainers.bom))
   intTestImplementation("org.testcontainers:testcontainers")
 
-  intTestImplementation(project(":nessie-catalog-iceberg-catalog"))
   intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg")
   intTestImplementation("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
   intTestImplementation("org.apache.iceberg:iceberg-aws:$versionIceberg")
@@ -218,7 +217,6 @@ testing {
           "org.apache.iceberg:iceberg-spark-${sparkScala.sparkMajorVersion}_${sparkScala.scalaMajorVersion}:${libs.versions.iceberg.get()}"
         )
         implementation("org.apache.iceberg:iceberg-nessie:${libs.versions.iceberg.get()}")
-        implementation(project(":nessie-catalog-iceberg-catalog"))
       }
 
       targets.all {

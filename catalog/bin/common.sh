@@ -71,12 +71,8 @@ if [[ -z "$NO_PUBLISH_TO_MAVEN_LOCAL" ]]; then
   ./gradlew "${GRADLE_OPTS[@]}" publishToMavenLocal
 fi
 
-echo "Building nessie-core server..."
-./gradlew "${GRADLE_OPTS[@]}" :nessie-quarkus:quarkusBuild
-
-
 echo "Building combined Nessie Catalog server..."
-./gradlew "${GRADLE_OPTS[@]}" :nessie-catalog-service-server:quarkusBuild
+./gradlew "${GRADLE_OPTS[@]}" :nessie-quarkus:quarkusBuild :nessie-catalog-service-server:quarkusBuild
 
 if [[ -n "$DEBUG" ]]; then
   export QUARKUS_LOG_MIN_LEVEL="DEBUG"
@@ -98,7 +94,7 @@ if [[ -z "$NO_NESSIE_START" ]]; then
 
   java "${DEBUG_NESSIE_CATALOG[@]}" \
     -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-    -jar catalog/service/server-combined/build/quarkus-app/quarkus-run.jar | \
+    -jar catalog/service/server/build/quarkus-app/quarkus-run.jar | \
     sed ''s/^/"$NESSIE_COMBINED_PROMPT"/'' \
     >> "$REDIRECT" 2>&1 &
 

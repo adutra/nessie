@@ -104,10 +104,9 @@ would automatically be migrated to the Nessie Catalog.
    ```bash
    ./gradlew :nessie-catalog-service-server:quarkusBuild && java -jar catalog/service/server/build/quarkus-app/quarkus-run.jar
    ```
-1. Without SQL extensions - but **with Nessie Catalog aware Iceberg**.
-   This approach "integrates better" with Nessie Catalog. It redirects table metadata and manifest lists to the Nessie Catalog.
-   In other words it allows direct use of `INSERT`/`UPDATE`/`DELETE`/`SELECT`/etc working with Nessie Catalog.
-   Since all SQL extensions use _relocated_ classes and the Iceberg catalog implementation for Nessie Catalog relies on non-relocated classes, the SQL extensions cannot be used in this early stage.
+1. Without SQL extensions - but **with Iceberg REST**.
+   This approach integrates with Nessie Catalog. It redirects table metadata to the Nessie Catalog.
+   In other words it allows direct use of `INSERT`/`UPDATE`/`DELETE`/`SELECT`/etc working with Nessie Catalog via Iceberg REST.
    ```bash
    rm -rf ~/.ivy2/cache/org.projectnessie.nessie/
    rm -rf ~/.ivy2/cache/org.apache.iceberg/
@@ -121,16 +120,13 @@ would automatically be migrated to the Nessie Catalog.
    scalaVersion=2.12
 
    packages=$(echo \
-     org.apache.iceberg:iceberg-spark-${sparkVersion}_${scalaVersion}:${icebergVersion} \
-     org.apache.iceberg:iceberg-nessie:${icebergVersion} \
-     org.projectnessie.nessie:nessie-catalog-iceberg-catalog:$nessieVersion \
+     org.apache.iceberg:iceberg-spark-runtime-${sparkVersion}_${scalaVersion}:${icebergVersion} \
      | sed "s/ /,/g")
 
    spark-sql \
      --packages "${packages}" \
-     --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v1 \
-     --conf spark.sql.catalog.nessie.ref=main \
-     --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog \
+     --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/iceberg/main \
+     --conf spark.sql.catalog.nessie.type=rest \
      --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
      --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
    ```
@@ -155,41 +151,6 @@ would automatically be migrated to the Nessie Catalog.
    INSERT INTO nessie.testing.city VALUES (1, 'a', 1, 'comment');
      
    -- and so on...
-   ```
-1. With SQL extensions - but **without Nessie Catalog aware Iceberg**. 
-   ```bash
-   rm -rf /tmp/nessie-catalog-demo
-   mkdir -p /tmp/nessie-catalog-demo
-   ./gradlew publishToMavenLocal
-
-   nessieVersion=$(./gradlew properties -q | awk '/^version:/ {print $2}')
-   icebergVersion=1.4.2
-   sparkVersion=3.5
-   scalaVersion=2.12
-
-   packages=$(echo \
-   org.apache.iceberg:iceberg-spark-runtime-${sparkVersion}_${scalaVersion}:${icebergVersion} \
-   org.projectnessie.nessie-integrations:nessie-spark-extensions-${sparkVersion}_${scalaVersion}:$nessieVersion \
-   org.projectnessie.nessie:nessie-catalog-iceberg-httpfileio:$nessieVersion \
-   | sed "s/ /,/g")
-
-   spark-sql \
-   --packages "${packages}" \
-   --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.projectnessie.spark.extensions.NessieSparkSessionExtensions \
-   --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19120/api/v1 \
-   --conf spark.sql.catalog.nessie.ref=main \
-   --conf spark.sql.catalog.nessie.catalog-impl=org.apache.iceberg.nessie.NessieCatalog \
-   --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
-   --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog \
-   --conf spark.sql.catalog.nessie.io-impl=org.projectnessie.catalog.iceberg.httpfileio.HttpFileIO
-   ```
-   1. In Spark-SQL:
-   ```sql
-   CREATE NAMESPACE nessie.testing;
-
-   CREATE TABLE nessie.testing.city (
-    C_CITYKEY BIGINT, C_NAME STRING, N_NATIONKEY BIGINT, C_COMMENT STRING
-   ) USING iceberg PARTITIONED BY (bucket(16, N_NATIONKEY));
    ```
    1. In a terminal:
    ```bash

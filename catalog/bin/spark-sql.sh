@@ -92,11 +92,11 @@ do
       DEBUG="true"
       shift
       ;;
-    --verbose)
+    -v | --verbose)
       VERBOSE="true"
       shift
       ;;
-    --help)
+    -h | --help)
       HELP="true"
       shift
       ;;
@@ -115,7 +115,6 @@ if [[ -n "$HELP" ]]; then
   echo "  --scala-version <version>       Scala version to use. Default: $SCALA_VERSION"
   echo "  --aws-sdk-version <version>     AWS SDK version to use. Default: $AWS_SDK_VERSION"
   echo "  --warehouse <location>          Warehouse location. Default: $WAREHOUSE_LOCATION"
-  echo "  --old-catalog                   Use NessieCatalog instead of NessieCatalogIcebergCatalog. Default: use Nessie Catalog"
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
   echo "  --no-start                      Do not start Nessie Core/Catalog, use externally provided instance(s). Default: start"
@@ -131,20 +130,12 @@ done
 source "$PROJECT_DIR/catalog/bin/common.sh"
 
 PACKAGES=(
+  "org.projectnessie.nessie-integrations:nessie-spark-extensions-${SPARK_VERSION}_${SCALA_VERSION}:${NESSIE_VERSION}"
   "org.apache.iceberg:iceberg-spark-${SPARK_VERSION}_${SCALA_VERSION}:${ICEBERG_VERSION}"
-  "org.apache.iceberg:iceberg-nessie:${ICEBERG_VERSION}"
-  "org.projectnessie.nessie:nessie-model:${NESSIE_VERSION}"
-  "org.projectnessie.nessie:nessie-client:${NESSIE_VERSION}"
+  "org.apache.iceberg:iceberg-aws:${ICEBERG_VERSION}"
+  "org.apache.iceberg:iceberg-gcp:${ICEBERG_VERSION}"
+  "org.apache.iceberg:iceberg-azure:${ICEBERG_VERSION}"
 )
-
-if [[ -z "$USE_OLD_CATALOG" ]]; then
-  CATALOG_IMPL="org.apache.iceberg.nessie.NessieCatalogIcebergCatalog"
-  PACKAGES+=(
-    "org.projectnessie.nessie:nessie-catalog-iceberg-catalog:${NESSIE_VERSION}"
-  )
-else
-  CATALOG_IMPL="org.apache.iceberg.nessie.NessieCatalog"
-fi
 
 if [[ -n "$AWS" ]]; then
   PACKAGES+=(
@@ -161,7 +152,7 @@ if [[ -n "$DEBUG" ]]; then
 fi
 
 echo
-echo "Starting spark-sql $SPARK_VERSION (catalog impl: $CATALOG_IMPL)..."
+echo "Starting spark-sql $SPARK_VERSION ..."
 
 echo "Packages:"
 for package in "${PACKAGES[@]}"; do
@@ -174,9 +165,7 @@ packages_csv=${packages_csv:1}
 spark-sql "${DEBUG_SPARK_SHELL[@]}" \
   --packages "${packages_csv}" \
   --conf spark.sql.catalogImplementation=in-memory \
-  --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/api/v2 \
-  --conf spark.sql.catalog.nessie.client-api-version=2 \
-  --conf spark.sql.catalog.nessie.ref=main \
-  --conf spark.sql.catalog.nessie.catalog-impl="$CATALOG_IMPL" \
+  --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/iceberg/main/ \
+  --conf spark.sql.catalog.nessie.type=rest \
   --conf spark.sql.catalog.nessie.warehouse="$WAREHOUSE_LOCATION" \
   --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog

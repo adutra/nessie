@@ -23,7 +23,6 @@ cd "$PROJECT_DIR"
 PROJECT_DIR=$(pwd)
 
 # Set the default values
-NESSIE_VERSION=$(./gradlew properties -q | awk '/^version:/ {print $2}')
 ICEBERG_VERSION="1.4.3"
 TRINO_VERSION="438"
 WAREHOUSE_LOCATION="$PROJECT_DIR/build/trino-warehouse"
@@ -34,11 +33,6 @@ while [[ $# -gt 0 ]]
 do
   key="$1"
   case $key in
-    --nessie-version)
-      NESSIE_VERSION="$2"
-      shift
-      shift
-      ;;
     --iceberg-version)
       ICEBERG_VERSION="$2"
       shift
@@ -79,11 +73,11 @@ do
       DEBUG="true"
       shift
       ;;
-    --verbose)
+    -v | --verbose)
       VERBOSE="true"
       shift
       ;;
-    --help)
+    -h | --help)
       HELP="true"
       shift
       ;;
@@ -96,7 +90,6 @@ do
 if [[ -n "$HELP" ]]; then
   echo "Usage: trino.sh [options]"
   echo "Options:"
-  echo "  --nessie-version <version>      Nessie version to use. Default: $NESSIE_VERSION"
   echo "  --iceberg-version <version>     Iceberg version to use. Default: $ICEBERG_VERSION"
   echo "  --trino-version <version>       Trino version to use. Default: $TRINO_VERSION"
   echo "  --warehouse <location>          Warehouse location. Default: $WAREHOUSE_LOCATION"
@@ -144,25 +137,26 @@ ${TRINO_DEBUG_OPTS}
 EOF
 
 
-TRINO_CATALOG_URI="http://${CONTAINER_HOST}:19110/api/v1"
+TRINO_CATALOG_URI="http://${CONTAINER_HOST}:19110/iceberg/main"
 
 cat <<EOF > "$TRINO_TEMP_DIR/catalog/iceberg.properties"
 connector.name=iceberg
-iceberg.catalog.type=nessie
-iceberg.nessie-catalog.uri=${TRINO_CATALOG_URI}
-iceberg.nessie-catalog.default-warehouse-dir=/warehouse
-iceberg.nessie-catalog.ref=main
+iceberg.catalog.type=rest
+iceberg.rest-catalog.uri=${TRINO_CATALOG_URI}
 EOF
 
 echo "Starting Trino server version $TRINO_VERSION..."
 
 TRINO_PORT=8080
 
+# Run Trino in a container, ensure that everything created in the warehouse is readable/writeable
+# by Nessie Catalog as well.
 TRINO_CONTAINER_ID=$(${DOCKER} run --detach -p ${TRINO_PORT}:${TRINO_PORT} -p 5007:5007 \
+  --userns=keep-id --user "$(id -u)" \
   --volume $TRINO_TEMP_DIR/log.properties:/etc/trino/log.properties \
   --volume $TRINO_TEMP_DIR/jvm.config:/etc/trino/jvm.config \
   --volume $TRINO_TEMP_DIR/catalog:/etc/trino/catalog \
-  --volume "$WAREHOUSE_LOCATION":/warehouse \
+  --volume "$WAREHOUSE_LOCATION":"$WAREHOUSE_LOCATION" \
   $DOCKER_RUN_OPTS \
   docker.io/trinodb/trino:"$TRINO_VERSION")
 
@@ -183,9 +177,11 @@ echo "Launching Trino CLI... (type 'exit' to quit)"
 echo "You can create a table with the following commands:"
 
 cat <<EOF
-CREATE SCHEMA iceberg.db1;
+CREATE SCHEMA iceberg.db1
+  WITH (location='file://$WAREHOUSE_LOCATION');
 USE iceberg.db1;
-CREATE TABLE yearly_clicks (year, clicks) WITH (partitioning = ARRAY['year']) AS VALUES (2021, 10000), (2022, 20000);
+CREATE TABLE yearly_clicks (year, clicks)
+  WITH (partitioning = ARRAY['year']) AS VALUES (2021, 10000), (2022, 20000);
 EOF
 
 echo

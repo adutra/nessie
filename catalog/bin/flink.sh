@@ -23,7 +23,6 @@ cd "$PROJECT_DIR"
 PROJECT_DIR=$(pwd)
 
 # Set the default values
-NESSIE_VERSION=$(./gradlew properties -q | awk '/^version:/ {print $2}')
 ICEBERG_VERSION="1.4.3"
 FLINK_VERSION="1.17.2" # 1.18 is not supported by Iceberg
 SCALA_VERSION="2.12"
@@ -35,11 +34,6 @@ while [[ $# -gt 0 ]]
 do
   key="$1"
   case $key in
-    --nessie-version)
-      NESSIE_VERSION="$2"
-      shift
-      shift
-      ;;
     --iceberg-version)
       ICEBERG_VERSION="$2"
       shift
@@ -81,11 +75,11 @@ do
       DEBUG="true"
       shift
       ;;
-    --verbose)
+    -v | --verbose)
       VERBOSE="true"
       shift
       ;;
-    --help)
+    -h | --help)
       HELP="true"
       shift
       ;;
@@ -98,7 +92,6 @@ do
 if [[ -n "$HELP" ]]; then
   echo "Usage: flink.sh [options]"
   echo "Options:"
-  echo "  --nessie-version <version>      Nessie version to use. Default: $NESSIE_VERSION"
   echo "  --iceberg-version <version>     Iceberg version to use. Default: $ICEBERG_VERSION"
   echo "  --flink-version <version>       Flink version to use. Default: $FLINK_VERSION"
   echo "  --scala-version <version>       Scala version to use. Default: $SCALA_VERSION"
@@ -136,13 +129,7 @@ repositories {
   mavenLocal()
 }
 dependencies {
-  implementation("org.projectnessie.nessie:nessie-catalog-iceberg-catalog:${NESSIE_VERSION}")
-  implementation("org.apache.iceberg:iceberg-flink-${FLINK_VERSION_MAJOR_MINOR}:${ICEBERG_VERSION}")
-  implementation('org.apache.iceberg:iceberg-nessie:${ICEBERG_VERSION}')
-  implementation("org.apache.flink:flink-metrics-dropwizard:${FLINK_VERSION}")
-  implementation("org.apache.flink:flink-streaming-java:${FLINK_VERSION}")
-  implementation("org.apache.flink:flink-table-api-java-bridge:${FLINK_VERSION}")
-  implementation("org.apache.flink:flink-avro:${FLINK_VERSION}")
+  implementation("org.apache.iceberg:iceberg-flink-runtime-${FLINK_VERSION_MAJOR_MINOR}:${ICEBERG_VERSION}")
   implementation("org.apache.hadoop:hadoop-client-runtime:3.3.4")
 }
 configurations {
@@ -182,8 +169,8 @@ if [[ -n "$DEBUG" ]]; then
   FLINK_TSKM_DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008"
 fi
 
-FLINK_CATALOG_URI="http://${CONTAINER_HOST}:19110/api/v2"
-FLINK_CATALOG_IMPL=org.apache.iceberg.nessie.NessieCatalogIcebergCatalog
+FLINK_CATALOG_URI="http://${CONTAINER_HOST}:19110/iceberg/main"
+FLINK_CATALOG_IMPL=org.apache.iceberg.rest.RESTCatalog
 
 if [[ -z "$VERBOSE" ]]; then
   FLINK_JOBM_PROMPT="[FLINK JOBM] "
@@ -251,8 +238,7 @@ CREATE CATALOG nessie_catalog WITH (
   'type'                = 'iceberg',
   'catalog-impl'        = '$FLINK_CATALOG_IMPL',
   'uri'                 = '$FLINK_CATALOG_URI',
-  'warehouse'           = 'file://$WAREHOUSE_LOCATION',
-  'client-api-version'  = '2'
+  'warehouse'           = 'file://$WAREHOUSE_LOCATION'
 );
 CREATE database nessie_catalog.db1;
 CREATE TABLE nessie_catalog.db1.spotify (songid BIGINT, artist STRING, rating BIGINT);
