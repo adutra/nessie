@@ -50,6 +50,7 @@ public class ResolvingObjectIO extends DelegatingObjectIO {
     if ("adls".equals(scheme)) {
       return adlsObjectIO;
     }
+    // TODO MUST remove this one - at least for production code
     if ("file".equals(scheme) || scheme == null) {
       return localObjectIO;
     }
