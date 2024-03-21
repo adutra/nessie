@@ -8,7 +8,7 @@ errorprone = "2.26.1"
 errorproneSlf4j = "0.1.22"
 gatling = "3.10.4"
 googleJavaFormat = "1.21.0"
-hadoop = "3.3.6"
+hadoop = "3.4.0"
 iceberg = "1.5.0" # While bumping this version, 'nessieClientVersion' must also be updated.
 immutables = "2.10.1"
 jacoco = "0.8.11"
@@ -25,8 +25,8 @@ opentelemetryAlpha = "1.31.0-alpha"
 opentracing = "0.33.0"
 picocli = "4.7.5"
 protobuf = "3.25.3"
-quarkusPlatform = "3.8.2"
-quarkusPlugin = "3.8.3"
+quarkusPlatform = "3.8.3"
+quarkusPlugin = "3.9.0"
 slf4j = "1.7.36"
 smallryeConfig = "2.13.3"
 undertow = "2.2.28.Final"
@@ -57,7 +57,7 @@ errorprone-slf4j = { module = "jp.skypencil.errorprone.slf4j:errorprone-slf4j", 
 findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version = "3.0.2" }
 gatling-charts-highcharts = { module = "io.gatling.highcharts:gatling-charts-highcharts", version.ref = "gatling" }
 google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.36.0" }
-google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.18" }
+google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.21" }
 google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.14" }
 google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.36.0" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "googleJavaFormat" }
@@ -69,6 +69,7 @@ hadoop-azure = { module = "org.apache.hadoop:hadoop-azure", version.ref = "hadoo
 hadoop-client = { module = "org.apache.hadoop:hadoop-client", version.ref = "hadoop" }
 hadoop-common = { module = "org.apache.hadoop:hadoop-common", version.ref = "hadoop" }
 hibernate-validator-cdi = { module = "org.hibernate:hibernate-validator-cdi", version = "8.0.1.Final" }
+httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version = "5.3.1" }
 iceberg-bom = { module = "org.apache.iceberg:iceberg-bom", version.ref = "iceberg" }
 immutables-builder = { module = "org.immutables:builder", version.ref = "immutables" }
 immutables-value-annotations = { module = "org.immutables:value-annotations", version.ref = "immutables" }
