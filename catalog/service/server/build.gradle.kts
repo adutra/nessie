@@ -93,6 +93,7 @@ dependencies {
   testFixturesApi("io.quarkus:quarkus-jacoco")
 
   testFixturesApi(project(":nessie-catalog-service-server-tests"))
+  testFixturesApi(project(":nessie-quarkus-tests"))
 
   testFixturesCompileOnly(libs.microprofile.openapi)
 
@@ -105,6 +106,7 @@ dependencies {
   intTestImplementation("software.amazon.awssdk:sts")
   intTestImplementation(platform(libs.testcontainers.bom))
   intTestImplementation("org.testcontainers:testcontainers")
+  intTestImplementation(project(":nessie-keycloak-testcontainer"))
 
   intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg")
   intTestImplementation("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")

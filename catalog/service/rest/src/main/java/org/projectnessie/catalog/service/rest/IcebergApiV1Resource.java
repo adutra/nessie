@@ -38,9 +38,12 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import org.projectnessie.catalog.files.api.ObjectIO;
@@ -64,9 +67,6 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergListNamespacesRespo
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergListTablesResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergLoadTableResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergLoadViewResponse;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenEndpointException;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenRequest;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRegisterTableRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRenameTableRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRestBaseException;
@@ -113,7 +113,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
 
   @SuppressWarnings("unused")
   public IcebergApiV1Resource() {
-    this(null, null, null, null, null, null, null);
+    this(null, null, null, null, null, null, null, null);
   }
 
   @Inject
@@ -124,8 +124,9 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
       NessieApiV2 nessieApi,
       CatalogConfig catalogConfig,
       ExceptionConfig exceptionConfig,
-      S3Options<S3BucketOptions> s3Options) {
-    super(catalogService, objectIO, signer, nessieApi, catalogConfig, s3Options);
+      S3Options<S3BucketOptions> s3Options,
+      @TokenEndpointUri Optional<URI> tokenEndpoint) {
+    super(catalogService, objectIO, signer, nessieApi, catalogConfig, s3Options, tokenEndpoint);
     this.exceptionConfig = exceptionConfig;
   }
 
@@ -179,13 +180,8 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   @Path("/v1/oauth/tokens")
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @PermitAll
-  public IcebergOAuthTokenResponse getToken(IcebergOAuthTokenRequest request)
-      throws IcebergOAuthTokenEndpointException {
-    try {
-      return super.getToken(request);
-    } catch (RuntimeException e) {
-      throw handleException(e, ENTITY_KIND_UNKNOWN);
-    }
+  public Response getToken() {
+    return super.getToken();
   }
 
   @POST

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.s3;
+package org.projectnessie.catalog.service.server.s3;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -23,15 +23,15 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.aws.AwsClientProperties;
 import org.apache.iceberg.rest.RESTCatalog;
-import org.projectnessie.catalog.ITIcebergCatalog;
+import org.projectnessie.catalog.service.server.ITIcebergCatalog;
 import org.projectnessie.minio.MinioContainer;
 
 @QuarkusTestResource(
     restrictToAnnotatedClass = true,
     value = MinioTestResourceLifecycleManager.class)
 @QuarkusIntegrationTest
-@TestProfile(PrivateCloudProfile.class)
-public class ITPrivateS3IcebergCatalog extends ITIcebergCatalog {
+@TestProfile(AmazonCloudProfile.class)
+public class ITAmazonS3IcebergCatalog extends ITIcebergCatalog {
 
   @SuppressWarnings("unused")
   // Injected by MinioTestResourceLifecycleManager
@@ -43,7 +43,7 @@ public class ITPrivateS3IcebergCatalog extends ITIcebergCatalog {
     RESTCatalog catalog = new RESTCatalog();
     catalog.setConf(new Configuration());
     catalog.initialize(
-        "nessie-s3-private-iceberg-api",
+        "nessie-s3-iceberg-api",
         Map.of(
             CatalogProperties.URI,
             String.format("http://127.0.0.1:%d/iceberg/", catalogServerPort),

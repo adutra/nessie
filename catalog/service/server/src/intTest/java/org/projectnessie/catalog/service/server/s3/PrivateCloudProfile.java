@@ -13,23 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.formats.iceberg.rest;
+package org.projectnessie.catalog.service.server.s3;
 
-import static java.util.Collections.unmodifiableMap;
-
-import java.util.HashMap;
+import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.Map;
+import org.projectnessie.catalog.files.s3.Cloud;
 
-public class IcebergOAuthTokenEndpointException extends IcebergRestBaseException {
+public class PrivateCloudProfile implements QuarkusTestProfile {
 
-  public IcebergOAuthTokenEndpointException(int code, String error, String errorDescription) {
-    super(code, error, errorDescription);
-  }
-
-  public Map<String, String> getDetails() {
-    Map<String, String> r = new HashMap<>();
-    r.put("error", getType());
-    r.put("error_description", getMessage());
-    return unmodifiableMap(r);
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    return Map.of("nessie.catalog.service.s3.cloud", Cloud.PRIVATE.name());
   }
 }

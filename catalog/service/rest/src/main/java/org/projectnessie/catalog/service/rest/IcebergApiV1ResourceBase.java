@@ -55,6 +55,8 @@ import com.google.common.base.Supplier;
 import io.smallrye.mutiny.Uni;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -109,9 +111,6 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergLoadTableResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergLoadTableResult;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergLoadViewResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenEndpointException;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenRequest;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRegisterTableRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRenameTableRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignRequest;
@@ -154,11 +153,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IcebergApiV1ResourceBase.class);
 
-  private final NessieApiV2 nessieApi;
-  private final CatalogConfig catalogConfig;
-  private final S3Options<?> s3Options;
-  private final RequestSigner signer;
-
   /**
    * This is the <em>base</em> signer URI, it is effectively evaluated like a <em>{@code
    * static}</em> field, so only once per JVM (class loader).
@@ -187,18 +181,26 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   public static final String ICEBERG_TABLE_DEFAULT_PREFIX = "table-default.";
   public static final String ICEBERG_TABLE_OVERRIDE_PREFIX = "table-override.";
 
+  private final NessieApiV2 nessieApi;
+  private final CatalogConfig catalogConfig;
+  private final RequestSigner signer;
+  private final S3Options<?> s3Options;
+  private final Optional<URI> tokenEndpoint;
+
   protected IcebergApiV1ResourceBase(
       CatalogService catalogService,
       ObjectIO objectIO,
       RequestSigner signer,
       NessieApiV2 nessieApi,
       CatalogConfig catalogConfig,
-      S3Options<?> s3Options) {
+      S3Options<?> s3Options,
+      Optional<URI> tokenEndpoint) {
     super(catalogService, objectIO);
     this.nessieApi = nessieApi;
     this.signer = signer;
     this.catalogConfig = catalogConfig;
     this.s3Options = s3Options;
+    this.tokenEndpoint = tokenEndpoint;
   }
 
   public IcebergConfigResponse getConfig(String reference, String warehouse) {
@@ -263,14 +265,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     // Set the "default" prefix
     configDefaults.put(ICEBERG_PREFIX, encode(branch, UTF_8));
 
-    // URI oauthUri = uriInfo.oauthTokensUri();
-    // "Just" Nessie client specific configs
-    // configOverrides.put(CONF_NESSIE_AUTH_TYPE, "OAUTH2");
-    // configOverrides.put(CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT, oauthUri.toString());
-    // TODO really need a client ID ??
-    // configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_ID, "nessie-catalog-core-client");
-    // TODO a non-secret secret is not a secret ...
-    // configDefaults.put(CONF_NESSIE_OAUTH2_CLIENT_SECRET, "secret");
+    // FIXME the client needs this even before calling the /config endpoint
+    tokenEndpoint.ifPresent(uri -> configOverrides.put("oauth2-server-uri", uri.toString()));
+    // TODO scopes? But scopes are also needed before calling the /config endpoint
 
     configOverrides.putAll(w.icebergConfigOverrides());
 
@@ -305,14 +302,17 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   // OAuth proxy
   //
 
-  public IcebergOAuthTokenResponse getToken(IcebergOAuthTokenRequest request)
-      throws IcebergOAuthTokenEndpointException {
-    // TODO implement this somehow, proxy to the oauth endpoint for the configured IdP - make that
-    //  pluggable
-    throw new IcebergOAuthTokenEndpointException(
-        503, // service unavailable
-        "OAuthTokenEndpointUnavailable",
-        "OAuth token endpoint is unavailable");
+  public Response getToken() {
+    return tokenEndpoint
+        .map(Response::temporaryRedirect)
+        .orElseGet(
+            () ->
+                Response.status(Status.SERVICE_UNAVAILABLE)
+                    .entity(
+                        Map.of(
+                            "error", "OAuthTokenEndpointUnavailable",
+                            "error_description", "OAuth token endpoint is unavailable")))
+        .build();
   }
 
   //

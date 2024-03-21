@@ -41,11 +41,6 @@ public interface ExternalBaseUri {
     return externalBaseURI().resolve("iceberg/");
   }
 
-  default URI oauthTokensUri() {
-    // TODO this needs to be configurable (per tenant) and point directly to the "real" endpoint
-    return externalBaseURI().resolve("iceberg/v1/oauth/tokens");
-  }
-
   default boolean isNessieCatalogUri(String uri) {
     return uri.startsWith(externalBaseURI().toString());
   }

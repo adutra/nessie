@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.s3;
+package org.projectnessie.catalog.service.rest;
 
-import io.quarkus.test.junit.QuarkusTestProfile;
-import java.util.Map;
-import org.projectnessie.catalog.files.s3.Cloud;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-public class PrivateCloudProfile implements QuarkusTestProfile {
+import jakarta.inject.Qualifier;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
 
-  @Override
-  public Map<String, String> getConfigOverrides() {
-    return Map.of("nessie.catalog.service.s3.cloud", Cloud.PRIVATE.name());
-  }
-}
+@Qualifier
+@Documented
+@Retention(RUNTIME)
+public @interface TokenEndpointUri {}

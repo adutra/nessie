@@ -13,44 +13,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.s3;
+package org.projectnessie.catalog.service.server.auth;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.quarkus.test.junit.TestProfile;
 import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
-import org.apache.iceberg.aws.AwsClientProperties;
 import org.apache.iceberg.rest.RESTCatalog;
-import org.projectnessie.catalog.ITIcebergCatalog;
-import org.projectnessie.minio.MinioContainer;
+import org.apache.iceberg.rest.auth.OAuth2Properties;
+import org.projectnessie.client.auth.oauth2.AccessToken;
+import org.projectnessie.client.auth.oauth2.OAuth2AuthenticationProvider;
+import org.projectnessie.client.auth.oauth2.OAuth2Authenticator;
+import org.projectnessie.client.auth.oauth2.OAuth2AuthenticatorConfig;
 
-@QuarkusTestResource(
-    restrictToAnnotatedClass = true,
-    value = MinioTestResourceLifecycleManager.class)
 @QuarkusIntegrationTest
-@TestProfile(AmazonCloudProfile.class)
-public class ITAmazonS3IcebergCatalog extends ITIcebergCatalog {
-
-  @SuppressWarnings("unused")
-  // Injected by MinioTestResourceLifecycleManager
-  private MinioContainer minio;
+public class ITBearerTokenIcebergCatalog extends AbstractAuthEnabledTests {
 
   @Override
   protected RESTCatalog catalog() {
     int catalogServerPort = Integer.getInteger("quarkus.http.port");
+    AccessToken accessToken;
+    try (OAuth2Authenticator authenticator =
+        OAuth2AuthenticationProvider.newAuthenticator(
+            OAuth2AuthenticatorConfig.builder()
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .tokenEndpoint(tokenEndpoint)
+                .build())) {
+      authenticator.start();
+      accessToken = authenticator.authenticate();
+    }
     RESTCatalog catalog = new RESTCatalog();
     catalog.setConf(new Configuration());
     catalog.initialize(
-        "nessie-s3-iceberg-api",
+        "nessie-auth-iceberg-api",
         Map.of(
             CatalogProperties.URI,
             String.format("http://127.0.0.1:%d/iceberg/", catalogServerPort),
-            AwsClientProperties.CLIENT_REGION,
-            MinioTestResourceLifecycleManager.TEST_REGION,
-            CatalogProperties.WAREHOUSE_LOCATION,
-            minio.s3BucketUri("").toString()));
+            OAuth2Properties.SCOPE,
+            "email",
+            OAuth2Properties.TOKEN,
+            accessToken.getPayload()));
     catalogs.add(catalog);
     return catalog;
   }

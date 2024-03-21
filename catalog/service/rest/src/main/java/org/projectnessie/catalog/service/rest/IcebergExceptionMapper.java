@@ -27,7 +27,6 @@ import jakarta.ws.rs.ext.Provider;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergOAuthTokenEndpointException;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergRestBaseException;
 import org.projectnessie.services.config.ExceptionConfig;
 
@@ -44,11 +43,6 @@ public class IcebergExceptionMapper implements ExceptionMapper<IcebergRestBaseEx
 
   @Override
   public Response toResponse(IcebergRestBaseException ex) {
-    if (ex instanceof IcebergOAuthTokenEndpointException) {
-      IcebergOAuthTokenEndpointException e = (IcebergOAuthTokenEndpointException) ex;
-      return authEndpointErrorResponse(e);
-    }
-
     List<String> stack;
     if (exceptionConfig.sendStacktraceToClient()) {
       stack =
@@ -67,9 +61,5 @@ public class IcebergExceptionMapper implements ExceptionMapper<IcebergRestBaseEx
     return Response.status(code)
         .entity(icebergErrorResponse(icebergError(code, type, message, stack)))
         .build();
-  }
-
-  private static Response authEndpointErrorResponse(IcebergOAuthTokenEndpointException e) {
-    return Response.status(e.getResponseCode()).entity(e.getDetails()).build();
   }
 }

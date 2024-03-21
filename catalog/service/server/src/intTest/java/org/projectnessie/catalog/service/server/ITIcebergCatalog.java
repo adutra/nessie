@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog;
+package org.projectnessie.catalog.service.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -97,12 +97,7 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
       catalog.close();
     }
 
-    int catalogServerPort = Integer.getInteger("quarkus.http.port");
-
-    try (NessieApiV2 api =
-        NessieClientBuilder.createClientBuilderFromSystemSettings()
-            .withUri(String.format("http://127.0.0.1:%d/api/v2/", catalogServerPort))
-            .build(NessieApiV2.class)) {
+    try (NessieApiV2 api = nessieClientBuilder().build(NessieApiV2.class)) {
       Reference main = null;
       for (Reference reference : api.getAllReferences().stream().toList()) {
         if (reference.getName().equals("main")) {
@@ -116,6 +111,12 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
           .assignTo(Branch.of("main", ObjId.EMPTY_OBJ_ID.toString()))
           .assign();
     }
+  }
+
+  protected NessieClientBuilder nessieClientBuilder() {
+    int catalogServerPort = Integer.getInteger("quarkus.http.port");
+    return NessieClientBuilder.createClientBuilderFromSystemSettings()
+        .withUri(String.format("http://127.0.0.1:%d/api/v2/", catalogServerPort));
   }
 
   @Override
