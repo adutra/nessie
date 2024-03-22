@@ -38,8 +38,7 @@ import io.vertx.core.http.HttpMethod;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.avro.file.SeekableByteArrayInput;
@@ -52,7 +51,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestFileReader;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListReader;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
@@ -99,6 +97,7 @@ public class AbstractNessieCoreTests {
             .withUri(format("http://127.0.0.1:%d/api/v2", catalogServerPort))
             .build(NessieApiV2.class);
 
+    @SuppressWarnings("resource")
     var baseUri =
         api.unwrapClient(org.projectnessie.client.http.HttpClient.class).orElseThrow().getBaseUri();
     if (baseUri.getPath().endsWith("/")) {
@@ -123,14 +122,13 @@ public class AbstractNessieCoreTests {
 
     var tableName = "concurrentImportDemo";
 
-    var committed =
-        api.commitMultipleOperations()
-            .commitMeta(fromMessage("a table named " + tableName))
-            .operation(
-                Operation.Put.of(
-                    ContentKey.of(tableName), IcebergTable.of(tableMetadataLocation, 1, 0, 0, 0)))
-            .branch(api.getDefaultBranch())
-            .commitWithResponse();
+    api.commitMultipleOperations()
+        .commitMeta(fromMessage("a table named " + tableName))
+        .operation(
+            Operation.Put.of(
+                ContentKey.of(tableName), IcebergTable.of(tableMetadataLocation, 1, 0, 0, 0)))
+        .branch(api.getDefaultBranch())
+        .commitWithResponse();
 
     var snapshotUri = baseUri.resolve("trees/main/snapshot/" + tableName);
 
@@ -141,7 +139,7 @@ public class AbstractNessieCoreTests {
     }
     Future.all(requests).toCompletionStage().toCompletableFuture().get(1000, SECONDS);
 
-    var firstBody = requests.get(0).result().toString();
+    var firstBody = requests.get(0).result();
     soft.assertThat(requests).extracting(Future::result).allMatch(firstBody::equals);
   }
 
@@ -154,17 +152,14 @@ public class AbstractNessieCoreTests {
             .mapToObj(i -> "getMultipleSnapshots" + i)
             .map(ContentKey::of)
             .toList();
-    var committed =
-        api.commitMultipleOperations()
-            .commitMeta(fromMessage("some tables"))
-            .operations(
-                tableNames.stream()
-                    .map(
-                        t ->
-                            Operation.Put.of(t, IcebergTable.of(tableMetadataLocation, 1, 0, 0, 0)))
-                    .collect(Collectors.toUnmodifiableList()))
-            .branch(api.getDefaultBranch())
-            .commitWithResponse();
+    api.commitMultipleOperations()
+        .commitMeta(fromMessage("some tables"))
+        .operations(
+            tableNames.stream()
+                .map(t -> Operation.Put.of(t, IcebergTable.of(tableMetadataLocation, 1, 0, 0, 0)))
+                .collect(Collectors.toUnmodifiableList()))
+        .branch(api.getDefaultBranch())
+        .commitWithResponse();
 
     var snapshotsUri =
         baseUri.resolve(
@@ -187,14 +182,13 @@ public class AbstractNessieCoreTests {
 
     var tableName = "tableMetadataWithoutManifests" + specVersion;
 
-    var committed =
-        api.commitMultipleOperations()
-            .commitMeta(fromMessage("a table named " + tableName))
-            .operation(
-                Operation.Put.of(
-                    ContentKey.of(tableName), IcebergTable.of(tableMetadataLocation, 1, 0, 0, 0)))
-            .branch(api.getDefaultBranch())
-            .commitWithResponse();
+    api.commitMultipleOperations()
+        .commitMeta(fromMessage("a table named " + tableName))
+        .operation(
+            Operation.Put.of(
+                ContentKey.of(tableName), IcebergTable.of(tableMetadataLocation, 1, 0, 0, 0)))
+        .branch(api.getDefaultBranch())
+        .commitWithResponse();
 
     var snapshotUri = baseUri.resolve("trees/main/snapshot/" + tableName + "?format=iceberg");
 
@@ -233,7 +227,9 @@ public class AbstractNessieCoreTests {
     IcebergTableMetadata icebergTableMetadata =
         IcebergJson.objectMapper().readValue(tableMetadata, IcebergTableMetadata.class);
     var manifestListUriFromManifest =
-        new URI(icebergTableMetadata.currentSnapshot().orElseThrow().manifestList());
+        new URI(
+            Objects.requireNonNull(
+                icebergTableMetadata.currentSnapshot().orElseThrow().manifestList()));
     var manifestListUri =
         baseUri.resolve(
             "trees/"
@@ -246,59 +242,13 @@ public class AbstractNessieCoreTests {
 
     var manifestList = httpRequestBytes(manifestListUri);
 
-    List<CompletableFuture<byte[]>> fileReqs = new ArrayList<>();
     try (var listEntryReader =
         IcebergManifestListReader.builder()
             .build()
             .entryReader(new SeekableByteArrayInput(manifestList))) {
-      var expectedManifestFilePrefix =
-          baseUri
-              .resolve(
-                  "trees/"
-                      + encode(committed.getTargetBranch().toPathString(), UTF_8)
-                      + "/manifest-file/"
-                      + encode(tableName, UTF_8)
-                      + "?manifest-file=")
-              .toString();
       while (listEntryReader.hasNext()) {
-        var listEntry = listEntryReader.next();
-        System.out.println(listEntry);
-        // TODO this whole code block once we can upload manifest-files via the catalog
-        // soft.assertThat(listEntry.manifestPath()).startsWith(expectedManifestFilePrefix);
-        // URI uri = URI.create(listEntry.manifestPath());
-        // soft.assertThat(uri.getScheme()).isEqualTo("http");
-        // fileReqs.add(
-        //    httpRequest(uri).map(Buffer::getBytes).toCompletionStage().toCompletableFuture());
-      }
-    }
-
-    var expectedDataFilePrefix =
-        baseUri
-            .resolve(
-                "trees/"
-                    + encode(committed.getTargetBranch().toPathString(), UTF_8)
-                    + "/data-file/"
-                    + encode(tableName, UTF_8)
-                    + "?token=")
-            .toString();
-
-    // TODO add this assertation once we can upload manifest-files via the catalog
-    // soft.assertThat(fileReqs).isNotEmpty();
-    for (CompletableFuture<byte[]> fileReq : fileReqs) {
-      var manifestFileData = fileReq.get(10, SECONDS);
-      try (var manifestReader =
-          IcebergManifestFileReader.builder()
-              .build()
-              .entryReader(new SeekableByteArrayInput(manifestFileData))) {
-        while (manifestReader.hasNext()) {
-          var mfEntry = manifestReader.next();
-          // TODO add this assertation once we can upload manifest-files via the catalog
-          // soft.assertThat(mfEntry.dataFile().filePath())
-          //    .startsWith(expectedDataFilePrefix)
-          //    .contains("&file=")
-          //    .endsWith("&format=PARQUET");
-          System.err.println("data file: " + mfEntry.dataFile().filePath());
-        }
+        listEntryReader.next();
+        // just read it, no assertions here
       }
     }
   }
