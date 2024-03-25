@@ -23,7 +23,7 @@ cd "$PROJECT_DIR"
 PROJECT_DIR=$(pwd)
 
 # Set the default values
-ICEBERG_VERSION="1.4.3"
+ICEBERG_VERSION="1.5.0"
 TRINO_VERSION="438"
 WAREHOUSE_LOCATION="$PROJECT_DIR/build/trino-warehouse"
 TRINO_TEMP_DIR=/tmp/trino-catalog

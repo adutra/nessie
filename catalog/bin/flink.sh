@@ -23,7 +23,7 @@ cd "$PROJECT_DIR"
 PROJECT_DIR=$(pwd)
 
 # Set the default values
-ICEBERG_VERSION="1.4.3"
+ICEBERG_VERSION="1.5.0"
 FLINK_VERSION="1.17.2" # 1.18 is not supported by Iceberg
 SCALA_VERSION="2.12"
 WAREHOUSE_LOCATION="$PROJECT_DIR/build/flink-warehouse"

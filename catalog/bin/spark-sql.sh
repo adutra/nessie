@@ -23,7 +23,7 @@ PROJECT_DIR=$(pwd)
 
 # Set the default values
 NESSIE_VERSION=$(./gradlew properties -q | awk '/^version:/ {print $2}')
-ICEBERG_VERSION="1.4.3"
+ICEBERG_VERSION="1.5.0"
 SPARK_VERSION="3.5"
 SCALA_VERSION="2.12"
 AWS_SDK_VERSION="2.20.131"
@@ -80,6 +80,10 @@ do
       NO_NESSIE_START="true"
       shift
       ;;
+    --no-extensions)
+      NO_EXTENSIONS="true"
+      shift
+      ;;
     --clear-warehouse)
       CLEAR_WAREHOUSE="true"
       shift
@@ -118,6 +122,7 @@ if [[ -n "$HELP" ]]; then
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
   echo "  --no-start                      Do not start Nessie Core/Catalog, use externally provided instance(s). Default: start"
+  echo "  --no-extensions                 Do not use Spark SQL extensions"
   echo "  --clear-warehouse               Clear warehouse directory. Default: false"
   echo "  --debug                         Enable debug mode"
   echo "  --verbose                       Enable verbose mode"
@@ -131,10 +136,7 @@ source "$PROJECT_DIR/catalog/bin/common.sh"
 
 PACKAGES=(
   "org.projectnessie.nessie-integrations:nessie-spark-extensions-${SPARK_VERSION}_${SCALA_VERSION}:${NESSIE_VERSION}"
-  "org.apache.iceberg:iceberg-spark-${SPARK_VERSION}_${SCALA_VERSION}:${ICEBERG_VERSION}"
-  "org.apache.iceberg:iceberg-aws:${ICEBERG_VERSION}"
-  "org.apache.iceberg:iceberg-gcp:${ICEBERG_VERSION}"
-  "org.apache.iceberg:iceberg-azure:${ICEBERG_VERSION}"
+  "org.apache.iceberg:iceberg-spark-runtime-${SPARK_VERSION}_${SCALA_VERSION}:${ICEBERG_VERSION}"
 )
 
 if [[ -n "$AWS" ]]; then
@@ -151,6 +153,12 @@ if [[ -n "$DEBUG" ]]; then
   )
 fi
 
+if [[ -z "$NO_EXTENSIONS" ]]; then
+  SPARK_EXTENSIONS=(
+    "--conf" "spark.sql.extensions=org.projectnessie.spark.extensions.NessieSparkSessionExtensions,org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+  )
+fi
+
 echo
 echo "Starting spark-sql $SPARK_VERSION ..."
 
@@ -164,6 +172,7 @@ packages_csv=${packages_csv:1}
 
 spark-sql "${DEBUG_SPARK_SHELL[@]}" \
   --packages "${packages_csv}" \
+  "${SPARK_EXTENSIONS[@]}" \
   --conf spark.sql.catalogImplementation=in-memory \
   --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/iceberg/main/ \
   --conf spark.sql.catalog.nessie.type=rest \
