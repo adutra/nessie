@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.formats.iceberg.fixtures;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField.nestedField;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.INITIAL_SPEC_ID;
@@ -45,11 +46,14 @@ import static org.projectnessie.catalog.formats.iceberg.types.IcebergType.uuidTy
 import java.util.Iterator;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergBlobMetadata;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNestedField;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionStatisticsFile;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshotLogEntry;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshotRef;
+import org.projectnessie.catalog.formats.iceberg.meta.IcebergStatisticsFile;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
 import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 
@@ -162,5 +166,21 @@ public class IcebergFixtures {
         .putRef("main", IcebergSnapshotRef.builder().type("branch").snapshotId(11).build())
         .addSnapshotLog(
             IcebergSnapshotLogEntry.builder().snapshotId(11).timestampMs(12345678L).build());
+  }
+
+  public static IcebergTableMetadata.Builder tableMetadataWithStatistics() {
+    IcebergStatisticsFile statisticsFile =
+        IcebergStatisticsFile.statisticsFile(
+            11,
+            "statistics-path",
+            123456L,
+            123L,
+            singletonList(
+                IcebergBlobMetadata.blobMetadata("type", 11, 123, singletonList(1), emptyMap())));
+    IcebergPartitionStatisticsFile partitionStatistic =
+        IcebergPartitionStatisticsFile.partitionStatisticsFile(11, "statistics-path", 123456L);
+    return tableMetadataSimple()
+        .addStatistics(statisticsFile)
+        .addPartitionStatistic(partitionStatistic);
   }
 }

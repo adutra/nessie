@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.formats.iceberg.rest;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.emptyList;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
@@ -229,7 +231,14 @@ public interface IcebergMetadataUpdate {
 
     @Override
     default void applyToTable(IcebergTableMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+      long snapshotId = Objects.requireNonNull(state.snapshot().icebergSnapshotId());
+      if (snapshotId == snapshotId()) {
+        state
+            .builder()
+            .addStatisticsFile(
+                NessieModelIceberg.icebergStatisticsFileToNessie(
+                    state.snapshot().id(), statistics()));
+      }
     }
   }
 
@@ -243,7 +252,10 @@ public interface IcebergMetadataUpdate {
 
     @Override
     default void applyToTable(IcebergTableMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+      long snapshotId = Objects.requireNonNull(state.snapshot().icebergSnapshotId());
+      if (snapshotId == snapshotId()) {
+        state.builder().statisticsFiles(emptyList());
+      }
     }
   }
 
@@ -257,7 +269,14 @@ public interface IcebergMetadataUpdate {
 
     @Override
     default void applyToTable(IcebergTableMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+      long snapshotId = Objects.requireNonNull(state.snapshot().icebergSnapshotId());
+      if (snapshotId == partitionStatistics().snapshotId()) {
+        state
+            .builder()
+            .addPartitionStatisticsFile(
+                NessieModelIceberg.icebergPartitionStatisticsFileToNessie(
+                    state.snapshot().id(), partitionStatistics()));
+      }
     }
   }
 
@@ -270,7 +289,10 @@ public interface IcebergMetadataUpdate {
 
     @Override
     default void applyToTable(IcebergTableMetadataUpdateState state) {
-      throw new UnsupportedOperationException("implement me " + this);
+      long snapshotId = Objects.requireNonNull(state.snapshot().icebergSnapshotId());
+      if (snapshotId == snapshotId()) {
+        state.builder().partitionStatisticsFiles(emptyList());
+      }
     }
   }
 

@@ -37,6 +37,8 @@ import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
+import org.projectnessie.catalog.model.statistics.NessiePartitionStatisticsFile;
+import org.projectnessie.catalog.model.statistics.NessieStatisticsFile;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.DeltaLakeTable;
 import org.projectnessie.model.IcebergTable;
@@ -177,7 +179,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   // TODO Find a way to put multiple NessieListManifestEntry in a database row.
   NessieFileManifestGroup fileManifestGroup();
 
-  // TODO Iceberg statistics files (stored in TableMetadata - NOT in Snapshot!)
   // TODO Iceberg last updated timestamp (ms since epoch)
   // TODO Iceberg external name mapping (see org.apache.iceberg.mapping.NameMappingParser +
   //  org.apache.iceberg.TableProperties.DEFAULT_NAME_MAPPING)
@@ -205,6 +206,12 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
     }
     return Optional.empty();
   }
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<NessieStatisticsFile> statisticsFiles();
+
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  List<NessiePartitionStatisticsFile> partitionStatisticsFiles();
 
   @Value.Check
   default void check() {
@@ -300,6 +307,31 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
     @CanIgnoreReturnValue
     Builder fileManifestGroup(NessieFileManifestGroup fileManifestGroup);
+
+    @CanIgnoreReturnValue
+    Builder addStatisticsFile(NessieStatisticsFile element);
+
+    @CanIgnoreReturnValue
+    Builder addStatisticsFiles(NessieStatisticsFile... elements);
+
+    @CanIgnoreReturnValue
+    Builder statisticsFiles(Iterable<? extends NessieStatisticsFile> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllStatisticsFiles(Iterable<? extends NessieStatisticsFile> elements);
+
+    @CanIgnoreReturnValue
+    Builder addPartitionStatisticsFile(NessiePartitionStatisticsFile element);
+
+    @CanIgnoreReturnValue
+    Builder addPartitionStatisticsFiles(NessiePartitionStatisticsFile... elements);
+
+    @CanIgnoreReturnValue
+    Builder partitionStatisticsFiles(Iterable<? extends NessiePartitionStatisticsFile> elements);
+
+    @CanIgnoreReturnValue
+    Builder addAllPartitionStatisticsFiles(
+        Iterable<? extends NessiePartitionStatisticsFile> elements);
 
     NessieTableSnapshot build();
   }

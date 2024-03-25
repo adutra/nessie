@@ -106,6 +106,7 @@ import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.NessieView;
 import org.projectnessie.catalog.model.id.NessieId;
+import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.catalog.model.manifest.BooleanArray;
 import org.projectnessie.catalog.model.manifest.NessieFieldSummary;
 import org.projectnessie.catalog.model.manifest.NessieFieldValue;
@@ -137,6 +138,9 @@ import org.projectnessie.catalog.model.snapshot.NessieViewRepresentation;
 import org.projectnessie.catalog.model.snapshot.NessieViewRepresentation.NessieViewSQLRepresentation;
 import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
+import org.projectnessie.catalog.model.statistics.NessieIcebergBlobMetadata;
+import org.projectnessie.catalog.model.statistics.NessiePartitionStatisticsFile;
+import org.projectnessie.catalog.model.statistics.NessieStatisticsFile;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.IcebergTable;
 import org.projectnessie.model.IcebergView;
@@ -659,27 +663,16 @@ public class NessieModelIceberg {
     }
 
     for (IcebergStatisticsFile statisticsFile : iceberg.statistics()) {
-      // TODO needed??
-      // TODO add test(s) for this case??
-      statisticsFile.snapshotId();
-      statisticsFile.statisticsPath();
-      statisticsFile.fileSizeInBytes();
-      statisticsFile.fileFooterSizeInBytes();
-      for (IcebergBlobMetadata blobMetadata : statisticsFile.blobMetadata()) {
-        blobMetadata.snapshotId();
-        blobMetadata.fields();
-        blobMetadata.type();
-        blobMetadata.properties();
-        blobMetadata.sequenceNumber();
+      if (statisticsFile.snapshotId() == iceberg.currentSnapshotId()) {
+        snapshot.addStatisticsFile(icebergStatisticsFileToNessie(snapshotId, statisticsFile));
       }
     }
 
     for (IcebergPartitionStatisticsFile partitionStatistic : iceberg.partitionStatistics()) {
-      // TODO needed??
-      // TODO add test(s) for this case??
-      partitionStatistic.snapshotId();
-      partitionStatistic.statisticsPath();
-      partitionStatistic.fileSizeInBytes();
+      if (partitionStatistic.snapshotId() == iceberg.currentSnapshotId()) {
+        snapshot.addPartitionStatisticsFile(
+            icebergPartitionStatisticsFileToNessie(snapshotId, partitionStatistic));
+      }
     }
 
     for (IcebergHistoryEntry historyEntry : iceberg.metadataLog()) {
@@ -692,6 +685,38 @@ public class NessieModelIceberg {
     iceberg.refs(); // TODO ??
 
     return snapshot.build();
+  }
+
+  public static NessieStatisticsFile icebergStatisticsFileToNessie(
+      NessieId snapshotId, IcebergStatisticsFile icebergStatisticsFile) {
+    return NessieStatisticsFile.statisticsFile(
+        NessieIdHasher.nessieIdHasher("NessieStatisticsFile")
+            .hash(snapshotId)
+            .hash(icebergStatisticsFile.statisticsPath())
+            .generate(),
+        icebergStatisticsFile.statisticsPath(),
+        icebergStatisticsFile.fileSizeInBytes(),
+        icebergStatisticsFile.fileFooterSizeInBytes(),
+        icebergStatisticsFile.blobMetadata().stream()
+            .map(
+                blobMetadata ->
+                    NessieIcebergBlobMetadata.blobMetadata(
+                        blobMetadata.type(),
+                        blobMetadata.sequenceNumber(),
+                        blobMetadata.fields(),
+                        blobMetadata.properties()))
+            .collect(Collectors.toList()));
+  }
+
+  public static NessiePartitionStatisticsFile icebergPartitionStatisticsFileToNessie(
+      NessieId snapshotId, IcebergPartitionStatisticsFile icebergPartitionStatisticsFile) {
+    return NessiePartitionStatisticsFile.partitionStatisticsFile(
+        NessieIdHasher.nessieIdHasher("NessiePartitionStatisticsFile")
+            .hash(snapshotId)
+            .hash(icebergPartitionStatisticsFile.statisticsPath())
+            .generate(),
+        icebergPartitionStatisticsFile.statisticsPath(),
+        icebergPartitionStatisticsFile.fileSizeInBytes());
   }
 
   private static Map<Integer, NessieField> collectAllSchemaFields(List<NessieSchema> schemas) {
@@ -1051,10 +1076,36 @@ public class NessieModelIceberg {
               .build());
     }
 
-    // TODO metadata.statistics()
+    for (NessieStatisticsFile statisticsFile : nessie.statisticsFiles()) {
+      metadata.addStatistic(
+          IcebergStatisticsFile.statisticsFile(
+              snapshotId,
+              statisticsFile.statisticsPath(),
+              statisticsFile.fileSizeInBytes(),
+              statisticsFile.fileFooterSizeInBytes(),
+              statisticsFile.blobMetadata().stream()
+                  .map(
+                      blobMetadata ->
+                          IcebergBlobMetadata.blobMetadata(
+                              blobMetadata.type(),
+                              snapshotId,
+                              blobMetadata.sequenceNumber(),
+                              blobMetadata.fields(),
+                              blobMetadata.properties()))
+                  .collect(Collectors.toList())));
+    }
+
+    for (NessiePartitionStatisticsFile partitionStatisticsFile :
+        nessie.partitionStatisticsFiles()) {
+      metadata.addPartitionStatistic(
+          IcebergPartitionStatisticsFile.partitionStatisticsFile(
+              snapshotId,
+              partitionStatisticsFile.statisticsPath(),
+              partitionStatisticsFile.fileSizeInBytes()));
+    }
+
     //    metadata.addMetadataLog();
     //    metadata.addSnapshotLog();
-    //    metadata.addStatistics();
 
     return metadata.build();
   }

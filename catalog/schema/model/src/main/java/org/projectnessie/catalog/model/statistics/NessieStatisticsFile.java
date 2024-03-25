@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,30 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.formats.iceberg.meta;
+package org.projectnessie.catalog.model.statistics;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.List;
+import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
-@JsonSerialize(as = ImmutableIcebergPartitionStatisticsFile.class)
-@JsonDeserialize(as = ImmutableIcebergPartitionStatisticsFile.class)
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
-@JsonIgnoreProperties(ignoreUnknown = true)
-public interface IcebergPartitionStatisticsFile {
+@JsonSerialize(as = ImmutableNessieStatisticsFile.class)
+@JsonDeserialize(as = ImmutableNessieStatisticsFile.class)
+public interface NessieStatisticsFile {
 
-  static IcebergPartitionStatisticsFile partitionStatisticsFile(
-      long snapshotId, String statisticsPath, long fileSizeInBytes) {
-    return ImmutableIcebergPartitionStatisticsFile.of(snapshotId, statisticsPath, fileSizeInBytes);
+  static NessieStatisticsFile statisticsFile(
+      NessieId id,
+      String statisticsPath,
+      long fileSizeInBytes,
+      long fileFooterSizeInBytes,
+      List<NessieIcebergBlobMetadata> blobMetadata) {
+    return ImmutableNessieStatisticsFile.of(
+        id, statisticsPath, fileSizeInBytes, fileFooterSizeInBytes, blobMetadata);
   }
 
-  long snapshotId();
+  NessieId id();
 
   String statisticsPath();
 
   long fileSizeInBytes();
+
+  long fileFooterSizeInBytes();
+
+  List<NessieIcebergBlobMetadata> blobMetadata();
 }

@@ -21,6 +21,7 @@ import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataBare;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataBareWithSchema;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataSimple;
+import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataWithStatistics;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionField.partitionField;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.MIN_PARTITION_ID;
 import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
@@ -260,7 +261,9 @@ public class TestNessieModelIceberg {
             // just a schema
             tableMetadataBareWithSchema(),
             // snapshot
-            tableMetadataSimple())
+            tableMetadataSimple(),
+            // statistics
+            tableMetadataWithStatistics())
         .flatMap(
             builder ->
                 Stream.of(

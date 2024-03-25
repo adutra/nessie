@@ -15,7 +15,6 @@
  */
 package org.projectnessie.catalog.service.server;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
@@ -31,11 +30,18 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.BaseTable;
 import org.apache.iceberg.BaseTransaction;
 import org.apache.iceberg.CatalogProperties;
+import org.apache.iceberg.GenericBlobMetadata;
+import org.apache.iceberg.GenericStatisticsFile;
+import org.apache.iceberg.HasTableOperations;
+import org.apache.iceberg.ImmutableGenericPartitionStatisticsFile;
 import org.apache.iceberg.PartitionSpec;
+import org.apache.iceberg.PartitionStatisticsFile;
 import org.apache.iceberg.ReachableFileUtil;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.SortOrder;
+import org.apache.iceberg.StatisticsFile;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableMetadataParser;
 import org.apache.iceberg.TableOperations;
 import org.apache.iceberg.TableProperties;
@@ -249,8 +255,8 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
     catalog.commitTransaction(tableCommit);
 
     Table loaded = catalog.loadTable(identifier);
-    assertThat(loaded.schema().asStruct()).isEqualTo(expectedSchema.asStruct());
-    assertThat(loaded.spec().fields()).isEqualTo(expectedSpec.fields());
+    Assertions.assertThat(loaded.schema().asStruct()).isEqualTo(expectedSchema.asStruct());
+    Assertions.assertThat(loaded.spec().fields()).isEqualTo(expectedSpec.fields());
   }
 
   @Test
@@ -292,10 +298,10 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
 
     catalog.commitTransaction(tableCommit1, tableCommit2);
 
-    assertThat(catalog.loadTable(identifier1).schema().asStruct())
+    Assertions.assertThat(catalog.loadTable(identifier1).schema().asStruct())
         .isEqualTo(expectedSchema.asStruct());
 
-    assertThat(catalog.loadTable(identifier2).schema().asStruct())
+    Assertions.assertThat(catalog.loadTable(identifier2).schema().asStruct())
         .isEqualTo(expectedSchema2.asStruct());
   }
 
@@ -348,15 +354,15 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
             "Requirement failed: last assigned field id changed: expected 4 != 2");
 
     Schema schema1 = catalog.loadTable(identifier1).schema();
-    assertThat(schema1.asStruct()).isEqualTo(originalSchemaOne.asStruct());
+    Assertions.assertThat(schema1.asStruct()).isEqualTo(originalSchemaOne.asStruct());
 
     Schema schema2 = catalog.loadTable(identifier2).schema();
-    assertThat(schema2.asStruct()).isEqualTo(updatedSchemaTwo.asStruct());
-    assertThat(schema2.findField("data")).isNotNull();
-    assertThat(schema2.findField("another")).isNotNull();
-    assertThat(schema2.findField("more")).isNotNull();
-    assertThat(schema2.findField("new-column")).isNull();
-    assertThat(schema2.columns()).hasSize(4);
+    Assertions.assertThat(schema2.asStruct()).isEqualTo(updatedSchemaTwo.asStruct());
+    Assertions.assertThat(schema2.findField("data")).isNotNull();
+    Assertions.assertThat(schema2.findField("another")).isNotNull();
+    Assertions.assertThat(schema2.findField("more")).isNotNull();
+    Assertions.assertThat(schema2.findField("new-column")).isNull();
+    Assertions.assertThat(schema2.columns()).hasSize(4);
   }
 
   // TODO port this to Iceberg
@@ -420,5 +426,140 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
       metadataFileLocations = ReachableFileUtil.metadataFileLocations(table, false);
       Assertions.assertThat(metadataFileLocations).hasSize(maxPreviousVersionsToKeep + 1);
     }
+  }
+
+  @Test
+  public void testStatistics() {
+
+    @SuppressWarnings("resource")
+    RESTCatalog catalog = catalog();
+
+    if (this.requiresNamespaceCreate()) {
+      catalog.createNamespace(NS);
+    }
+
+    Table table =
+        catalog
+            .buildTable(TABLE, SCHEMA)
+            .withPartitionSpec(SPEC)
+            .withSortOrder(WRITE_ORDER)
+            .create();
+
+    // Create a snapshot
+    table.newFastAppend().commit();
+
+    TableMetadata metadata = ((HasTableOperations) table).operations().current();
+    long snapshotId = metadata.currentSnapshot().snapshotId();
+
+    StatisticsFile statisticsFile =
+        new GenericStatisticsFile(
+            snapshotId,
+            "/some/statistics/file.puffin",
+            100,
+            42,
+            List.of(
+                new GenericBlobMetadata(
+                    "stats-type",
+                    snapshotId,
+                    metadata.lastSequenceNumber(),
+                    List.of(1, 2),
+                    Map.of("a-property", "some-property-value"))));
+
+    table.updateStatistics().setStatistics(snapshotId, statisticsFile).commit();
+
+    PartitionStatisticsFile partitionStatisticsFile =
+        ImmutableGenericPartitionStatisticsFile.builder()
+            .snapshotId(snapshotId)
+            .path("/some/partition-statistics/file")
+            .fileSizeInBytes(100)
+            .build();
+
+    table.updatePartitionStatistics().setPartitionStatistics(partitionStatisticsFile).commit();
+
+    table = catalog.loadTable(TABLE);
+    metadata = ((HasTableOperations) table).operations().current();
+    Assertions.assertThat(metadata.statisticsFiles()).containsAll(List.of(statisticsFile));
+    Assertions.assertThat(metadata.partitionStatisticsFiles())
+        .containsAll(List.of(partitionStatisticsFile));
+
+    table.updateStatistics().removeStatistics(snapshotId).commit();
+    table.updatePartitionStatistics().removePartitionStatistics(snapshotId).commit();
+
+    table = catalog.loadTable(TABLE);
+    metadata = ((HasTableOperations) table).operations().current();
+    Assertions.assertThat(metadata.statisticsFiles()).isEmpty();
+    Assertions.assertThat(metadata.partitionStatisticsFiles()).isEmpty();
+  }
+
+  @Test
+  public void testStatisticsTransaction() {
+
+    @SuppressWarnings("resource")
+    RESTCatalog catalog = catalog();
+
+    if (this.requiresNamespaceCreate()) {
+      catalog.createNamespace(NS);
+    }
+
+    Table table =
+        catalog
+            .buildTable(TABLE, SCHEMA)
+            .withPartitionSpec(SPEC)
+            .withSortOrder(WRITE_ORDER)
+            .create();
+
+    // Create a snapshot
+    table.newFastAppend().commit();
+
+    TableMetadata metadata = ((HasTableOperations) table).operations().current();
+    long snapshotId = metadata.currentSnapshot().snapshotId();
+
+    Transaction transaction = table.newTransaction();
+
+    GenericStatisticsFile statisticsFile =
+        new GenericStatisticsFile(
+            snapshotId,
+            "/some/statistics/file.puffin",
+            100,
+            42,
+            List.of(
+                new GenericBlobMetadata(
+                    "stats-type",
+                    snapshotId,
+                    metadata.lastSequenceNumber(),
+                    List.of(1, 2),
+                    Map.of("a-property", "some-property-value"))));
+
+    transaction.updateStatistics().setStatistics(snapshotId, statisticsFile).commit();
+
+    PartitionStatisticsFile partitionStatisticsFile =
+        ImmutableGenericPartitionStatisticsFile.builder()
+            .snapshotId(snapshotId)
+            .path("/some/partition-statistics/file")
+            .fileSizeInBytes(100)
+            .build();
+
+    transaction
+        .updatePartitionStatistics()
+        .setPartitionStatistics(partitionStatisticsFile)
+        .commit();
+
+    transaction.commitTransaction();
+
+    table = catalog.loadTable(TABLE);
+    metadata = ((HasTableOperations) table).operations().current();
+    Assertions.assertThat(metadata.statisticsFiles()).containsAll(List.of(statisticsFile));
+    Assertions.assertThat(metadata.partitionStatisticsFiles())
+        .containsAll(List.of(partitionStatisticsFile));
+
+    transaction = table.newTransaction();
+    transaction.updateStatistics().removeStatistics(snapshotId).commit();
+    transaction.updatePartitionStatistics().removePartitionStatistics(snapshotId).commit();
+    transaction.commitTransaction();
+
+    table = catalog.loadTable(TABLE);
+    metadata = ((HasTableOperations) table).operations().current();
+    Assertions.assertThat(metadata.statisticsFiles()).isEmpty();
+    Assertions.assertThat(metadata.partitionStatisticsFiles()).isEmpty();
   }
 }
