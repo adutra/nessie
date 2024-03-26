@@ -42,7 +42,7 @@ dependencies {
   implementation(nessieProject("nessie-gc-iceberg"))
   implementation(nessieProject("nessie-gc-iceberg-mock"))
   implementation(nessieProject("nessie-gc-iceberg-files"))
-  implementation(nessieProject("nessie-s3mock"))
+  implementation(nessieProject("nessie-object-storage-mock"))
   implementation(nessieProject("nessie-s3minio"))
 
   implementation(platform(libs.jackson.bom))
@@ -58,6 +58,9 @@ dependencies {
     nessieProject(
       "nessie-spark-extensions-${sparkScala.sparkMajorVersion}_${sparkScala.scalaMajorVersion}"
     )
+  )
+  intTestImplementation(
+    nessieProject("nessie-spark-extensions-base_${sparkScala.scalaMajorVersion}")
   )
 
   intTestImplementation("org.apache.spark:spark-sql_${sparkScala.scalaMajorVersion}") {
