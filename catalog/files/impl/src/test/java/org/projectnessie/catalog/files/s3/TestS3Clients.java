@@ -22,9 +22,9 @@ import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
 import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.projectnessie.s3mock.IcebergS3Mock;
-import org.projectnessie.s3mock.MockObject;
-import org.projectnessie.s3mock.S3Bucket;
+import org.projectnessie.objectstoragemock.Bucket;
+import org.projectnessie.objectstoragemock.MockObject;
+import org.projectnessie.objectstoragemock.ObjectStorageMock;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -40,11 +40,11 @@ public class TestS3Clients {
     String answer2 = "hello other ";
     String bucket1 = "mybucket";
     String bucket2 = "otherbucket";
-    try (IcebergS3Mock.S3MockServer server1 =
-            IcebergS3Mock.builder()
+    try (ObjectStorageMock.MockServer server1 =
+            ObjectStorageMock.builder()
                 .putBuckets(
                     bucket1,
-                    S3Bucket.builder()
+                    Bucket.builder()
                         .object(
                             key ->
                                 MockObject.builder()
@@ -57,11 +57,11 @@ public class TestS3Clients {
                         .build())
                 .build()
                 .start();
-        IcebergS3Mock.S3MockServer server2 =
-            IcebergS3Mock.builder()
+        ObjectStorageMock.MockServer server2 =
+            ObjectStorageMock.builder()
                 .putBuckets(
                     bucket2,
-                    S3Bucket.builder()
+                    Bucket.builder()
                         .object(
                             key ->
                                 MockObject.builder()
@@ -83,7 +83,7 @@ public class TestS3Clients {
               .putBuckets(
                   bucket1,
                   S3ProgrammaticOptions.S3PerBucketOptions.builder()
-                      .endpoint(server1.getBaseUri())
+                      .endpoint(server1.getS3BaseUri())
                       .region("us-west-1")
                       .accessKeyIdRef("ak1")
                       .secretAccessKeyRef("sak1")
@@ -91,7 +91,7 @@ public class TestS3Clients {
               .putBuckets(
                   bucket2,
                   S3ProgrammaticOptions.S3PerBucketOptions.builder()
-                      .endpoint(server2.getBaseUri())
+                      .endpoint(server2.getS3BaseUri())
                       .region("eu-central-2")
                       .accessKeyIdRef("ak2")
                       .secretAccessKeyRef("sak2")

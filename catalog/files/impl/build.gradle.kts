@@ -52,5 +52,5 @@ dependencies {
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
 
-  testFixturesApi(project(":nessie-s3mock"))
+  testFixturesApi(project(":nessie-object-storage-mock"))
 }
