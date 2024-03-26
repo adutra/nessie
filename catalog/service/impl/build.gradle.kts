@@ -22,6 +22,7 @@ plugins {
 extra["maven.name"] = "Nessie - Catalog - Service Implementation"
 
 dependencies {
+  implementation(project(":nessie-catalog-api"))
   implementation(project(":nessie-catalog-files-api"))
   implementation(project(":nessie-catalog-format-iceberg"))
   implementation(project(":nessie-catalog-schema-model"))

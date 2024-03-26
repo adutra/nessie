@@ -33,9 +33,6 @@ val quarkusRunner by
     description = "Used to reference the generated runner-jar (either fast-jar or uber-jar)"
   }
 
-val openapiSource by
-  configurations.creating { description = "Used to reference OpenAPI spec files" }
-
 val versionIceberg = libs.versions.iceberg.get()
 
 dependencies {
@@ -81,8 +78,6 @@ dependencies {
 
   implementation(libs.guava)
 
-  openapiSource(project(":nessie-catalog-api-rest", "openapiSource"))
-
   compileOnly(libs.microprofile.openapi)
 
   testFixturesApi(platform(libs.junit.bom))
@@ -117,34 +112,14 @@ dependencies {
   intTestImplementation(libs.hadoop.common) { hadoopExcludes() }
 }
 
-val pullOpenApiSpec by tasks.registering(Sync::class)
-
-pullOpenApiSpec.configure {
-  destinationDir = openApiSpecDir
-  from(openapiSource) { include("openapi.yaml") }
-}
-
-val openApiSpecDir = layout.buildDirectory.asFile.map { it.resolve("openapi-extra") }.get()
-
 quarkus {
   quarkusBuildProperties.put("quarkus.package.type", quarkusPackageType())
   quarkusBuildProperties.put(
     "quarkus.smallrye-openapi.store-schema-directory",
     layout.buildDirectory.asFile.map { it.resolve("openapi") }.get().toString()
   )
-  quarkusBuildProperties.put(
-    "quarkus.smallrye-openapi.additional-docs-directory",
-    openApiSpecDir.toString()
-  )
   quarkusBuildProperties.put("quarkus.smallrye-openapi.info-version", project.version.toString())
   quarkusBuildProperties.put("quarkus.smallrye-openapi.auto-add-security", "false")
-}
-
-val quarkusAppPartsBuild = tasks.named("quarkusAppPartsBuild")
-
-quarkusAppPartsBuild.configure {
-  dependsOn(pullOpenApiSpec)
-  inputs.files(openapiSource)
 }
 
 val quarkusBuild = tasks.named<QuarkusBuild>("quarkusBuild")

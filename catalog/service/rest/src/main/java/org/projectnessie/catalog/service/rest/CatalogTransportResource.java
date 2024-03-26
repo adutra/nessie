@@ -47,10 +47,9 @@ import java.util.stream.Stream;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.jboss.resteasy.reactive.RestMulti;
 import org.projectnessie.api.v2.params.ParsedReference;
-import org.projectnessie.catalog.api.base.transport.CatalogCommit;
-import org.projectnessie.catalog.api.rest.spec.NessieCatalogServiceBase;
 import org.projectnessie.catalog.api.sign.SigningRequest;
 import org.projectnessie.catalog.api.sign.SigningResponse;
+import org.projectnessie.catalog.api.types.CatalogCommit;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
@@ -67,8 +66,7 @@ import org.projectnessie.model.Reference;
 @RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Path("catalog/v1")
-public class CatalogTransportResource extends AbstractCatalogResource
-    implements NessieCatalogServiceBase<Uni<Response>, Multi<Object>> {
+public class CatalogTransportResource extends AbstractCatalogResource {
 
   private final RequestSigner signer;
 
@@ -88,7 +86,6 @@ public class CatalogTransportResource extends AbstractCatalogResource
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshots")
   @Produces(MediaType.APPLICATION_JSON)
   @Blocking
-  @Override
   public Multi<Object> tableSnapshots(
       @PathParam("ref") String ref,
       @QueryParam("key") List<ContentKey> keys,
@@ -133,7 +130,6 @@ public class CatalogTransportResource extends AbstractCatalogResource
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshot/{key}")
   @Produces(MediaType.APPLICATION_JSON)
   @Blocking
-  @Override
   public Uni<Response> tableSnapshot(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
@@ -148,7 +144,6 @@ public class CatalogTransportResource extends AbstractCatalogResource
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-list/{key}")
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Blocking
-  @Override
   public Uni<Response> manifestList(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
@@ -165,7 +160,6 @@ public class CatalogTransportResource extends AbstractCatalogResource
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-file/{key}")
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Blocking
-  @Override
   public Uni<Response> manifestFile(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
@@ -184,7 +178,6 @@ public class CatalogTransportResource extends AbstractCatalogResource
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/data-file/{key}")
   @Produces(MediaType.APPLICATION_OCTET_STREAM)
   @Blocking
-  @Override
   public Uni<Response> dataFile(
       @PathParam("ref") String ref,
       @PathParam("key") ContentKey key,
@@ -249,7 +242,6 @@ public class CatalogTransportResource extends AbstractCatalogResource
   @POST
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/commit")
   @Blocking
-  @Override
   @Produces(MediaType.APPLICATION_JSON)
   public Uni<Response> commit(
       @PathParam("ref") String ref,

@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.formats.iceberg.rest;
+package org.projectnessie.catalog.api.types;
 
-import static org.projectnessie.model.Content.Type.ICEBERG_TABLE;
-import static org.projectnessie.model.Content.Type.ICEBERG_VIEW;
-
-import org.projectnessie.catalog.api.types.CatalogOperation;
-import org.projectnessie.catalog.api.types.CatalogOperationTypeResolver;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
 import org.projectnessie.model.Content;
+import org.projectnessie.model.ContentKey;
 
-public class IcebergCatalogOperationTypeResolver implements CatalogOperationTypeResolver {
-  @Override
-  public Class<? extends CatalogOperation> forContentType(Content.Type type) {
-    if (type == ICEBERG_TABLE || type == ICEBERG_VIEW) {
-      return IcebergCatalogOperation.class;
-    }
-    return null;
-  }
+/**
+ * Common interface for change operations on a catalog. Each content type will have its changes
+ * represented by specific subclasses, loaded via {@link CatalogOperationTypeIdResolver}.
+ */
+@JsonTypeIdResolver(CatalogOperationTypeIdResolver.class)
+@JsonTypeInfo(use = JsonTypeInfo.Id.CUSTOM, property = "type", visible = true)
+public interface CatalogOperation {
+
+  ContentKey getKey();
+
+  Content.Type getType();
 }

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import org.immutables.value.Value;
-import org.projectnessie.catalog.api.base.transport.CatalogOperation;
+import org.projectnessie.catalog.api.types.CatalogOperation;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement.AssertCreate;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;

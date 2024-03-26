@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.projectnessie.api.v2.params.ParsedReference;
-import org.projectnessie.catalog.api.base.transport.CatalogCommit;
+import org.projectnessie.catalog.api.types.CatalogCommit;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;

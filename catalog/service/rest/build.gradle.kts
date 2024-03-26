@@ -26,8 +26,7 @@ description = "Nessie Catalog service implementation providing REST endpoints."
 
 dependencies {
   implementation(project(":nessie-rest-common"))
-  implementation(project(":nessie-catalog-api-base"))
-  implementation(project(":nessie-catalog-api-rest"))
+  implementation(project(":nessie-catalog-api"))
   implementation(project(":nessie-catalog-files-api"))
   implementation(project(":nessie-catalog-files-impl"))
   implementation(project(":nessie-catalog-format-iceberg"))

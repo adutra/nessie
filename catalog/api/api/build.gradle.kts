@@ -20,28 +20,25 @@ plugins {
   alias(libs.plugins.annotations.stripper)
 }
 
-extra["maven.name"] = "Nessie - Catalog - REST API"
+extra["maven.name"] = "Nessie - Catalog - API"
 
-description = "Nessie Catalog API implementation to a remote REST Nessie Catalog service."
+description = "Nessie - Catalog - API"
 
 dependencies {
-  implementation(project(":nessie-catalog-api"))
   implementation(project(":nessie-catalog-schema-model"))
-  implementation(project(":nessie-catalog-api"))
   implementation(project(":nessie-model"))
-
-  implementation(libs.smallrye.config.core)
 
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
   implementation(platform(libs.jackson.bom))
-  implementation("com.fasterxml.jackson.core:jackson-annotations")
-  implementation("com.fasterxml.jackson.datatype:jackson-datatype-guava")
+  implementation("com.fasterxml.jackson.core:jackson-databind")
+  compileOnly("com.fasterxml.jackson.core:jackson-annotations")
+  compileOnly("com.fasterxml.jackson.core:jackson-databind")
 
   // javax/jakarta
-  compileOnly(libs.jakarta.ws.rs.api)
-  compileOnly(libs.javax.ws.rs)
+  implementation(libs.javax.annotation.api) // 'implementation' for smallrye-config
+  implementation(libs.jakarta.annotation.api) // 'implementation' for smallrye-config
   compileOnly(libs.jakarta.validation.api)
   compileOnly(libs.javax.validation.api)
   compileOnly(libs.findbugs.jsr305)

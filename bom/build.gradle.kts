@@ -86,11 +86,7 @@ dependencies {
     api(project(":nessie-versioned-transfer"))
 
     // Nessie Data Catalog
-    api(project(":nessie-catalog-api-base"))
-    api(project(":nessie-catalog-api-direct"))
-    api(project(":nessie-catalog-api-rest"))
-    api(project(":nessie-catalog-api-proto"))
-    api(project(":nessie-catalog-api-grpc"))
+    api(project(":nessie-catalog-api"))
     api(project(":nessie-catalog-files-api"))
     api(project(":nessie-catalog-files-impl"))
     api(project(":nessie-catalog-format-iceberg"))
