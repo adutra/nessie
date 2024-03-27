@@ -95,7 +95,7 @@ dependencies {
   testFixturesImplementation(platform(libs.junit.bom))
   testFixturesImplementation(libs.bundles.junit.testing)
 
-  intTestImplementation(project(":nessie-s3minio"))
+  intTestImplementation(project(":nessie-minio-testcontainer"))
   intTestImplementation(platform(libs.awssdk.bom))
   intTestImplementation("software.amazon.awssdk:s3")
   intTestImplementation("software.amazon.awssdk:sts")
