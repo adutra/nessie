@@ -103,13 +103,16 @@ dependencies {
   intTestImplementation("org.testcontainers:testcontainers")
   intTestImplementation(project(":nessie-keycloak-testcontainer"))
 
-  intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg")
-  intTestImplementation("org.apache.iceberg:iceberg-bundled-guava:$versionIceberg")
-  intTestImplementation("org.apache.iceberg:iceberg-aws:$versionIceberg")
-  intTestImplementation("org.apache.iceberg:iceberg-nessie:$versionIceberg")
-  intTestImplementation("org.apache.iceberg:iceberg-api:$versionIceberg:tests")
-  intTestImplementation("org.apache.iceberg:iceberg-core:$versionIceberg:tests")
-  intTestImplementation(libs.hadoop.common) { hadoopExcludes() }
+  testFixturesApi(platform("org.apache.iceberg:iceberg-bom:$versionIceberg"))
+  testFixturesApi("org.apache.iceberg:iceberg-core")
+  testFixturesApi("org.apache.iceberg:iceberg-bundled-guava")
+  testFixturesApi("org.apache.iceberg:iceberg-aws")
+  testFixturesApi("org.apache.iceberg:iceberg-gcp")
+  testFixturesApi("org.apache.iceberg:iceberg-azure")
+  testFixturesApi("org.apache.iceberg:iceberg-api:$versionIceberg:tests")
+  testFixturesApi("org.apache.iceberg:iceberg-core:$versionIceberg:tests")
+  testFixturesApi(libs.hadoop.common) { hadoopExcludes() }
+  testFixturesApi(project(":nessie-client"))
 }
 
 quarkus {

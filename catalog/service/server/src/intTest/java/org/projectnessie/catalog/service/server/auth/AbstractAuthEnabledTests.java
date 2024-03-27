@@ -20,7 +20,7 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import java.net.URI;
 import java.util.Map;
-import org.projectnessie.catalog.service.server.ITIcebergCatalog;
+import org.projectnessie.catalog.service.server.AbstractIcebergCatalog;
 import org.projectnessie.catalog.service.server.auth.AbstractAuthEnabledTests.Profile;
 import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.auth.oauth2.OAuth2AuthenticationProvider;
@@ -34,7 +34,7 @@ import org.projectnessie.quarkus.tests.profiles.KeycloakTestResourceLifecycleMan
     restrictToAnnotatedClass = true,
     value = KeycloakTestResourceLifecycleManager.class)
 @TestProfile(Profile.class)
-public abstract class AbstractAuthEnabledTests extends ITIcebergCatalog {
+public abstract class AbstractAuthEnabledTests extends AbstractIcebergCatalog {
 
   @KeycloakTokenEndpointUri protected URI tokenEndpoint;
 

@@ -19,7 +19,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.google.common.collect.ImmutableMap;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -65,10 +64,10 @@ import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.model.Branch;
 import org.projectnessie.model.Reference;
-import org.projectnessie.versioned.storage.common.persist.ObjId;
 
-@QuarkusIntegrationTest
-public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
+public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
+  public static final String EMPTY_OBJ_ID =
+      "2e1cfa82b035c26cbbbdae632cea070514eb8b773f616aaeaf668e2f0be8f10d";
 
   // TODO remove this once there's Iceberg 1.5 (the field's `protected` there)
   protected static final PartitionSpec SPEC =
@@ -112,10 +111,7 @@ public class ITIcebergCatalog extends CatalogTests<RESTCatalog> {
           api.deleteReference().reference(reference).delete();
         }
       }
-      api.assignReference()
-          .reference(main)
-          .assignTo(Branch.of("main", ObjId.EMPTY_OBJ_ID.toString()))
-          .assign();
+      api.assignReference().reference(main).assignTo(Branch.of("main", EMPTY_OBJ_ID)).assign();
     }
   }
 

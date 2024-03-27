@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,10 +54,10 @@ import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.model.Branch;
 import org.projectnessie.model.Reference;
-import org.projectnessie.versioned.storage.common.persist.ObjId;
 
-@QuarkusIntegrationTest
-public class ITIcebergViewsCatalog extends ViewCatalogTests<RESTCatalog> {
+public abstract class AbstractIcebergViewsCatalog extends ViewCatalogTests<RESTCatalog> {
+  public static final String EMPTY_OBJ_ID =
+      "2e1cfa82b035c26cbbbdae632cea070514eb8b773f616aaeaf668e2f0be8f10d";
   private final List<RESTCatalog> catalogs = new ArrayList<>();
 
   protected RESTCatalog currentCatalog;
@@ -110,10 +109,7 @@ public class ITIcebergViewsCatalog extends ViewCatalogTests<RESTCatalog> {
           api.deleteReference().reference(reference).delete();
         }
       }
-      api.assignReference()
-          .reference(main)
-          .assignTo(Branch.of("main", ObjId.EMPTY_OBJ_ID.toString()))
-          .assign();
+      api.assignReference().reference(main).assignTo(Branch.of("main", EMPTY_OBJ_ID)).assign();
     }
   }
 
