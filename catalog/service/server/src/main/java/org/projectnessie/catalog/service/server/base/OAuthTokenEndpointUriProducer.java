@@ -63,6 +63,7 @@ public class OAuthTokenEndpointUriProducer {
             OidcCommonUtils.discoverMetadata(
                     webClient,
                     OidcCommonUtils.getOidcRequestFilters(),
+                    null,
                     authServerUri,
                     connectionDelayMillis,
                     vertx,
