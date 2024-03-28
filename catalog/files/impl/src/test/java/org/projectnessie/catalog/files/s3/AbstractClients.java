@@ -16,7 +16,7 @@
 package org.projectnessie.catalog.files.s3;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.projectnessie.objectstoragemock.Bucket.createHeapStorageBucket;
+import static org.projectnessie.objectstoragemock.HeapStorageBucket.newHeapStorageBucket;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,7 +42,7 @@ public abstract class AbstractClients {
   public void writeRead() throws Exception {
     try (ObjectStorageMock.MockServer server1 =
         ObjectStorageMock.builder()
-            .putBuckets(BUCKET_1, createHeapStorageBucket())
+            .putBuckets(BUCKET_1, newHeapStorageBucket().bucket())
             .build()
             .start()) {
 
