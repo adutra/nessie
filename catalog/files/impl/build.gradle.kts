@@ -26,12 +26,15 @@ dependencies {
   implementation(project(":nessie-catalog-files-api"))
 
   implementation(libs.guava)
+  implementation(libs.caffeine)
+  implementation(libs.micrometer.core)
 
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
   implementation(platform(libs.awssdk.bom))
   implementation("software.amazon.awssdk:s3")
+  implementation("software.amazon.awssdk:sts")
   implementation("software.amazon.awssdk:regions")
   implementation("software.amazon.awssdk:apache-client") {
     exclude("commons-logging", "commons-logging")

@@ -17,17 +17,39 @@ package org.projectnessie.catalog.files.s3;
 
 import java.net.URI;
 import java.time.Clock;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.objectstoragemock.ObjectStorageMock;
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.services.s3.S3Client;
 
 public class TestS3Clients extends AbstractClients {
 
+  private static SdkHttpClient sdkHttpClient;
+  private static S3Client baseClient;
+
+  @BeforeAll
+  static void createBaseClient() {
+    S3Config s3Config = S3Config.builder().build();
+    sdkHttpClient = S3Clients.apacheHttpClient(s3Config);
+    baseClient = S3Clients.createS3BaseClient(s3Config, sdkHttpClient);
+  }
+
+  @AfterAll
+  static void closeBaseClient() {
+    if (baseClient != null) {
+      baseClient.close();
+    }
+
+    if (sdkHttpClient != null) {
+      sdkHttpClient.close();
+    }
+  }
+
   @Override
   protected ObjectIO buildObjectIO(
       ObjectStorageMock.MockServer server1, ObjectStorageMock.MockServer server2) {
-
-    S3Client baseClient = S3Clients.createS3BaseClient(S3Config.builder().build());
 
     S3ProgrammaticOptions.Builder s3options =
         S3ProgrammaticOptions.builder()
@@ -53,7 +75,7 @@ public class TestS3Clients extends AbstractClients {
 
     S3ClientSupplier supplier =
         new S3ClientSupplier(
-            baseClient, S3Config.builder().build(), s3options.build(), secret -> "secret");
+            baseClient, S3Config.builder().build(), s3options.build(), secret -> "secret", null);
     return new S3ObjectIO(supplier, Clock.systemUTC());
   }
 

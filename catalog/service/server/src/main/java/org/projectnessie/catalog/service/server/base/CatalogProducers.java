@@ -19,8 +19,10 @@ import static java.time.Clock.systemUTC;
 
 import com.azure.core.http.HttpClient;
 import com.google.auth.http.HttpTransportFactory;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.context.SmallRyeManagedExecutor;
 import io.smallrye.context.SmallRyeThreadContext;
+import jakarta.enterprise.inject.Disposes;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
@@ -38,10 +40,12 @@ import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.files.gcs.GcsClients;
 import org.projectnessie.catalog.files.gcs.GcsStorageSupplier;
+import org.projectnessie.catalog.files.s3.CachingS3SessionsManager;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
 import org.projectnessie.catalog.files.s3.S3ClientSupplier;
 import org.projectnessie.catalog.files.s3.S3Clients;
 import org.projectnessie.catalog.files.s3.S3Options;
+import org.projectnessie.catalog.files.s3.S3Sessions;
 import org.projectnessie.catalog.files.s3.S3Signer;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
@@ -56,8 +60,10 @@ import org.projectnessie.nessie.tasks.async.pool.JavaPoolTasksAsync;
 import org.projectnessie.nessie.tasks.async.wrapping.ThreadContextTasksAsync;
 import org.projectnessie.nessie.tasks.service.TasksServiceConfig;
 import org.projectnessie.nessie.tasks.service.impl.TasksServiceExecutor;
+import org.projectnessie.versioned.storage.common.config.StoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.services.s3.S3Client;
 
 /**
@@ -76,8 +82,19 @@ public class CatalogProducers {
 
   @Produces
   @Singleton
-  public S3Client s3Client(CatalogS3Config s3config) {
-    return S3Clients.createS3BaseClient(s3config);
+  @CatalogS3Client
+  public SdkHttpClient sdkHttpClient(CatalogS3Config s3config) {
+    return S3Clients.apacheHttpClient(s3config);
+  }
+
+  public void closeSdkHttpClient(@Disposes @CatalogS3Client SdkHttpClient client) {
+    client.close();
+  }
+
+  @Produces
+  @Singleton
+  public S3Client s3Client(CatalogS3Config s3config, @CatalogS3Client SdkHttpClient httpClient) {
+    return S3Clients.createS3BaseClient(s3config, httpClient);
   }
 
   @SuppressWarnings({"unchecked", "rawtypes", "UnnecessaryLocalVariable"})
@@ -87,6 +104,23 @@ public class CatalogProducers {
     S3Options opts = s3config;
     S3Options<S3BucketOptions> r = opts;
     return r;
+  }
+
+  @Produces
+  @Singleton
+  public CachingS3SessionsManager s3SessionsManager(
+      S3Options<?> s3options,
+      @CatalogS3Client SdkHttpClient sdkClient,
+      MeterRegistry meterRegistry,
+      SecretsProvider secretsProvider) {
+    return new CachingS3SessionsManager(s3options, sdkClient, meterRegistry, secretsProvider);
+  }
+
+  @Produces
+  @Singleton
+  public S3Sessions s3sessions(StoreConfig storeConfig, CachingS3SessionsManager cache) {
+    String repositoryId = storeConfig.repositoryId();
+    return new S3Sessions(repositoryId, cache);
   }
 
   @Produces
@@ -130,9 +164,10 @@ public class CatalogProducers {
       HttpClient adlsHttpClient,
       CatalogGcsConfig gcsConfig,
       HttpTransportFactory gcsHttpTransportFactory,
-      SecretsProvider secretsProvider) {
+      SecretsProvider secretsProvider,
+      S3Sessions sessions) {
     S3ClientSupplier s3ClientSupplier =
-        new S3ClientSupplier(s3client, s3config, s3config, secretsProvider);
+        new S3ClientSupplier(s3client, s3config, s3config, secretsProvider, sessions);
 
     AdlsClientSupplier adlsClientSupplier =
         new AdlsClientSupplier(adlsHttpClient, adlsConfig, secretsProvider);
@@ -145,8 +180,9 @@ public class CatalogProducers {
 
   @Produces
   @Singleton
-  public RequestSigner signer(CatalogS3Config s3config, SecretsProvider secretsProvider) {
-    return new S3Signer(s3config, secretsProvider);
+  public RequestSigner signer(
+      CatalogS3Config s3config, SecretsProvider secretsProvider, S3Sessions s3sessions) {
+    return new S3Signer(s3config, secretsProvider, s3sessions);
   }
 
   /**

@@ -19,8 +19,15 @@ import java.net.URI;
 import java.util.Optional;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Utilities;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 public interface S3BucketOptions {
+  /**
+   * Default value for {@link #roleSessionName()} that identifies the session simply as a "Nessie"
+   * session.
+   */
+  String DEFAULT_SESSION_NAME = "nessie";
+
   /**
    * The type of cloud running the S3 service. The cloud type must be configured, either per bucket
    * or in {@link S3Options S3Options}.
@@ -74,16 +81,65 @@ public interface S3BucketOptions {
   /**
    * Key used to look up the access-key-ID via {@link
    * org.projectnessie.catalog.files.secrets.SecretsProvider SecretsProvider}. An access-key-id must
-   * be configured, either per bucket or in {@link S3Options S3Options}.
+   * be configured, either per bucket or in {@link S3Options S3Options}. For STS, this defines the
+   * Access Key ID to be used as a basic credential for obtaining temporary session credentials.
    */
   Optional<String> accessKeyIdRef();
 
   /**
    * Key used to look up the secret-access-key via {@link
    * org.projectnessie.catalog.files.secrets.SecretsProvider SecretsProvider}. A secret-access-key
-   * must be configured, either per bucket or in {@link S3Options S3Options}.
+   * must be configured, either per bucket or in {@link S3Options S3Options}. For STS, this defines
+   * the Secret Key ID to be used as a basic credential for obtaining temporary session credentials.
    */
   Optional<String> secretAccessKeyRef();
+
+  /**
+   * The <a href="https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html>Security Token
+   * Service</a> endpoint.
+   *
+   * <p>This parameter must be set if the cloud provider is not {@link Cloud#AMAZON}) and the
+   * catalog is configured to use S3 sessions (e.g. to use the "assume role" functionality).
+   */
+  Optional<URI> stsEndpoint();
+
+  /**
+   * The <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/reference-arns.html">ARN</a> of
+   * the role to assume for accessing S3 data. This parameter is required for Amazon S3, but may not
+   * be required for other storage providers (e.g. Minio does not use it at all).
+   */
+  Optional<String> roleArn();
+
+  /**
+   * IAM policy in JSON format to be used as an inline <a
+   * href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#policies_session">session
+   * policy</a> (optional).
+   *
+   * @see AssumeRoleRequest#policy()
+   */
+  Optional<String> iamPolicy();
+
+  /**
+   * An identifier for the assumed role session. This parameter is most important in cases when the
+   * same role is assumed by different principals in different use cases.
+   *
+   * @see AssumeRoleRequest#roleSessionName()
+   */
+  Optional<String> roleSessionName();
+
+  /**
+   * An identifier for the party assuming the role. This parameter must match the external ID
+   * configured in IAM rules that <a
+   * href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html">govern</a>
+   * the assume role process for the specified {@link #roleArn()}.
+   *
+   * <p>This parameter is essential in preventing the <a
+   * href="https://docs.aws.amazon.com/IAM/latest/UserGuide/confused-deputy.html>Confused Deputy</a>
+   * problem.
+   *
+   * @see AssumeRoleRequest#externalId()
+   */
+  Optional<String> externalId();
 
   /**
    * Extract the bucket name from the URI. Only relevant for {@linkplain Cloud#AMAZON AWS} or

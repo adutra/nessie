@@ -40,13 +40,18 @@ public class S3Signer implements RequestSigner {
   private final AwsS3V4Signer signer = AwsS3V4Signer.create();
   private final S3Options<? extends S3BucketOptions> s3Options;
   private final SecretsProvider secretsProvider;
+  private final S3Sessions s3sessions;
 
   static final String EMPTY_BODY_SHA256 =
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-  public S3Signer(S3Options<? extends S3BucketOptions> s3Options, SecretsProvider secretsProvider) {
+  public S3Signer(
+      S3Options<? extends S3BucketOptions> s3Options,
+      SecretsProvider secretsProvider,
+      S3Sessions s3sessions) {
     this.s3Options = s3Options;
     this.secretsProvider = secretsProvider;
+    this.s3sessions = s3sessions;
   }
 
   @Override
@@ -63,7 +68,7 @@ public class S3Signer implements RequestSigner {
 
     S3BucketOptions bucketOptions = s3Options.effectiveOptionsForBucket(clientRequest.bucket());
     AwsCredentialsProvider credentialsProvider =
-        S3Clients.awsCredentialsProvider(bucketOptions, secretsProvider);
+        S3Clients.awsCredentialsProvider(bucketOptions, secretsProvider, s3sessions);
 
     SdkHttpFullRequest.Builder request =
         SdkHttpFullRequest.builder()

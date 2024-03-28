@@ -58,4 +58,24 @@ public interface CatalogS3BucketConfig extends S3BucketOptions {
   @WithName("allow-cross-region-access-point")
   @Override
   Optional<Boolean> allowCrossRegionAccessPoint();
+
+  @WithName("sts.endpoint")
+  @Override
+  Optional<URI> stsEndpoint();
+
+  @WithName("assumed-role")
+  @Override
+  Optional<String> roleArn();
+
+  @WithName("session-iam-policy")
+  @Override
+  Optional<String> iamPolicy();
+
+  @WithName("role-session-name")
+  @Override
+  Optional<String> roleSessionName();
+
+  @WithName("external-id")
+  @Override
+  Optional<String> externalId();
 }

@@ -98,6 +98,38 @@ public interface CatalogS3Config extends S3Config, S3Options<CatalogS3BucketConf
   @Override
   Optional<Boolean> allowCrossRegionAccessPoint();
 
+  @WithName("sts.session-grace-period")
+  @Override
+  Optional<Duration> sessionCredentialRefreshGracePeriod();
+
+  @WithName("sts.session-cache-max-size")
+  @Override
+  OptionalInt sessionCredentialCacheMaxEntries();
+
+  @WithName("sts.clients-cache-max-size")
+  @Override
+  OptionalInt stsClientsCacheMaxEntries();
+
+  @WithName("sts.endpoint")
+  @Override
+  Optional<URI> stsEndpoint();
+
+  @WithName("assumed-role")
+  @Override
+  Optional<String> roleArn();
+
+  @WithName("session-iam-policy")
+  @Override
+  Optional<String> iamPolicy();
+
+  @WithName("role-session-name")
+  @Override
+  Optional<String> roleSessionName();
+
+  @WithName("external-id")
+  @Override
+  Optional<String> externalId();
+
   @WithName("buckets")
   @Override
   Map<String, CatalogS3BucketConfig> buckets();

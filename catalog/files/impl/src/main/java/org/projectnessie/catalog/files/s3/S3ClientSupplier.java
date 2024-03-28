@@ -38,16 +38,19 @@ public class S3ClientSupplier {
   private final S3Config s3config;
   private final S3Options<?> s3options;
   private final SecretsProvider secretsProvider;
+  private final S3Sessions sessions;
 
   public S3ClientSupplier(
       S3Client baseS3Client,
       S3Config s3config,
       S3Options<?> s3options,
-      SecretsProvider secretsProvider) {
+      SecretsProvider secretsProvider,
+      S3Sessions sessions) {
     this.baseS3Client = baseS3Client;
     this.s3config = s3config;
     this.s3options = s3options;
     this.secretsProvider = secretsProvider;
+    this.sessions = sessions;
   }
 
   public S3Config s3config() {
@@ -106,7 +109,8 @@ public class S3ClientSupplier {
                           .region()
                           .ifPresent(region -> s3configBuilder.region(Region.of(region)));
                     })
-                .credentialsProvider(awsCredentialsProvider(bucketOptions, secretsProvider));
+                .credentialsProvider(
+                    awsCredentialsProvider(bucketOptions, secretsProvider, sessions));
 
         // https://cloud.google.com/storage/docs/aws-simple-migration#project-header
         bucketOptions.projectId().ifPresent(prj -> override.putHeader("x-amz-project-id", prj));

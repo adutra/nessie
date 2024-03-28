@@ -17,6 +17,7 @@ package org.projectnessie.catalog.files.s3;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import org.immutables.value.Value;
 
@@ -46,6 +47,18 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
 
     @CanIgnoreReturnValue
     Builder secretAccessKeyRef(String secretAccessKeyRef);
+
+    @CanIgnoreReturnValue
+    Builder sessionCredentialCacheMaxEntries(int sessionCredentialCacheMaxEntries);
+
+    @CanIgnoreReturnValue
+    Builder sessionCredentialRefreshGracePeriod(Duration sessionCredentialRefreshGracePeriod);
+
+    @CanIgnoreReturnValue
+    Builder stsClientsCacheMaxEntries(int stsClientsCacheMaxEntries);
+
+    @CanIgnoreReturnValue
+    Builder externalId(String externalId);
 
     @CanIgnoreReturnValue
     Builder putBuckets(String bucket, S3BucketOptions bucketOptions);
@@ -93,6 +106,21 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
 
       @CanIgnoreReturnValue
       Builder allowCrossRegionAccessPoint(boolean allowCrossRegionAccessPoint);
+
+      @CanIgnoreReturnValue
+      Builder stsEndpoint(URI stsEndpoint);
+
+      @CanIgnoreReturnValue
+      Builder roleArn(String roleArn);
+
+      @CanIgnoreReturnValue
+      Builder iamPolicy(String iamPolicy);
+
+      @CanIgnoreReturnValue
+      Builder roleSessionName(String roleSessionName);
+
+      @CanIgnoreReturnValue
+      Builder externalId(String externalId);
 
       S3PerBucketOptions build();
     }

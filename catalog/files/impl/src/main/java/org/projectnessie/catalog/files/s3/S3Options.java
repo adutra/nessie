@@ -16,10 +16,22 @@
 package org.projectnessie.catalog.files.s3;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketOptions {
+
+  /** Default value for {@link #sessionCredentialCacheMaxEntries()}. */
+  int DEFAULT_MAX_SESSION_CREDENTIAL_CACHE_ENTRIES = 1000;
+
+  /** Default value for {@link #stsClientsCacheMaxEntries()}. */
+  int DEFAULT_MAX_STS_CLIENT_CACHE_ENTRIES = 1000;
+
+  /** Default value for {@link #sessionCredentialRefreshGracePeriod()}. */
+  Duration DEFAULT_SESSION_REFRESH_GRACE_PERIOD = Duration.ofMinutes(5);
+
   /**
    * The default type of cloud to use, if not configured {@linkplain #buckets() per bucket}. The
    * cloud type must be configured, either {@linkplain #buckets() per bucket} or here.
@@ -74,6 +86,32 @@ public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketO
    */
   @Override
   Optional<String> secretAccessKeyRef();
+
+  /**
+   * The time period to subtract from the S3 session credentials (assumed role credentials) expiry
+   * time to define the time when those credentials become eligible for refreshing.
+   */
+  Optional<Duration> sessionCredentialRefreshGracePeriod();
+
+  default Duration effectiveSessionCredentialRefreshGracePeriod() {
+    return sessionCredentialRefreshGracePeriod().orElse(DEFAULT_SESSION_REFRESH_GRACE_PERIOD);
+  }
+
+  /**
+   * Maximum number of entries to keep in the session credentials cache (assumed role credentials).
+   */
+  OptionalInt sessionCredentialCacheMaxEntries();
+
+  default int effectiveSessionCredentialCacheMaxEntries() {
+    return sessionCredentialCacheMaxEntries().orElse(DEFAULT_MAX_SESSION_CREDENTIAL_CACHE_ENTRIES);
+  }
+
+  /** Maximum number of entries to keep in the STS clients cache. */
+  OptionalInt stsClientsCacheMaxEntries();
+
+  default int effectiveStsClientsCacheMaxEntries() {
+    return stsClientsCacheMaxEntries().orElse(DEFAULT_MAX_STS_CLIENT_CACHE_ENTRIES);
+  }
 
   /**
    * Per-bucket configurations. The effective value for a bucket is taken from the per-bucket
