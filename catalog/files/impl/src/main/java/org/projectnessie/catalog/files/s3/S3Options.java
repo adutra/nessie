@@ -18,7 +18,6 @@ package org.projectnessie.catalog.files.s3;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
-import org.immutables.value.Value;
 
 public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketOptions {
   /**
@@ -36,8 +35,14 @@ public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketO
   @Override
   Optional<URI> endpoint();
 
+  /**
+   * Whether to use path-style access. If true, path-style access will be used, as in: {@code
+   * https://<domain>/<bucket>}. If false, a virtual-hosted style will be used instead, as in:
+   * {@code https://<bucket>.<domain>}. If unspecified, the default will depend on the cloud
+   * provider.
+   */
   @Override
-  Optional<String> domain();
+  Optional<Boolean> pathStyleAccess();
 
   /**
    * The default DNS name of the region to use, if not configured {@linkplain #buckets() per
@@ -86,26 +91,5 @@ public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketO
     }
 
     return S3ProgrammaticOptions.S3PerBucketOptions.builder().from(this).from(perBucket).build();
-  }
-
-  @Value.NonAttribute
-  default boolean pathStyleAccess() {
-    return cloud()
-        .map(
-            c -> {
-              switch (c) {
-                case AMAZON:
-                  return false;
-                case GOOGLE:
-                  return true;
-                case MICROSOFT:
-                  return true;
-                case PRIVATE:
-                  return domain().isEmpty();
-                default:
-                  throw new IllegalStateException("Unimplemented cloud type " + c);
-              }
-            })
-        .orElse(false);
   }
 }

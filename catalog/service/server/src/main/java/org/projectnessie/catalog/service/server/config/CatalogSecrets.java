@@ -17,8 +17,20 @@ package org.projectnessie.catalog.service.server.config;
 
 import io.smallrye.config.ConfigMapping;
 import java.util.Map;
+import org.projectnessie.catalog.files.s3.S3BucketOptions;
 
 @ConfigMapping(prefix = "nessie.catalog")
 public interface CatalogSecrets {
+
+  /**
+   * Secrets for the catalog. Secrets must be provided in the configuration as key-value pairs of
+   * the form: {@code nessie.catalog.secrets.<name>=<value>}.
+   *
+   * <p>These secrets can then be made available to other components by injecting a {@link
+   * org.projectnessie.catalog.files.secrets.SecretsProvider} instance.
+   *
+   * @see S3BucketOptions#accessKeyIdRef()
+   * @see S3BucketOptions#secretAccessKeyRef()
+   */
   Map<String, String> secrets();
 }

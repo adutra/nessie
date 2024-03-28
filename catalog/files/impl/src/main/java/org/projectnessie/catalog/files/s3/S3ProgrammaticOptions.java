@@ -88,6 +88,12 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
       @CanIgnoreReturnValue
       Builder secretAccessKeyRef(String secretAccessKeyRef);
 
+      @CanIgnoreReturnValue
+      Builder accessPoint(String accessPoint);
+
+      @CanIgnoreReturnValue
+      Builder allowCrossRegionAccessPoint(boolean allowCrossRegionAccessPoint);
+
       S3PerBucketOptions build();
     }
   }

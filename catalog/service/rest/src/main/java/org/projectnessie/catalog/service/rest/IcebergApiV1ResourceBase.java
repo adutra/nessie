@@ -69,6 +69,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -81,6 +82,7 @@ import org.projectnessie.catalog.api.sign.SigningResponse;
 import org.projectnessie.catalog.api.types.CatalogCommit;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.s3.S3BucketOptions;
 import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNamespace;
@@ -154,14 +156,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   private static final Logger LOGGER = LoggerFactory.getLogger(IcebergApiV1ResourceBase.class);
 
   /**
-   * This is the <em>base</em> signer URI, it is effectively evaluated like a <em>{@code
-   * static}</em> field, so only once per JVM (class loader).
-   *
-   * <p>Defaults to the REST catalog URI.
-   */
-  public static final String S3_SIGNER_URI = "s3.signer.uri";
-
-  /**
    * This is the signer endpoint (like {@code v1/aws/s3/sign}), it is evaluated per {@code S3FileIO}
    * instance.
    */
@@ -170,9 +164,11 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   /** Boolean property that enables remote signing for tables. */
   public static final String S3_REMOTE_SIGNING_ENABLED = "s3.remote-signing-enabled";
 
+  public static final String AWS_REGION = "client.region";
   public static final String S3_ENDPOINT = "s3.endpoint";
-  public static final String S3_ACCESS_POINTS_PREFIX = "s3.endpoints.";
+  public static final String S3_ACCESS_POINTS_PREFIX = "s3.access-points.";
   public static final String S3_PATH_STYLE_ACCESS = "s3.path-style-access";
+  private static final String S3_USE_ARN_REGION_ENABLED = "s3.use-arn-region-enabled";
 
   public static final String ICEBERG_PREFIX = "prefix";
   public static final String ICEBERG_URI = "uri";
@@ -227,22 +223,10 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     configDefaults.put(FILE_IO_IMPL, "org.apache.iceberg.io.ResolvingFileIO");
 
-    s3Options
-        .endpoint()
-        .ifPresent(x -> configDefaults.put(S3_ENDPOINT, s3Options.resolveS3Endpoint().toString()));
-    s3Options
-        .buckets()
-        .forEach(
-            (bucket, cfg) -> {
-              if (cfg.endpoint().isPresent()) {
-                configDefaults.put(
-                    S3_ACCESS_POINTS_PREFIX + bucket, cfg.resolveS3Endpoint().toString());
-              }
-            });
-    // TODO ?   config.putOverride(S3_SIGNER_URI, ...)
-
-    configDefaults.putAll(catalogConfig.icebergClientCoreProperties());
+    configDefaults.putAll(catalogConfig.icebergConfigDefaults());
     configDefaults.putAll(w.icebergConfigDefaults());
+
+    putS3ConfigOverrides(w, configOverrides);
 
     // Marker property telling clients that the backend is a Nessie Catalog.
     configOverrides.put("nessie.is-nessie-catalog", "true");
@@ -269,12 +253,40 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     tokenEndpoint.ifPresent(uri -> configOverrides.put("oauth2-server-uri", uri.toString()));
     // TODO scopes? But scopes are also needed before calling the /config endpoint
 
+    configOverrides.putAll(catalogConfig.icebergConfigOverrides());
     configOverrides.putAll(w.icebergConfigOverrides());
 
     return IcebergConfigResponse.builder()
         .defaults(configDefaults)
         .overrides(configOverrides)
         .build();
+  }
+
+  private void putS3ConfigOverrides(
+      WarehouseConfig warehouse, Map<String, String> configOverrides) {
+    URI warehouseLocation = URI.create(warehouse.location());
+    if (Objects.equals(warehouseLocation.getScheme(), "s3")) {
+      // Warehouse location MUST be an s3 URI otherwise ResolvingFileIO will not work,
+      // so we can safely assume the bucket is the whole authority. Cf. S3Utilities#parseUri.
+      String bucket = warehouseLocation.getAuthority();
+      S3BucketOptions s3BucketOptions =
+          s3Options.effectiveOptionsForBucket(Optional.ofNullable(bucket));
+      s3BucketOptions.region().ifPresent(r -> configOverrides.put(AWS_REGION, r));
+      s3BucketOptions.endpoint().ifPresent(e -> configOverrides.put(S3_ENDPOINT, e.toString()));
+      s3BucketOptions
+          .accessPoint()
+          .ifPresent(ap -> configOverrides.put(S3_ACCESS_POINTS_PREFIX + bucket, ap));
+      s3BucketOptions
+          .allowCrossRegionAccessPoint()
+          .ifPresent(
+              allow -> configOverrides.put(S3_USE_ARN_REGION_ENABLED, allow ? "true" : "false"));
+      s3BucketOptions
+          .pathStyleAccess()
+          .ifPresent(psa -> configOverrides.put(S3_PATH_STYLE_ACCESS, psa ? "true" : "false"));
+      configOverrides.put(S3_REMOTE_SIGNING_ENABLED, "true");
+      // Note: leave S3 signer endpoint to its default for now, it is overridden on a per-table
+      // basis, see loadTableResult() below
+    }
   }
 
   //
@@ -287,11 +299,12 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     URI uri = URI.create(request.uri());
 
-    String bucket = s3Options.extractBucket(uri);
+    Optional<String> bucket = s3Options.extractBucket(uri);
+    Optional<String> body = Optional.ofNullable(request.body());
 
     SigningRequest signingRequest =
         SigningRequest.signingRequest(
-            uri, request.method(), request.region(), bucket, request.body(), request.headers());
+            uri, request.method(), request.region(), bucket, body, request.headers());
 
     SigningResponse signed = signer.sign(ref.name(), identifier, signingRequest);
 
@@ -1378,7 +1391,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         .metadata(tableMetadata)
         .metadataLocation(metadataLocation)
         // TODO this is the place to add vended authorization tokens for file/object access
-        .putConfig(S3_REMOTE_SIGNING_ENABLED, "true")
         .putConfig(
             S3_SIGNER_ENDPOINT,
             // TODO does it make sense to use a separate endpoint (service) just for signing?
@@ -1389,7 +1401,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                         "v1/%s/s3-sign/%s",
                         encode(prefix, UTF_8), encode(contentKey.toPathString(), UTF_8)))
                 .toString())
-        .putConfig(S3_PATH_STYLE_ACCESS, s3Options.pathStyleAccess() ? "true" : "false")
         .build();
   }
 

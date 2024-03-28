@@ -38,6 +38,10 @@ public interface QuarkusCatalogConfig extends CatalogConfig {
   Map<String, QuarkusWarehouseConfig> warehouses();
 
   @Override
-  @WithName("iceberg-client-core-properties")
-  Map<String, String> icebergClientCoreProperties();
+  @WithName("iceberg-config-defaults")
+  Map<String, String> icebergConfigDefaults();
+
+  @Override
+  @WithName("iceberg-config-overrides")
+  Map<String, String> icebergConfigOverrides();
 }

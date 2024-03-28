@@ -27,9 +27,9 @@ public interface CatalogS3BucketConfig extends S3BucketOptions {
   @Override
   Optional<URI> endpoint();
 
-  @WithName("domain")
+  @WithName("path-style-access")
   @Override
-  Optional<String> domain();
+  Optional<Boolean> pathStyleAccess();
 
   @WithName("cloud")
   @Override
@@ -50,4 +50,12 @@ public interface CatalogS3BucketConfig extends S3BucketOptions {
   @WithName("secret-access-key-ref")
   @Override
   Optional<String> secretAccessKeyRef();
+
+  @WithName("access-point")
+  @Override
+  Optional<String> accessPoint();
+
+  @WithName("allow-cross-region-access-point")
+  @Override
+  Optional<Boolean> allowCrossRegionAccessPoint();
 }

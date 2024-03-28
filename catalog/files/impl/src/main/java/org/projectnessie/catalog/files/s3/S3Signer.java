@@ -53,16 +53,15 @@ public class S3Signer implements RequestSigner {
   public SigningResponse sign(String ref, String key, SigningRequest clientRequest) {
 
     URI uri = clientRequest.uri();
-    String body = clientRequest.body();
+    Optional<String> body = clientRequest.body();
 
-    if ("post".equalsIgnoreCase(clientRequest.method()) && uri.getQuery().contains("delete")) {
-      if (body == null || body.isEmpty()) {
-        throw new IllegalArgumentException("DELETE requests must have a non-empty body");
-      }
+    if (body.isEmpty()
+        && "post".equalsIgnoreCase(clientRequest.method())
+        && uri.getQuery().contains("delete")) {
+      throw new IllegalArgumentException("DELETE requests must have a non-empty body");
     }
 
-    S3BucketOptions bucketOptions =
-        s3Options.effectiveOptionsForBucket(Optional.ofNullable(clientRequest.bucket()));
+    S3BucketOptions bucketOptions = s3Options.effectiveOptionsForBucket(clientRequest.bucket());
     AwsCredentialsProvider credentialsProvider =
         S3Clients.awsCredentialsProvider(bucketOptions, secretsProvider);
 
@@ -73,10 +72,10 @@ public class S3Signer implements RequestSigner {
             .method(SdkHttpMethod.fromValue(clientRequest.method()))
             .headers(clientRequest.headers());
 
-    if (body == null) {
+    if (body.isEmpty()) {
       request.putHeader(SignerConstant.X_AMZ_CONTENT_SHA256, EMPTY_BODY_SHA256);
     } else {
-      request.contentStreamProvider(() -> new ByteArrayInputStream(body.getBytes(UTF_8)));
+      request.contentStreamProvider(() -> new ByteArrayInputStream(body.get().getBytes(UTF_8)));
     }
 
     AwsS3V4SignerParams params =

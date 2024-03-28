@@ -78,7 +78,7 @@ public class S3ClientSupplier {
 
         S3BucketOptions bucketOptions = s3options.effectiveOptionsForBucket(bucketName);
 
-        URI endpoint = bucketOptions.resolveS3Endpoint();
+        Optional<URI> endpoint = bucketOptions.endpoint();
 
         // TODO reduce log level to TRACE
         if (LOGGER.isInfoEnabled()) {
@@ -100,7 +100,7 @@ public class S3ClientSupplier {
                       S3ServiceClientConfiguration.Builder s3configBuilder =
                           (S3ServiceClientConfiguration.Builder) config;
 
-                      s3configBuilder.endpointOverride(endpoint);
+                      endpoint.ifPresent(s3configBuilder::endpointOverride);
 
                       bucketOptions
                           .region()

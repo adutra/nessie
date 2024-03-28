@@ -15,9 +15,6 @@
  */
 package org.projectnessie.catalog.files.s3;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static java.lang.String.format;
-
 import java.net.URI;
 import java.util.Optional;
 import software.amazon.awssdk.regions.Region;
@@ -37,7 +34,32 @@ public interface S3BucketOptions {
    */
   Optional<URI> endpoint();
 
-  Optional<String> domain();
+  /**
+   * Whether to use path-style access. If true, path-style access will be used, as in: {@code
+   * https://<domain>/<bucket>}. If false, a virtual-hosted style will be used instead, as in:
+   * {@code https://<bucket>.<domain>}. If unspecified, the default will depend on the cloud
+   * provider.
+   */
+  Optional<Boolean> pathStyleAccess();
+
+  /**
+   * AWS Access point for this bucket. Access points can be used to perform S3 operations by
+   * specifying a mapping of bucket to access points. This is useful for multi-region access,
+   * cross-region access, disaster recovery, etc.
+   *
+   * @see <a
+   *     href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-access-points.html">Access
+   *     Points</a>
+   */
+  Optional<String> accessPoint();
+
+  /**
+   * Authorize cross-region calls when contacting an {@link #accessPoint()}.
+   *
+   * <p>By default, attempting to use an access point in a different region will throw an exception.
+   * When enabled, this property allows using access points in other regions.
+   */
+  Optional<Boolean> allowCrossRegionAccessPoint();
 
   /**
    * DNS name of the region, required for {@linkplain Cloud#AMAZON AWS}. The region must be
@@ -63,87 +85,20 @@ public interface S3BucketOptions {
    */
   Optional<String> secretAccessKeyRef();
 
-  default String extractBucket(URI uri) {
-    Cloud cloud =
-        cloud().orElseThrow(() -> new IllegalStateException("Must configure the cloud type"));
-    switch (cloud) {
-      case AMAZON:
-        S3Utilities utilities =
-            S3Utilities.builder()
-                .endpoint(endpoint().orElse(null))
-                .region(region().map(Region::of).orElse(null))
-                .build();
-        return utilities.parseUri(uri).bucket().orElse(null);
-      case GOOGLE:
-        return "gcs"; // TODO there are no buckets in GCS, right?
-      case PRIVATE:
-        String path = uri.getPath();
-        URI endpoint = resolveS3Endpoint();
-        String basePath = endpoint.getPath();
-        String host = uri.getHost();
-        if (domain().isPresent()) {
-          String domain = domain().get();
-          if (domain.equals(host)) {
-            return null;
-          }
-          String dotDomain = "." + domain;
-          checkArgument(
-              host.endsWith(dotDomain) && path.startsWith(basePath),
-              "%s is not resolvable against the configured S3 endpoint %s",
-              uri,
-              endpoint);
-          return host.substring(0, host.length() - dotDomain.length());
-        } else {
-          checkArgument(
-              host.equals(endpoint.getHost()) && path.startsWith(basePath),
-              "%s is not resolvable against the configured S3 endpoint %s",
-              uri,
-              endpoint);
-          int i = basePath.length();
-          while (path.charAt(i) == '/') {
-            i++;
-          }
-          String remaining = path.substring(i);
-          i = remaining.indexOf('/');
-          return i == -1 ? remaining : remaining.substring(0, i);
-        }
-      case MICROSOFT:
-        throw new IllegalArgumentException("Cloud " + cloud + " not supported for S3");
-      default:
-        throw new IllegalArgumentException("Unknown cloud " + cloud);
-    }
-  }
-
-  default URI resolveS3Endpoint() {
-    Cloud cloud =
-        cloud().orElseThrow(() -> new IllegalStateException("Must configure the cloud type"));
-    switch (cloud) {
-      case AMAZON:
-        return endpoint()
-            .orElseGet(
-                () ->
-                    URI.create(
-                        format(
-                            "https://s3.%s.amazonaws.com/",
-                            region()
-                                .orElseThrow(
-                                    () ->
-                                        new IllegalArgumentException(
-                                            "Must configure the AWS region")))));
-      case GOOGLE:
-        return endpoint().orElseGet(() -> URI.create("https://storage.googleapis.com/"));
-      case PRIVATE:
-        return endpoint()
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "No endpoint provided, but cloud "
-                            + cloud
-                            + " requires an explicit endpoint."));
-      case MICROSOFT:
-        throw new IllegalArgumentException("Cloud " + cloud + " not supported for S3");
-      default:
-        throw new IllegalArgumentException("Unknown cloud " + cloud);
-    }
+  /**
+   * Extract the bucket name from the URI. Only relevant for {@linkplain Cloud#AMAZON AWS} or
+   * {@linkplain Cloud#PRIVATE S3-compatible private} clouds; the behavior of this method is
+   * unspecified for other clouds.
+   *
+   * @param uri URI to extract the bucket name from; both s3 and https schemes are accepted, and
+   *     https schemes can be either path-style or virtual-host-style.
+   */
+  default Optional<String> extractBucket(URI uri) {
+    return S3Utilities.builder()
+        // we don't care about the region here
+        .region(Region.US_EAST_1)
+        .build()
+        .parseUri(uri)
+        .bucket();
   }
 }

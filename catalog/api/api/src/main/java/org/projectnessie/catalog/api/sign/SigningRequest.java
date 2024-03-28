@@ -20,7 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
+import java.util.Optional;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -33,13 +33,9 @@ public interface SigningRequest {
 
   String region();
 
-  @Nullable
-  @jakarta.annotation.Nullable
-  String bucket();
+  Optional<String> bucket();
 
-  @Nullable
-  @jakarta.annotation.Nullable
-  String body();
+  Optional<String> body();
 
   Map<String, List<String>> headers();
 
@@ -47,8 +43,8 @@ public interface SigningRequest {
       URI uri,
       String method,
       String region,
-      String bucket,
-      String body,
+      Optional<String> bucket,
+      Optional<String> body,
       Map<String, List<String>> headers) {
     return ImmutableSigningRequest.of(uri, method, region, bucket, body, headers);
   }

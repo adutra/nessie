@@ -15,58 +15,25 @@
  */
 package org.projectnessie.catalog.service.common.config;
 
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Map;
-import org.projectnessie.nessie.immutables.NessieImmutable;
 
-@NessieImmutable
 public interface WarehouseConfig {
+
+  /** Name of the warehouse. */
   String name();
 
+  /**
+   * Iceberg config defaults specific to this warehouse. They override any defaults specified in
+   * {@link CatalogConfig#icebergConfigDefaults()}.
+   */
   Map<String, String> icebergConfigDefaults();
 
+  /**
+   * Iceberg config overrides specific to this warehouse. They override any overrides specified in
+   * {@link CatalogConfig#icebergConfigOverrides()}.
+   */
   Map<String, String> icebergConfigOverrides();
 
+  /** Location of the warehouse. Used to determine the base location of a table. */
   String location();
-
-  static Builder builder() {
-    return ImmutableWarehouseConfig.builder();
-  }
-
-  interface Builder {
-    @CanIgnoreReturnValue
-    Builder from(WarehouseConfig instance);
-
-    @CanIgnoreReturnValue
-    Builder name(String name);
-
-    @CanIgnoreReturnValue
-    Builder putIcebergConfigDefault(String key, String value);
-
-    @CanIgnoreReturnValue
-    Builder putIcebergConfigDefault(Map.Entry<String, ? extends String> entry);
-
-    @CanIgnoreReturnValue
-    Builder icebergConfigDefaults(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
-    Builder putAllIcebergConfigDefaults(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
-    Builder putIcebergConfigOverride(String key, String value);
-
-    @CanIgnoreReturnValue
-    Builder putIcebergConfigOverride(Map.Entry<String, ? extends String> entry);
-
-    @CanIgnoreReturnValue
-    Builder icebergConfigOverrides(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
-    Builder putAllIcebergConfigOverrides(Map<String, ? extends String> entries);
-
-    @CanIgnoreReturnValue
-    Builder location(String location);
-
-    WarehouseConfig build();
-  }
 }
