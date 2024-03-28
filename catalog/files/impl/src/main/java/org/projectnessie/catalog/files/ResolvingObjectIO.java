@@ -17,13 +17,14 @@ package org.projectnessie.catalog.files;
 
 import java.net.URI;
 import java.time.Clock;
+import org.projectnessie.catalog.files.adls.AdlsClientSupplier;
 import org.projectnessie.catalog.files.adls.AdlsObjectIO;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.gcs.GcsObjectIO;
+import org.projectnessie.catalog.files.gcs.GcsStorageSupplier;
 import org.projectnessie.catalog.files.local.LocalObjectIO;
-import org.projectnessie.catalog.files.s3.S3Config;
+import org.projectnessie.catalog.files.s3.S3ClientSupplier;
 import org.projectnessie.catalog.files.s3.S3ObjectIO;
-import software.amazon.awssdk.services.s3.S3Client;
 
 public class ResolvingObjectIO extends DelegatingObjectIO {
   private final LocalObjectIO localObjectIO;
@@ -31,29 +32,35 @@ public class ResolvingObjectIO extends DelegatingObjectIO {
   private final GcsObjectIO gcsObjectIO;
   private final AdlsObjectIO adlsObjectIO;
 
-  public ResolvingObjectIO(S3Client s3client, S3Config s3config) {
-    localObjectIO = new LocalObjectIO();
-    s3ObjectIO = new S3ObjectIO(s3client, Clock.systemUTC(), s3config);
-    gcsObjectIO = new GcsObjectIO();
-    adlsObjectIO = new AdlsObjectIO();
+  public ResolvingObjectIO(
+      S3ClientSupplier s3ClientSupplier,
+      AdlsClientSupplier adlsClientSupplier,
+      GcsStorageSupplier gcsStorageSupplier) {
+    this.localObjectIO = new LocalObjectIO();
+    this.s3ObjectIO = new S3ObjectIO(s3ClientSupplier, Clock.systemUTC());
+    this.gcsObjectIO = new GcsObjectIO(gcsStorageSupplier);
+    this.adlsObjectIO = new AdlsObjectIO(adlsClientSupplier);
   }
 
   @Override
   protected ObjectIO resolve(URI uri) {
     String scheme = uri.getScheme();
-    if ("s3".equals(scheme)) {
-      return s3ObjectIO;
+    if (scheme == null) {
+      scheme = "file";
     }
-    if ("gcs".equals(scheme)) {
-      return gcsObjectIO;
+    switch (scheme) {
+      case "s3":
+        return s3ObjectIO;
+      case "gs":
+        return gcsObjectIO;
+      case "abfs":
+      case "abfss":
+        return adlsObjectIO;
+      case "file":
+        // TODO MUST remove this one - at least for production code
+        return localObjectIO;
+      default:
+        throw new IllegalArgumentException("Unknown scheme: " + scheme);
     }
-    if ("adls".equals(scheme)) {
-      return adlsObjectIO;
-    }
-    // TODO MUST remove this one - at least for production code
-    if ("file".equals(scheme) || scheme == null) {
-      return localObjectIO;
-    }
-    throw new IllegalArgumentException("Unknown scheme: " + scheme);
   }
 }

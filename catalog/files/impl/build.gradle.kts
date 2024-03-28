@@ -33,7 +33,9 @@ dependencies {
   implementation(platform(libs.awssdk.bom))
   implementation("software.amazon.awssdk:s3")
   implementation("software.amazon.awssdk:regions")
-  implementation("software.amazon.awssdk:apache-client")
+  implementation("software.amazon.awssdk:apache-client") {
+    exclude("commons-logging", "commons-logging")
+  }
 
   implementation(platform(libs.google.cloud.storage.bom))
   implementation("com.google.cloud:google-cloud-storage")
@@ -53,4 +55,6 @@ dependencies {
   testFixturesApi(libs.bundles.junit.testing)
 
   testFixturesApi(project(":nessie-object-storage-mock"))
+
+  testRuntimeOnly(libs.logback.classic)
 }

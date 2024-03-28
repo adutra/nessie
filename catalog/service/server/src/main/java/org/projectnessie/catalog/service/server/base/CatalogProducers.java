@@ -17,6 +17,8 @@ package org.projectnessie.catalog.service.server.base;
 
 import static java.time.Clock.systemUTC;
 
+import com.azure.core.http.HttpClient;
+import com.google.auth.http.HttpTransportFactory;
 import io.smallrye.context.SmallRyeManagedExecutor;
 import io.smallrye.context.SmallRyeThreadContext;
 import jakarta.enterprise.inject.Produces;
@@ -30,15 +32,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.microprofile.context.ThreadContext;
 import org.projectnessie.catalog.files.ResolvingObjectIO;
+import org.projectnessie.catalog.files.adls.AdlsClientSupplier;
+import org.projectnessie.catalog.files.adls.AdlsClients;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.gcs.GcsClients;
+import org.projectnessie.catalog.files.gcs.GcsStorageSupplier;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
+import org.projectnessie.catalog.files.s3.S3ClientSupplier;
 import org.projectnessie.catalog.files.s3.S3Clients;
 import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.files.s3.S3Signer;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
 import org.projectnessie.catalog.service.common.config.ImmutableCatalogServerConfig;
+import org.projectnessie.catalog.service.server.config.CatalogAdlsConfig;
+import org.projectnessie.catalog.service.server.config.CatalogGcsConfig;
 import org.projectnessie.catalog.service.server.config.CatalogS3Config;
 import org.projectnessie.catalog.service.server.config.CatalogSecrets;
 import org.projectnessie.catalog.service.server.config.CatalogServiceConfig;
@@ -102,10 +111,36 @@ public class CatalogProducers {
 
   @Produces
   @Singleton
+  public HttpTransportFactory gcsHttpTransportFactory() {
+    return GcsClients.buildSharedHttpTransportFactory();
+  }
+
+  @Produces
+  @Singleton
+  public HttpClient adlsHttpClient(CatalogAdlsConfig adlsConfig) {
+    return AdlsClients.buildSharedHttpClient(adlsConfig);
+  }
+
+  @Produces
+  @Singleton
   public ObjectIO objectIO(
-      CatalogS3Config s3config, S3Client s3client, SecretsProvider secretsProvider) {
-    s3client = S3Clients.configuredClient(s3client, s3config, secretsProvider);
-    return new ResolvingObjectIO(s3client, s3config);
+      CatalogS3Config s3config,
+      S3Client s3client,
+      CatalogAdlsConfig adlsConfig,
+      HttpClient adlsHttpClient,
+      CatalogGcsConfig gcsConfig,
+      HttpTransportFactory gcsHttpTransportFactory,
+      SecretsProvider secretsProvider) {
+    S3ClientSupplier s3ClientSupplier =
+        new S3ClientSupplier(s3client, s3config, s3config, secretsProvider);
+
+    AdlsClientSupplier adlsClientSupplier =
+        new AdlsClientSupplier(adlsHttpClient, adlsConfig, secretsProvider);
+
+    GcsStorageSupplier gcsStorageSupplier =
+        new GcsStorageSupplier(gcsHttpTransportFactory, gcsConfig, secretsProvider);
+
+    return new ResolvingObjectIO(s3ClientSupplier, adlsClientSupplier, gcsStorageSupplier);
   }
 
   @Produces

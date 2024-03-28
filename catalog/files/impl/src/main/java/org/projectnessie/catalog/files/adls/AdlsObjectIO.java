@@ -15,20 +15,35 @@
  */
 package org.projectnessie.catalog.files.adls;
 
-import java.io.IOException;
+import com.azure.storage.common.ParallelTransferOptions;
+import com.azure.storage.file.datalake.DataLakeFileClient;
+import com.azure.storage.file.datalake.options.DataLakeFileOutputStreamOptions;
+import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import org.projectnessie.catalog.files.api.ObjectIO;
 
 public class AdlsObjectIO implements ObjectIO {
-  @Override
-  public InputStream readObject(URI uri) throws IOException {
-    throw new UnsupportedOperationException("IMPLEMENT ME");
+
+  private final AdlsClientSupplier clientSupplier;
+
+  public AdlsObjectIO(AdlsClientSupplier clientSupplier) {
+    this.clientSupplier = clientSupplier;
   }
 
   @Override
-  public OutputStream writeObject(URI uri) throws IOException {
-    throw new UnsupportedOperationException("IMPLEMENT ME");
+  public InputStream readObject(URI uri) {
+    DataLakeFileClient file = clientSupplier.fileClientForLocation(uri);
+    return file.openInputStream().getInputStream();
+  }
+
+  @Override
+  public OutputStream writeObject(URI uri) {
+    DataLakeFileClient file = clientSupplier.fileClientForLocation(uri);
+    DataLakeFileOutputStreamOptions options = new DataLakeFileOutputStreamOptions();
+    ParallelTransferOptions transferOptions = new ParallelTransferOptions();
+    clientSupplier.adlsOptions().writeBlockSize().ifPresent(transferOptions::setBlockSizeLong);
+    return new BufferedOutputStream(file.getOutputStream(options));
   }
 }

@@ -85,19 +85,7 @@ public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketO
       return this;
     }
 
-    S3ProgrammaticOptions.S3PerBucketOptions.Builder b =
-        S3ProgrammaticOptions.S3PerBucketOptions.builder();
-    perBucket.endpoint().ifPresentOrElse(b::endpoint, () -> endpoint().ifPresent(b::endpoint));
-    perBucket.region().ifPresentOrElse(b::region, () -> region().ifPresent(b::region));
-    perBucket.cloud().ifPresentOrElse(b::cloud, () -> cloud().ifPresent(b::cloud));
-    perBucket
-        .accessKeyIdRef()
-        .ifPresentOrElse(b::accessKeyIdRef, () -> accessKeyIdRef().ifPresent(b::accessKeyIdRef));
-    perBucket
-        .secretAccessKeyRef()
-        .ifPresentOrElse(
-            b::secretAccessKeyRef, () -> secretAccessKeyRef().ifPresent(b::secretAccessKeyRef));
-    return b.build();
+    return S3ProgrammaticOptions.S3PerBucketOptions.builder().from(this).from(perBucket).build();
   }
 
   @Value.NonAttribute

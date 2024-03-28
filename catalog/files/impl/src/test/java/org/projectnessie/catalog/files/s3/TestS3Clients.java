@@ -15,108 +15,50 @@
  */
 package org.projectnessie.catalog.files.s3;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import org.assertj.core.api.SoftAssertions;
-import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
-import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.projectnessie.objectstoragemock.Bucket;
-import org.projectnessie.objectstoragemock.MockObject;
+import java.net.URI;
+import java.time.Clock;
+import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.objectstoragemock.ObjectStorageMock;
-import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
-@ExtendWith(SoftAssertionsExtension.class)
-public class TestS3Clients {
-  @InjectSoftAssertions protected SoftAssertions soft;
+public class TestS3Clients extends AbstractClients {
 
-  @Test
-  public void baseClient() throws Exception {
-    String answer1 = "hello world ";
-    String answer2 = "hello other ";
-    String bucket1 = "mybucket";
-    String bucket2 = "otherbucket";
-    try (ObjectStorageMock.MockServer server1 =
-            ObjectStorageMock.builder()
-                .putBuckets(
-                    bucket1,
-                    Bucket.builder()
-                        .object(
-                            key ->
-                                MockObject.builder()
-                                    .contentLength(answer1.length() + key.length())
-                                    .writer(
-                                        (range, output) ->
-                                            output.write((answer1 + key).getBytes(UTF_8)))
-                                    .contentType("text/plain")
-                                    .build())
-                        .build())
-                .build()
-                .start();
-        ObjectStorageMock.MockServer server2 =
-            ObjectStorageMock.builder()
-                .putBuckets(
-                    bucket2,
-                    Bucket.builder()
-                        .object(
-                            key ->
-                                MockObject.builder()
-                                    .contentLength(answer2.length() + key.length())
-                                    .writer(
-                                        (range, output) ->
-                                            output.write((answer2 + key).getBytes(UTF_8)))
-                                    .contentType("text/plain")
-                                    .build())
-                        .build())
-                .build()
-                .start()) {
+  @Override
+  protected ObjectIO buildObjectIO(
+      ObjectStorageMock.MockServer server1, ObjectStorageMock.MockServer server2) {
 
-      S3Client baseClient = S3Clients.createS3BaseClient(S3Config.builder().build());
+    S3Client baseClient = S3Clients.createS3BaseClient(S3Config.builder().build());
 
-      S3ProgrammaticOptions s3options =
-          S3ProgrammaticOptions.builder()
-              .cloud(Cloud.PRIVATE)
-              .putBuckets(
-                  bucket1,
-                  S3ProgrammaticOptions.S3PerBucketOptions.builder()
-                      .endpoint(server1.getS3BaseUri())
-                      .region("us-west-1")
-                      .accessKeyIdRef("ak1")
-                      .secretAccessKeyRef("sak1")
-                      .build())
-              .putBuckets(
-                  bucket2,
-                  S3ProgrammaticOptions.S3PerBucketOptions.builder()
-                      .endpoint(server2.getS3BaseUri())
-                      .region("eu-central-2")
-                      .accessKeyIdRef("ak2")
-                      .secretAccessKeyRef("sak2")
-                      .build())
-              .build();
-
-      S3Client configuredClient =
-          S3Clients.configuredClient(baseClient, s3options, secret -> "secret");
-
-      String key1 = "meep";
-      String key2 = "blah";
-      String response1;
-      String response2;
-      try (ResponseInputStream<GetObjectResponse> input =
-          configuredClient.getObject(
-              GetObjectRequest.builder().bucket(bucket1).key(key1).build())) {
-        response1 = new String(input.readAllBytes());
-      }
-      try (ResponseInputStream<GetObjectResponse> input =
-          configuredClient.getObject(
-              GetObjectRequest.builder().bucket(bucket2).key(key2).build())) {
-        response2 = new String(input.readAllBytes());
-      }
-      soft.assertThat(response1).isEqualTo(answer1 + key1);
-      soft.assertThat(response2).isEqualTo(answer2 + key2);
+    S3ProgrammaticOptions.Builder s3options =
+        S3ProgrammaticOptions.builder()
+            .cloud(Cloud.PRIVATE)
+            .putBuckets(
+                BUCKET_1,
+                S3ProgrammaticOptions.S3PerBucketOptions.builder()
+                    .endpoint(server1.getS3BaseUri())
+                    .region("us-west-1")
+                    .accessKeyIdRef("ak1")
+                    .secretAccessKeyRef("sak1")
+                    .build());
+    if (server2 != null) {
+      s3options.putBuckets(
+          BUCKET_2,
+          S3ProgrammaticOptions.S3PerBucketOptions.builder()
+              .endpoint(server2.getS3BaseUri())
+              .region("eu-central-2")
+              .accessKeyIdRef("ak2")
+              .secretAccessKeyRef("sak2")
+              .build());
     }
+
+    S3ClientSupplier supplier =
+        new S3ClientSupplier(
+            baseClient, S3Config.builder().build(), s3options.build(), secret -> "secret");
+    return new S3ObjectIO(supplier, Clock.systemUTC());
+  }
+
+  @Override
+  protected URI buildURI(String bucket, String key) {
+    return URI.create(String.format("s3://%s/%s", bucket, key));
   }
 }

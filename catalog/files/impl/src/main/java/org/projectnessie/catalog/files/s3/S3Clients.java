@@ -16,27 +16,16 @@
 package org.projectnessie.catalog.files.s3;
 
 import java.io.InputStream;
-import java.net.URI;
-import java.util.Optional;
-import java.util.function.Function;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.profiles.ProfileFile;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.DelegatingS3Client;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ServiceClientConfiguration;
-import software.amazon.awssdk.services.s3.model.S3Request;
 
 public class S3Clients {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(S3Clients.class);
 
   /**
    * Builds the base S3 client with the shared HTTP client, configured with the minimum amount of
@@ -66,82 +55,6 @@ public class S3Clients {
         .overrideConfiguration(override -> override.defaultProfileFileSupplier(() -> profileFile))
         .serviceConfiguration(serviceConfig -> serviceConfig.profileFile(() -> profileFile))
         .build();
-  }
-
-  /**
-   * Produces an S3 client for the given set of S3 options and secrets. S3 options are retrieved
-   * from the per-bucket config, which derives from the global config. References to the secrets
-   * that contain the actual S3 access-key-ID and secret-access-key are present in the S3 options as
-   * well.
-   */
-  public static S3Client configuredClient(
-      S3Client s3client, S3Options<?> s3options, SecretsProvider secretsProvider) {
-    return new DelegatingS3Client(s3client) {
-
-      @Override
-      protected <T extends S3Request, ReturnT> ReturnT invokeOperation(
-          T request, Function<T, ReturnT> operation) {
-
-        Optional<String> bucketName = request.getValueForField("Bucket", String.class);
-
-        S3BucketOptions bucketOptions = s3options.effectiveOptionsForBucket(bucketName);
-
-        URI endpoint = bucketOptions.resolveS3Endpoint();
-
-        // TODO reduce log level to TRACE
-        if (LOGGER.isInfoEnabled()) {
-          LOGGER.info(
-              "Building S3-client for bucket {} using endpoint {} with {}",
-              bucketName,
-              endpoint,
-              toLogString(bucketOptions));
-        }
-
-        AwsRequestOverrideConfiguration.Builder override =
-            request
-                .overrideConfiguration()
-                .map(AwsRequestOverrideConfiguration::toBuilder)
-                .orElseGet(AwsRequestOverrideConfiguration::builder)
-                //
-                .addPlugin(
-                    config -> {
-                      S3ServiceClientConfiguration.Builder s3configBuilder =
-                          (S3ServiceClientConfiguration.Builder) config;
-
-                      s3configBuilder.endpointOverride(endpoint);
-
-                      bucketOptions
-                          .region()
-                          .ifPresent(region -> s3configBuilder.region(Region.of(region)));
-                    })
-                .credentialsProvider(awsCredentialsProvider(bucketOptions, secretsProvider));
-
-        // https://cloud.google.com/storage/docs/aws-simple-migration#project-header
-        bucketOptions.projectId().ifPresent(prj -> override.putHeader("x-amz-project-id", prj));
-
-        @SuppressWarnings("unchecked")
-        T overridden = (T) request.toBuilder().overrideConfiguration(override.build()).build();
-
-        return super.invokeOperation(overridden, operation);
-      }
-    };
-  }
-
-  private static String toLogString(S3BucketOptions options) {
-    return "S3BucketOptions{"
-        + "cloud="
-        + options.cloud().map(Cloud::name).orElse("<undefined>")
-        + ", endpoint="
-        + options.endpoint().map(URI::toString).orElse("<undefined>")
-        + ", region="
-        + options.region().orElse("<undefined>")
-        + ", projectId="
-        + options.projectId().orElse("<undefined>")
-        + ", accessKeyIdRef="
-        + options.accessKeyIdRef().orElse("<undefined>")
-        + ", secretAccessKeyRef="
-        + options.secretAccessKeyRef().orElse("<undefined>")
-        + "}";
   }
 
   public static AwsCredentialsProvider awsCredentialsProvider(

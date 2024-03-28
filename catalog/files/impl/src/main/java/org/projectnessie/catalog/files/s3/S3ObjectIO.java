@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.files.s3;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 import java.io.ByteArrayOutputStream;
@@ -39,23 +40,23 @@ public class S3ObjectIO implements ObjectIO {
 
   private static final ObjectIO local = new LocalObjectIO();
 
-  private final S3Client s3client;
+  private final S3ClientSupplier s3clientSupplier;
   private final Clock clock;
-  private final Duration defaultRetryAfter;
 
-  public S3ObjectIO(S3Client s3client, Clock clock, S3Config s3Config) {
-    this.s3client = s3client;
+  public S3ObjectIO(S3ClientSupplier s3clientSupplier, Clock clock) {
+    this.s3clientSupplier = s3clientSupplier;
     this.clock = clock;
-    this.defaultRetryAfter = s3Config.retryAfter().orElse(Duration.of(10, SECONDS));
   }
 
   @Override
   public InputStream readObject(URI uri) throws IOException {
-    if (!"s3".equals(uri.getScheme())) {
-      return local.readObject(uri);
-    }
+    checkArgument(uri != null, "Invalid location: null");
+    String scheme = uri.getScheme();
+    checkArgument("s3".equals(scheme), "Invalid S3 scheme: %s", uri);
 
-    S3Uri s3uri = s3client.utilities().parseUri(uri);
+    S3Uri s3uri = s3clientSupplier.parseUri(uri);
+    @SuppressWarnings("resource")
+    S3Client s3client = s3clientSupplier.getClient();
 
     try {
       return s3client.getObject(
@@ -66,7 +67,11 @@ public class S3ObjectIO implements ObjectIO {
     } catch (SdkServiceException e) {
       if (e.isThrottlingException()) {
         throw new BackendThrottledException(
-            clock.instant().plus(defaultRetryAfter), "S3 throttled", e);
+            clock
+                .instant()
+                .plus(s3clientSupplier.s3config().retryAfter().orElse(Duration.of(10, SECONDS))),
+            "S3 throttled",
+            e);
       }
       throw new ObjectIOException(e);
     }
@@ -83,7 +88,9 @@ public class S3ObjectIO implements ObjectIO {
       public void close() throws IOException {
         super.close();
 
-        S3Uri s3uri = s3client.utilities().parseUri(uri);
+        S3Uri s3uri = s3clientSupplier.parseUri(uri);
+        @SuppressWarnings("resource")
+        S3Client s3client = s3clientSupplier.getClient();
 
         s3client.putObject(
             PutObjectRequest.builder()

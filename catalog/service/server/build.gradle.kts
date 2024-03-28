@@ -75,6 +75,16 @@ dependencies {
 
   implementation(platform(libs.awssdk.bom))
   implementation("software.amazon.awssdk:s3")
+  implementation("software.amazon.awssdk:apache-client") {
+    exclude("commons-logging", "commons-logging")
+  }
+
+  implementation(platform(libs.google.cloud.storage.bom))
+  implementation("com.google.cloud:google-cloud-storage")
+
+  implementation(platform(libs.azuresdk.bom))
+  implementation("com.azure:azure-storage-file-datalake")
+  implementation("com.azure:azure-identity")
 
   implementation(libs.guava)
 
