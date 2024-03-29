@@ -40,6 +40,9 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
     Builder region(String region);
 
     @CanIgnoreReturnValue
+    Builder pathStyleAccess(boolean pathStyleAccess);
+
+    @CanIgnoreReturnValue
     Builder projectId(String projectId);
 
     @CanIgnoreReturnValue
@@ -91,6 +94,9 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
 
       @CanIgnoreReturnValue
       Builder region(String region);
+
+      @CanIgnoreReturnValue
+      Builder pathStyleAccess(boolean pathStyleAccess);
 
       @CanIgnoreReturnValue
       Builder projectId(String projectId);
