@@ -95,7 +95,7 @@ public interface S3BucketOptions {
   Optional<String> secretAccessKeyRef();
 
   /**
-   * The <a href="https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html>Security Token
+   * The <a href="https://docs.aws.amazon.com/STS/latest/APIReference/welcome.html">Security Token
    * Service</a> endpoint.
    *
    * <p>This parameter must be set if the cloud provider is not {@link Cloud#AMAZON}) and the
@@ -134,8 +134,8 @@ public interface S3BucketOptions {
    * the assume role process for the specified {@link #roleArn()}.
    *
    * <p>This parameter is essential in preventing the <a
-   * href="https://docs.aws.amazon.com/IAM/latest/UserGuide/confused-deputy.html>Confused Deputy</a>
-   * problem.
+   * href="https://docs.aws.amazon.com/IAM/latest/UserGuide/confused-deputy.html">Confused
+   * Deputy</a> problem.
    *
    * @see AssumeRoleRequest#externalId()
    */
