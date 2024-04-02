@@ -3,11 +3,11 @@
 [versions]
 antlr4 = "4.13.1"
 bouncycastle = "1.70"
-checkstyle = "10.14.2"
+checkstyle = "10.15.0"
 errorprone = "2.26.1"
 errorproneSlf4j = "0.1.23"
 gatling = "3.10.5"
-googleJavaFormat = "1.21.0"
+googleJavaFormat = "1.22.0"
 hadoop = "3.4.0"
 iceberg = "1.5.0" # While bumping this version, 'nessieClientVersion' must also be updated.
 immutables = "2.10.1"
@@ -36,13 +36,13 @@ junit-testing = ["assertj-core", "mockito-core", "mockito-junit-jupiter", "junit
 
 [libraries]
 agroal-pool = { module = "io.agroal:agroal-pool", version = "2.3" }
-agrona = { module = "org.agrona:agrona", version = "1.21.0" }
+agrona = { module = "org.agrona:agrona", version = "1.21.1" }
 antlr-antlr4 = { module = "org.antlr:antlr4", version.ref = "antlr4" }
 antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr4" }
 assertj-core = { module = "org.assertj:assertj-core", version = "3.25.3" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.1" }
-awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.25.16" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.25.21" }
 azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.22" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
 bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
@@ -58,7 +58,7 @@ findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version = "3.0.2
 gatling-charts-highcharts = { module = "io.gatling.highcharts:gatling-charts-highcharts", version.ref = "gatling" }
 google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.37.0" }
 google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.21" }
-google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.14" }
+google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.15" }
 google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.36.1" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "googleJavaFormat" }
 grpc-bom = { module = "io.grpc:grpc-bom", version = "1.57.1" }
