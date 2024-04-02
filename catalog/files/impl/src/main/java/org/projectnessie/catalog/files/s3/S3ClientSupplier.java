@@ -15,38 +15,45 @@
  */
 package org.projectnessie.catalog.files.s3;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.projectnessie.catalog.files.s3.S3Clients.awsCredentialsProvider;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Function;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
+import software.amazon.awssdk.core.SdkField;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.profiles.ProfileFile;
+import software.amazon.awssdk.profiles.ProfileFile.Type;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.DelegatingS3Client;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ServiceClientConfiguration;
-import software.amazon.awssdk.services.s3.S3Uri;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.S3Request;
+import software.amazon.awssdk.services.s3.model.S3Request.Builder;
 
 public class S3ClientSupplier {
   private static final Logger LOGGER = LoggerFactory.getLogger(S3ClientSupplier.class);
+  private static final ProfileFile EMPTY_PROFILE_FILE =
+      ProfileFile.builder().content(InputStream.nullInputStream()).type(Type.CONFIGURATION).build();
 
-  private final S3Client baseS3Client;
+  private final SdkHttpClient sdkClient;
   private final S3Config s3config;
   private final S3Options<?> s3options;
   private final SecretsProvider secretsProvider;
   private final S3Sessions sessions;
 
   public S3ClientSupplier(
-      S3Client baseS3Client,
+      SdkHttpClient sdkClient,
       S3Config s3config,
       S3Options<?> s3options,
       SecretsProvider secretsProvider,
       S3Sessions sessions) {
-    this.baseS3Client = baseS3Client;
+    this.sdkClient = sdkClient;
     this.s3config = s3config;
     this.s3options = s3options;
     this.secretsProvider = secretsProvider;
@@ -61,66 +68,62 @@ public class S3ClientSupplier {
     return s3options;
   }
 
-  public S3Uri parseUri(URI uri) {
-    return baseS3Client.utilities().parseUri(uri);
-  }
-
   /**
    * Produces an S3 client for the set of S3 options and secrets. S3 options are retrieved from the
    * per-bucket config, which derives from the global config. References to the secrets that contain
    * the actual S3 access-key-ID and secret-access-key are present in the S3 options as well.
    */
-  public S3Client getClient() {
-    return new DelegatingS3Client(baseS3Client) {
+  public S3Client getClient(URI location) {
 
-      @Override
-      protected <T extends S3Request, ReturnT> ReturnT invokeOperation(
-          T request, Function<T, ReturnT> operation) {
+    String scheme = location.getScheme();
+    checkArgument("s3".equals(scheme), "Invalid S3 scheme: %s", location);
+    String bucketName = location.getAuthority();
 
-        Optional<String> bucketName = request.getValueForField("Bucket", String.class);
+    // Supply an empty profile file
 
-        S3BucketOptions bucketOptions = s3options.effectiveOptionsForBucket(bucketName);
+    S3BucketOptions bucketOptions = s3options.effectiveOptionsForBucket(Optional.of(bucketName));
 
-        Optional<URI> endpoint = bucketOptions.endpoint();
+    S3ClientBuilder builder =
+        S3Client.builder()
+            .httpClient(sdkClient)
+            .credentialsProvider(awsCredentialsProvider(bucketOptions, secretsProvider, sessions))
+            .overrideConfiguration(
+                override -> override.defaultProfileFileSupplier(() -> EMPTY_PROFILE_FILE))
+            .serviceConfiguration(
+                serviceConfig -> serviceConfig.profileFile(() -> EMPTY_PROFILE_FILE));
 
-        // TODO reduce log level to TRACE
-        if (LOGGER.isInfoEnabled()) {
-          LOGGER.info(
-              "Building S3-client for bucket {} using endpoint {} with {}",
-              bucketName,
-              endpoint,
-              toLogString(bucketOptions));
-        }
+    // TODO reduce log level to TRACE
+    if (LOGGER.isInfoEnabled()) {
+      LOGGER.info(
+          "Building S3-client for bucket {} using endpoint {} with {}",
+          bucketName,
+          bucketOptions.endpoint(),
+          toLogString(bucketOptions));
+    }
 
-        AwsRequestOverrideConfiguration.Builder override =
-            request
-                .overrideConfiguration()
-                .map(AwsRequestOverrideConfiguration::toBuilder)
-                .orElseGet(AwsRequestOverrideConfiguration::builder)
-                //
-                .addPlugin(
-                    config -> {
-                      S3ServiceClientConfiguration.Builder s3configBuilder =
-                          (S3ServiceClientConfiguration.Builder) config;
+    bucketOptions.endpoint().ifPresent(builder::endpointOverride);
+    bucketOptions.region().map(Region::of).ifPresent(builder::region);
+    bucketOptions.pathStyleAccess().ifPresent(builder::forcePathStyle);
+    bucketOptions
+        .allowCrossRegionAccessPoint()
+        .ifPresent(cr -> builder.disableMultiRegionAccessPoints(!cr));
 
-                      endpoint.ifPresent(s3configBuilder::endpointOverride);
+    // https://cloud.google.com/storage/docs/aws-simple-migration#project-header
+    bucketOptions
+        .projectId()
+        .ifPresent(
+            prj ->
+                builder.overrideConfiguration(
+                    override -> override.putHeader("x-amz-project-id", prj)));
 
-                      bucketOptions
-                          .region()
-                          .ifPresent(region -> s3configBuilder.region(Region.of(region)));
-                    })
-                .credentialsProvider(
-                    awsCredentialsProvider(bucketOptions, secretsProvider, sessions));
+    S3Client s3Client = builder.build();
 
-        // https://cloud.google.com/storage/docs/aws-simple-migration#project-header
-        bucketOptions.projectId().ifPresent(prj -> override.putHeader("x-amz-project-id", prj));
+    if (bucketOptions.accessPoint().isPresent()) {
+      String accessPoint = bucketOptions.accessPoint().get();
+      s3Client = new AccessPointAwareS3Client(s3Client, accessPoint);
+    }
 
-        @SuppressWarnings("unchecked")
-        T overridden = (T) request.toBuilder().overrideConfiguration(override.build()).build();
-
-        return super.invokeOperation(overridden, operation);
-      }
-    };
+    return s3Client;
   }
 
   private static String toLogString(S3BucketOptions options) {
@@ -138,5 +141,32 @@ public class S3ClientSupplier {
         + ", secretAccessKeyRef="
         + options.secretAccessKeyRef().orElse("<undefined>")
         + "}";
+  }
+
+  private static class AccessPointAwareS3Client extends DelegatingS3Client {
+
+    private final String accessPoint;
+
+    public AccessPointAwareS3Client(S3Client s3Client, String accessPoint) {
+      super(s3Client);
+      this.accessPoint = accessPoint;
+    }
+
+    @Override
+    protected <T extends S3Request, ReturnT> ReturnT invokeOperation(
+        T request, Function<T, ReturnT> operation) {
+      Optional<SdkField<?>> bucket =
+          request.sdkFields().stream()
+              .filter(f -> f.memberName().equalsIgnoreCase("Bucket"))
+              .findFirst();
+      if (bucket.isPresent()) {
+        Builder builder = request.toBuilder();
+        bucket.get().set(builder, accessPoint);
+        @SuppressWarnings("unchecked")
+        T modified = (T) builder.build();
+        return super.invokeOperation(modified, operation);
+      }
+      return super.invokeOperation(request, operation);
+    }
   }
 }

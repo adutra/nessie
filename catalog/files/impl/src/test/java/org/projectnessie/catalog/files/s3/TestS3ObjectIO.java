@@ -34,7 +34,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.projectnessie.catalog.files.api.BackendThrottledException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3Uri;
 import software.amazon.awssdk.services.s3.S3Utilities;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -51,6 +50,7 @@ public class TestS3ObjectIO {
     Instant now = Instant.now();
     Clock clock = Clock.fixed(now, ZoneId.of("UTC"));
     Duration defaultRetryAfter = Duration.of(10, SECONDS);
+    URI location = URI.create("s3://hello/foo/bar");
 
     when(s3client.utilities())
         .thenReturn(S3Utilities.builder().region(Region.EU_CENTRAL_1).build());
@@ -59,20 +59,13 @@ public class TestS3ObjectIO {
         .thenThrow(S3Exception.builder().statusCode(429).message("blah").build());
 
     S3ClientSupplier s3ClientSupplier = mock(S3ClientSupplier.class);
-    when(s3ClientSupplier.getClient()).thenReturn(s3client);
+    when(s3ClientSupplier.getClient(location)).thenReturn(s3client);
     when(s3ClientSupplier.s3config())
         .thenReturn(S3Config.builder().retryAfter(defaultRetryAfter).build());
-    when(s3ClientSupplier.parseUri(any()))
-        .thenReturn(
-            S3Uri.builder()
-                .uri(URI.create("s3://hello/foo/bar"))
-                .bucket("hello")
-                .key("foo/bar")
-                .build());
 
     S3ObjectIO objectIO = new S3ObjectIO(s3ClientSupplier, clock);
 
-    soft.assertThatThrownBy(() -> objectIO.readObject(URI.create("s3://hello/foo/bar")))
+    soft.assertThatThrownBy(() -> objectIO.readObject(location))
         .isInstanceOf(BackendThrottledException.class)
         .asInstanceOf(type(BackendThrottledException.class))
         .extracting(BackendThrottledException::retryNotBefore)

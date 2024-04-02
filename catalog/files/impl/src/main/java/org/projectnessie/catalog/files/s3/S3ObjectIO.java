@@ -28,7 +28,6 @@ import java.time.Duration;
 import org.projectnessie.catalog.files.api.BackendThrottledException;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.ObjectIOException;
-import org.projectnessie.catalog.files.local.LocalObjectIO;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -37,8 +36,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 public class S3ObjectIO implements ObjectIO {
-
-  private static final ObjectIO local = new LocalObjectIO();
 
   private final S3ClientSupplier s3clientSupplier;
   private final Clock clock;
@@ -51,12 +48,9 @@ public class S3ObjectIO implements ObjectIO {
   @Override
   public InputStream readObject(URI uri) throws IOException {
     checkArgument(uri != null, "Invalid location: null");
-    String scheme = uri.getScheme();
-    checkArgument("s3".equals(scheme), "Invalid S3 scheme: %s", uri);
 
-    S3Uri s3uri = s3clientSupplier.parseUri(uri);
-    @SuppressWarnings("resource")
-    S3Client s3client = s3clientSupplier.getClient();
+    S3Client s3client = s3clientSupplier.getClient(uri);
+    S3Uri s3uri = s3client.utilities().parseUri(uri);
 
     try {
       return s3client.getObject(
@@ -78,19 +72,14 @@ public class S3ObjectIO implements ObjectIO {
   }
 
   @Override
-  public OutputStream writeObject(URI uri) throws IOException {
-    if (!"s3".equals(uri.getScheme())) {
-      return local.writeObject(uri);
-    }
-
+  public OutputStream writeObject(URI uri) {
     return new ByteArrayOutputStream() {
       @Override
       public void close() throws IOException {
         super.close();
 
-        S3Uri s3uri = s3clientSupplier.parseUri(uri);
-        @SuppressWarnings("resource")
-        S3Client s3client = s3clientSupplier.getClient();
+        S3Client s3client = s3clientSupplier.getClient(uri);
+        S3Uri s3uri = s3client.utilities().parseUri(uri);
 
         s3client.putObject(
             PutObjectRequest.builder()

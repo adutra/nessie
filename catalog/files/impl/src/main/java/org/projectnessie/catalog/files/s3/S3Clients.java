@@ -15,17 +15,12 @@
  */
 package org.projectnessie.catalog.files.s3;
 
-import java.io.InputStream;
 import java.util.Optional;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
-import software.amazon.awssdk.profiles.ProfileFile;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
 
 public class S3Clients {
 
@@ -40,27 +35,6 @@ public class S3Clients {
     s3Config.connectionTimeToLive().ifPresent(httpClient::connectionTimeToLive);
     s3Config.expectContinueEnabled().ifPresent(httpClient::expectContinueEnabled);
     return httpClient.build();
-  }
-
-  /**
-   * Builds the base S3 client with the shared HTTP client, configured with the minimum amount of
-   * options, an empty "profile file".
-   */
-  public static S3Client createS3BaseClient(S3Config s3Config, SdkHttpClient httpClient) {
-    // Supply an empty profile file
-    ProfileFile profileFile =
-        ProfileFile.builder()
-            .content(InputStream.nullInputStream())
-            .type(ProfileFile.Type.CONFIGURATION)
-            .build();
-
-    return S3Client.builder()
-        .httpClient(httpClient)
-        .credentialsProvider(new NoCredentialsProvider())
-        .region(Region.EU_CENTRAL_1)
-        .overrideConfiguration(override -> override.defaultProfileFileSupplier(() -> profileFile))
-        .serviceConfiguration(serviceConfig -> serviceConfig.profileFile(() -> profileFile))
-        .build();
   }
 
   public static AwsCredentialsProvider basicCredentialsProvider(
@@ -94,13 +68,5 @@ public class S3Clients {
     }
 
     return sessions.assumeRole(bucketOptions, secretsProvider);
-  }
-
-  private static class NoCredentialsProvider implements AwsCredentialsProvider {
-    @Override
-    public AwsCredentials resolveCredentials() {
-      throw new IllegalStateException(
-          "Invalid access path to S3Client - must wrap with credentials-providing delegate");
-    }
   }
 }

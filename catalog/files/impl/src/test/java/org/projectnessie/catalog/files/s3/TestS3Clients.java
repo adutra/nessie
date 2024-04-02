@@ -22,26 +22,19 @@ import org.junit.jupiter.api.BeforeAll;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.objectstoragemock.ObjectStorageMock;
 import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 public class TestS3Clients extends AbstractClients {
 
   private static SdkHttpClient sdkHttpClient;
-  private static S3Client baseClient;
 
   @BeforeAll
-  static void createBaseClient() {
+  static void createHttpClient() {
     S3Config s3Config = S3Config.builder().build();
     sdkHttpClient = S3Clients.apacheHttpClient(s3Config);
-    baseClient = S3Clients.createS3BaseClient(s3Config, sdkHttpClient);
   }
 
   @AfterAll
-  static void closeBaseClient() {
-    if (baseClient != null) {
-      baseClient.close();
-    }
-
+  static void closeHttpClient() {
     if (sdkHttpClient != null) {
       sdkHttpClient.close();
     }
@@ -61,6 +54,7 @@ public class TestS3Clients extends AbstractClients {
                     .region("us-west-1")
                     .accessKeyIdRef("ak1")
                     .secretAccessKeyRef("sak1")
+                    .accessPoint(BUCKET_1)
                     .build());
     if (server2 != null) {
       s3options.putBuckets(
@@ -75,7 +69,7 @@ public class TestS3Clients extends AbstractClients {
 
     S3ClientSupplier supplier =
         new S3ClientSupplier(
-            baseClient, S3Config.builder().build(), s3options.build(), secret -> "secret", null);
+            sdkHttpClient, S3Config.builder().build(), s3options.build(), secret -> "secret", null);
     return new S3ObjectIO(supplier, Clock.systemUTC());
   }
 

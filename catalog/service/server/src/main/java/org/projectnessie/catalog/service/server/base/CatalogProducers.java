@@ -64,7 +64,6 @@ import org.projectnessie.versioned.storage.common.config.StoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.http.SdkHttpClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 /**
  * "Quick and dirty" producers providing connection to Nessie, a "storage" impl and object-store
@@ -89,12 +88,6 @@ public class CatalogProducers {
 
   public void closeSdkHttpClient(@Disposes @CatalogS3Client SdkHttpClient client) {
     client.close();
-  }
-
-  @Produces
-  @Singleton
-  public S3Client s3Client(CatalogS3Config s3config, @CatalogS3Client SdkHttpClient httpClient) {
-    return S3Clients.createS3BaseClient(s3config, httpClient);
   }
 
   @SuppressWarnings({"unchecked", "rawtypes", "UnnecessaryLocalVariable"})
@@ -159,7 +152,7 @@ public class CatalogProducers {
   @Singleton
   public ObjectIO objectIO(
       CatalogS3Config s3config,
-      S3Client s3client,
+      @CatalogS3Client SdkHttpClient sdkClient,
       CatalogAdlsConfig adlsConfig,
       HttpClient adlsHttpClient,
       CatalogGcsConfig gcsConfig,
@@ -167,7 +160,7 @@ public class CatalogProducers {
       SecretsProvider secretsProvider,
       S3Sessions sessions) {
     S3ClientSupplier s3ClientSupplier =
-        new S3ClientSupplier(s3client, s3config, s3config, secretsProvider, sessions);
+        new S3ClientSupplier(sdkClient, s3config, s3config, secretsProvider, sessions);
 
     AdlsClientSupplier adlsClientSupplier =
         new AdlsClientSupplier(adlsHttpClient, adlsConfig, secretsProvider);
