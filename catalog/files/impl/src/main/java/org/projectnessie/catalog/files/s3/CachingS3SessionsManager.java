@@ -22,7 +22,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.stats.StatsCounter;
 import com.google.common.annotations.VisibleForTesting;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -94,13 +93,6 @@ public class CachingS3SessionsManager {
     // per-request. Note: Credentials are set individually in each STS request.
     this.clients =
         Caffeine.newBuilder()
-            .removalListener(
-                (RemovalListener<StsClientKey, StsClient>)
-                    (key, value, cause) -> {
-                      if (value != null) {
-                        value.close();
-                      }
-                    })
             .maximumSize(options.effectiveStsClientsCacheMaxEntries())
             .recordStats(
                 () ->
