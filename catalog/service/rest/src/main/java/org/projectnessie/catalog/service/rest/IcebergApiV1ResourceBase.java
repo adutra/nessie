@@ -669,8 +669,10 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     //  object. But the `loadTable()` below will trigger another read of the same table-metadata
     //  object. Need a way to prevent the duplicate read operation.
 
-    // TODO the following readObject() call allows reading a table-metadata from _any_ supported location and
-    //  MUST be guarded with access-checks. We'd also need a way to register ANY table-metadata - but that might
+    // TODO the following readObject() call allows reading a table-metadata from _any_ supported
+    // location and
+    //  MUST be guarded with access-checks. We'd also need a way to register ANY table-metadata -
+    // but that might
     //  require a different / custom endpoint?
 
     IcebergTableMetadata tableMetadata;
