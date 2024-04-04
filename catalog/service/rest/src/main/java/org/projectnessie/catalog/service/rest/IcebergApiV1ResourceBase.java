@@ -48,10 +48,9 @@ import static org.projectnessie.catalog.service.rest.TableRef.tableRef;
 import static org.projectnessie.model.CommitMeta.fromMessage;
 import static org.projectnessie.model.Content.Type.ICEBERG_TABLE;
 import static org.projectnessie.model.Content.Type.ICEBERG_VIEW;
+import static org.projectnessie.model.Reference.ReferenceType.BRANCH;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
-import com.google.common.base.Supplier;
 import io.smallrye.mutiny.Uni;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -148,6 +147,7 @@ import org.projectnessie.model.Namespace;
 import org.projectnessie.model.Operation;
 import org.projectnessie.model.Reference;
 import org.projectnessie.model.TableReference;
+import org.projectnessie.services.config.ServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -167,6 +167,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   public static final String AWS_REGION = "client.region";
   public static final String S3_ENDPOINT = "s3.endpoint";
   public static final String S3_ACCESS_POINTS_PREFIX = "s3.access-points.";
+  public static final String S3_CLIENT_REGION = "client.region";
   public static final String S3_PATH_STYLE_ACCESS = "s3.path-style-access";
   private static final String S3_USE_ARN_REGION_ENABLED = "s3.use-arn-region-enabled";
 
@@ -178,6 +179,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   public static final String ICEBERG_TABLE_OVERRIDE_PREFIX = "table-override.";
 
   private final NessieApiV2 nessieApi;
+  private final ServerConfig serverConfig;
   private final CatalogConfig catalogConfig;
   private final RequestSigner signer;
   private final S3Options<?> s3Options;
@@ -188,12 +190,14 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       ObjectIO objectIO,
       RequestSigner signer,
       NessieApiV2 nessieApi,
+      ServerConfig serverConfig,
       CatalogConfig catalogConfig,
       S3Options<?> s3Options,
       Optional<URI> tokenEndpoint) {
     super(catalogService, objectIO);
     this.nessieApi = nessieApi;
     this.signer = signer;
+    this.serverConfig = serverConfig;
     this.catalogConfig = catalogConfig;
     this.s3Options = s3Options;
     this.tokenEndpoint = tokenEndpoint;
@@ -210,7 +214,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     String branch = reference;
     if (branch == null) {
-      branch = catalogConfig.defaultBranch().name();
+      branch = serverConfig.getDefaultBranch();
     }
     if (branch == null) {
       branch = "main";
@@ -224,6 +228,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     configDefaults.put(FILE_IO_IMPL, "org.apache.iceberg.io.ResolvingFileIO");
 
     configDefaults.putAll(catalogConfig.icebergConfigDefaults());
+    s3Options.region().ifPresent(x -> configDefaults.put(S3_CLIENT_REGION, x));
     configDefaults.putAll(w.icebergConfigDefaults());
 
     putS3ConfigOverrides(w, configOverrides);
@@ -502,6 +507,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     if (location == null) {
       location = defaultTableLocation(createTableRequest.location(), tableRef);
     }
+    checkArgument(
+        objectIO.isValidUri(URI.create(location)), "Unsupported table location: " + location);
     Map<String, String> properties = new HashMap<>();
     properties.put("created-at", OffsetDateTime.now(ZoneOffset.UTC).toString());
     properties.putAll(createTableRequest.properties());
@@ -654,7 +661,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               ParsedReference.parsedReference(
                   committed.getTargetBranch().getName(),
                   committed.getTargetBranch().getHash(),
-                  Reference.ReferenceType.BRANCH),
+                  BRANCH),
               null),
           prefix);
     } else if (nessieCatalogUri) {
@@ -1196,14 +1203,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     return namespaceRef(ns, ref.name(), ref.hashWithRelativeSpec(), decoded.warehouse());
   }
 
-  protected DecodedPrefix decodePrefix(String prefix) {
-    ParsedReference parsedReference = catalogConfig.defaultBranch();
-    String warehouse = catalogConfig.defaultWarehouse().name();
-
-    return decodePrefix(
-        prefix, parsedReference, warehouse, () -> catalogConfig.defaultBranch().name());
-  }
-
   public TableRef decodeTableRefWithHash(String prefix, String encodedNs, String table)
       throws NessieNotFoundException {
     TableRef tableRef = decodeTableRef(prefix, encodedNs, table);
@@ -1255,12 +1254,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   private static final String DEFAULT_REF_IN_PATH = "-";
   private static final Splitter NAMESPACE_ESCAPED_SPLITTER = Splitter.on(SEPARATOR);
 
-  @VisibleForTesting
-  static DecodedPrefix decodePrefix(
-      String prefix,
-      ParsedReference parsedReference,
-      String warehouse,
-      Supplier<String> defaultBranchSupplier) {
+  protected DecodedPrefix decodePrefix(String prefix) {
+    String warehouse = null;
+    ParsedReference parsedReference = null;
     if (prefix != null) {
       prefix = prefix.replace(SEPARATOR, '/');
 
@@ -1273,8 +1269,20 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       }
 
       if (!prefix.isEmpty() && !DEFAULT_REF_IN_PATH.equals(prefix)) {
-        parsedReference = resolveReferencePathElement(prefix, null, defaultBranchSupplier);
+        parsedReference = resolveReferencePathElement(prefix, null, serverConfig::getDefaultBranch);
       }
+    }
+
+    if (parsedReference == null) {
+      parsedReference =
+          ParsedReference.parsedReference(serverConfig.getDefaultBranch(), null, BRANCH);
+    }
+    if (warehouse == null) {
+      warehouse =
+          catalogConfig
+              .defaultWarehouse()
+              .map(WarehouseConfig::name)
+              .orElseThrow(() -> new IllegalStateException("No default warehouse configured"));
     }
 
     return decodedPrefix(parsedReference, warehouse);
@@ -1397,6 +1405,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         .metadata(tableMetadata)
         .metadataLocation(metadataLocation)
         // TODO this is the place to add vended authorization tokens for file/object access
+        // TODO add (correct) S3_CLIENT_REGION for the table here (based on the table's location?)
         .putConfig(
             S3_SIGNER_ENDPOINT,
             // TODO does it make sense to use a separate endpoint (service) just for signing?

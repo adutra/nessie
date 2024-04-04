@@ -16,7 +16,58 @@
 package org.projectnessie.catalog.service.server;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.UUID;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.BeforeEach;
+import org.projectnessie.catalog.files.api.ObjectIO;
+import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures;
 import org.projectnessie.catalog.service.server.tests.AbstractNessieCoreTests;
+import org.projectnessie.objectstoragemock.HeapStorageBucket;
 
 @QuarkusTest
-public class TestNessieCore extends AbstractNessieCoreTests {}
+@TestProfile(value = UnitTestProfile.class)
+public class TestNessieCore extends AbstractNessieCoreTests {
+
+  @Inject ObjectIO objectIO;
+
+  @ConfigProperty(name = "nessie.catalog.default-warehouse.location")
+  String defaultWarehouseLocation;
+
+  String currentBase;
+
+  HeapStorageBucket heapStorageBucket;
+
+  @BeforeEach
+  public void clearBucket() {
+    heapStorageBucket.clear();
+  }
+
+  @BeforeEach
+  protected void setup() {
+    currentBase = defaultWarehouseLocation + "/" + UUID.randomUUID() + "/";
+  }
+
+  @Override
+  protected String basePath() {
+    return currentBase;
+  }
+
+  @Override
+  protected IcebergGenerateFixtures.ObjectWriter objectWriter() {
+    return (name, data) -> {
+      URI location =
+          name.isAbsolute() ? name : URI.create(currentBase + "/" + name.getPath()).normalize();
+      try (OutputStream output = objectIO.writeObject(location)) {
+        output.write(data);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      return location.toString();
+    };
+  }
+}

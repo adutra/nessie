@@ -24,7 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class TestS3BucketOptions {
+class TestS3Utils {
 
   @ParameterizedTest
   @MethodSource
@@ -80,6 +80,39 @@ class TestS3BucketOptions {
         Arguments.of(
             ImmutableS3ProgrammaticOptions.builder().cloud(Optional.of(Cloud.PRIVATE)).build(),
             URI.create("https://user@s3-region1.private.amazonaws.com:9000/mybucket/myfile"),
+            Optional.of("mybucket")),
+        // non-standard ones for testing
+        Arguments.of(
+            ImmutableS3ProgrammaticOptions.builder()
+                .cloud(Optional.of(Cloud.PRIVATE))
+                .pathStyleAccess(true)
+                .build(),
+            URI.create("http://127.0.0.1:9000/mybucket/myfile"),
+            Optional.of("mybucket")),
+        Arguments.of(
+            ImmutableS3ProgrammaticOptions.builder()
+                .cloud(Optional.of(Cloud.PRIVATE))
+                .pathStyleAccess(true)
+                .build(),
+            URI.create("http://127.0.0.1:9000/mybucket/myfile"),
+            Optional.of("mybucket")),
+        Arguments.of(
+            ImmutableS3ProgrammaticOptions.builder()
+                .cloud(Optional.of(Cloud.PRIVATE))
+                .pathStyleAccess(true)
+                .build(),
+            URI.create("http://s3.foo:9000/mybucket/myfile"),
+            Optional.of("mybucket")),
+        Arguments.of(
+            ImmutableS3ProgrammaticOptions.builder()
+                .cloud(Optional.of(Cloud.PRIVATE))
+                .pathStyleAccess(true)
+                .build(),
+            URI.create("http://s3.localhost:9000/mybucket/myfile"),
+            Optional.of("mybucket")),
+        Arguments.of(
+            ImmutableS3ProgrammaticOptions.builder().cloud(Optional.of(Cloud.PRIVATE)).build(),
+            URI.create("http://s3.localhost.localdomain:9000/mybucket/myfile"),
             Optional.of("mybucket")));
   }
 }

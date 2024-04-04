@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.generateMetadataWithManifestList;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.generateMetadataWithManifests;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.generateSimpleMetadata;
+import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.objectWriterForPath;
 import static org.projectnessie.versioned.storage.common.persist.ObjId.randomObjId;
 
 import java.nio.file.Path;
@@ -45,6 +46,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.local.LocalObjectIO;
+import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.manifest.NessieFileManifestGroupEntry;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
@@ -190,9 +192,16 @@ public class TestIcebergStuff {
   }
 
   static Stream<Arguments> icebergImports() throws Exception {
+    IcebergGenerateFixtures.ObjectWriter objectWriter = objectWriterForPath(tempDir);
     return Stream.of(
-        arguments("no manifests", generateSimpleMetadata(tempDir, 2), false),
-        arguments("with manifest list", generateMetadataWithManifestList(tempDir), true),
-        arguments("with manifests", generateMetadataWithManifests(tempDir), true));
+        arguments("no manifests", generateSimpleMetadata(objectWriter, 2), false),
+        arguments(
+            "with manifest list",
+            generateMetadataWithManifestList(tempDir.toString(), objectWriter),
+            true),
+        arguments(
+            "with manifests",
+            generateMetadataWithManifests(tempDir.toString(), objectWriter),
+            true));
   }
 }

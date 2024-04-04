@@ -48,6 +48,7 @@ public class S3ObjectIO implements ObjectIO {
   @Override
   public InputStream readObject(URI uri) throws IOException {
     checkArgument(uri != null, "Invalid location: null");
+    checkArgument("s3".equals(uri.getScheme()), "Invalid S3 scheme: %s", uri);
 
     S3Client s3client = s3clientSupplier.getClient(uri);
     S3Uri s3uri = s3client.utilities().parseUri(uri);
@@ -73,6 +74,9 @@ public class S3ObjectIO implements ObjectIO {
 
   @Override
   public OutputStream writeObject(URI uri) {
+    checkArgument(uri != null, "Invalid location: null");
+    checkArgument("s3".equals(uri.getScheme()), "Invalid S3 scheme: %s", uri);
+
     return new ByteArrayOutputStream() {
       @Override
       public void close() throws IOException {
@@ -89,5 +93,10 @@ public class S3ObjectIO implements ObjectIO {
             RequestBody.fromBytes(toByteArray()));
       }
     };
+  }
+
+  @Override
+  public boolean isValidUri(URI uri) {
+    return uri != null && "s3".equals(uri.getScheme());
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.server.spark;
+package org.projectnessie.catalog.service.server;
 
-import java.nio.file.Path;
-import org.apache.spark.SparkConf;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import java.util.Collections;
+import java.util.List;
 
-public class ITSparkSmokeIcebergCatalog extends AbstractSparkSmokeTests {
-
+public class UnitTestProfile implements QuarkusTestProfile {
   @Override
-  protected SparkConf sparkConf(Path warehouseDir) {
-    return super.sparkConf(warehouseDir)
-        .set(
-            "spark.sql.catalog.nessie.uri", String.format("http://127.0.0.1:%d/iceberg/", httpPort))
-        .set("spark.sql.catalog.nessie.catalog-impl", "org.apache.iceberg.rest.RESTCatalog");
+  public List<TestResourceEntry> testResources() {
+    return Collections.singletonList(new TestResourceEntry(HeapS3MockResource.class));
   }
 }

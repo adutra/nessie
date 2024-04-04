@@ -21,7 +21,6 @@ plugins {
   alias(libs.plugins.quarkus)
   id("nessie-conventions-quarkus")
   id("nessie-jacoco")
-  alias(libs.plugins.nessie.run)
 }
 
 extra["maven.name"] = "Nessie - Catalog - Server with Nessie Core"
@@ -75,6 +74,7 @@ dependencies {
 
   implementation(platform(libs.awssdk.bom))
   implementation("software.amazon.awssdk:s3")
+  implementation("software.amazon.awssdk:sts")
   implementation("software.amazon.awssdk:apache-client") {
     exclude("commons-logging", "commons-logging")
   }
@@ -99,6 +99,7 @@ dependencies {
 
   testFixturesApi(project(":nessie-catalog-service-server-tests"))
   testFixturesApi(project(":nessie-quarkus-tests"))
+  testFixturesApi(project(":nessie-object-storage-mock"))
 
   testFixturesCompileOnly(libs.microprofile.openapi)
 
@@ -123,6 +124,7 @@ dependencies {
   testFixturesApi("org.apache.iceberg:iceberg-core:$versionIceberg:tests")
   testFixturesApi(libs.hadoop.common) { hadoopExcludes() }
   testFixturesApi(project(":nessie-client"))
+  testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
 }
 
 quarkus {
@@ -178,70 +180,6 @@ listOf("checkstyleTest", "compileTestJava").forEach { name ->
 // Testcontainers is not supported on Windows :(
 if (Os.isFamily(Os.FAMILY_WINDOWS)) {
   tasks.withType<Test>().configureEach { this.enabled = false }
-}
-
-val sparkScala = useSparkScalaVersionsForProject("3.5", "2.13")
-
-testing {
-  suites {
-    register<JvmTestSuite>("sparkIntTest") {
-      useJUnitJupiter(libsRequiredVersion("junit"))
-
-      testType.set("spark-test")
-
-      dependencies {
-        implementation("org.apache.spark:spark-sql_${sparkScala.scalaMajorVersion}") {
-          forSpark(sparkScala.sparkVersion)
-        }
-        implementation("org.apache.spark:spark-core_${sparkScala.scalaMajorVersion}") {
-          forSpark(sparkScala.sparkVersion)
-        }
-        implementation("org.apache.spark:spark-hive_${sparkScala.scalaMajorVersion}") {
-          forSpark(sparkScala.sparkVersion)
-        }
-
-        implementation(libs.assertj.core)
-        compileOnly(libs.errorprone.annotations)
-
-        implementation(
-          "org.apache.iceberg:iceberg-spark-${sparkScala.sparkMajorVersion}_${sparkScala.scalaMajorVersion}:${libs.versions.iceberg.get()}"
-        )
-        implementation("org.apache.iceberg:iceberg-nessie:${libs.versions.iceberg.get()}")
-      }
-
-      targets.all {
-        testTask.configure {
-
-          // Remove quarkus-specific log manager overrides
-          systemProperties.remove("java.util.logging.manager")
-
-          usesService(
-            gradle.sharedServices.registrations.named("intTestParallelismConstraint").get().service
-          )
-
-          dependsOn("quarkusBuild")
-
-          shouldRunAfter("test")
-
-          forkEvery = 1
-
-          forceJavaVersion(sparkScala.runtimeJavaVersion)
-        }
-
-        tasks.named("check").configure { dependsOn(testTask) }
-      }
-    }
-  }
-}
-
-nessieQuarkusApp {
-  includeTask(tasks.named<Test>("sparkIntTest"))
-  executableJar.convention {
-    project.layout.buildDirectory.file("quarkus-app/quarkus-run.jar").get().asFile
-  }
-  environmentNonInput.put("HTTP_ACCESS_LOG_LEVEL", testLogLevel())
-  jvmArgumentsNonInput.add("-XX:SelfDestructTimer=30")
-  systemProperties.put("nessie.server.send-stacktrace-to-client", "true")
 }
 
 fun ModuleDependency.hadoopExcludes() {

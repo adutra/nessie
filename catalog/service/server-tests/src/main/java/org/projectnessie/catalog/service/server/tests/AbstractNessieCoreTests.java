@@ -36,7 +36,6 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import java.net.URI;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -48,9 +47,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListReader;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
@@ -60,7 +59,7 @@ import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.IcebergTable;
 import org.projectnessie.model.Operation;
 
-public class AbstractNessieCoreTests {
+public abstract class AbstractNessieCoreTests {
   protected SoftAssertions soft;
   private static HttpClient httpClient;
   private NessieApiV2 api;
@@ -111,14 +110,18 @@ public class AbstractNessieCoreTests {
     api.close();
   }
 
+  protected abstract String basePath();
+
+  protected abstract IcebergGenerateFixtures.ObjectWriter objectWriter();
+
   @Test
   public void nessieApiWorks() {
     soft.assertThat(api.getConfig().getDefaultBranch()).isEqualTo("main");
   }
 
   @Test
-  public void concurrentImportDemo(@TempDir Path tempDir) throws Exception {
-    var tableMetadataLocation = generateMetadataWithManifestList(tempDir);
+  public void concurrentImportDemo() throws Exception {
+    var tableMetadataLocation = generateMetadataWithManifestList(basePath(), objectWriter());
 
     var tableName = "concurrentImportDemo";
 
@@ -144,8 +147,8 @@ public class AbstractNessieCoreTests {
   }
 
   @Test
-  public void getMultipleSnapshots(@TempDir Path tempDir) throws Exception {
-    var tableMetadataLocation = generateSimpleMetadata(tempDir, 2);
+  public void getMultipleSnapshots() throws Exception {
+    var tableMetadataLocation = generateSimpleMetadata(objectWriter(), 2);
 
     var tableNames =
         IntStream.rangeClosed(1, 5)
@@ -176,9 +179,8 @@ public class AbstractNessieCoreTests {
 
   @ParameterizedTest
   @ValueSource(ints = {1, 2})
-  public void tableMetadataWithoutManifests(int specVersion, @TempDir Path tempDir)
-      throws Exception {
-    var tableMetadataLocation = generateSimpleMetadata(tempDir, specVersion);
+  public void tableMetadataWithoutManifests(int specVersion) throws Exception {
+    var tableMetadataLocation = generateSimpleMetadata(objectWriter(), specVersion);
 
     var tableName = "tableMetadataWithoutManifests" + specVersion;
 
@@ -207,8 +209,8 @@ public class AbstractNessieCoreTests {
   }
 
   @Test
-  public void checkTableMetadataManifestListManifestFiles(@TempDir Path tempDir) throws Exception {
-    var tableMetadataLocation = generateMetadataWithManifestList(tempDir);
+  public void checkTableMetadataManifestListManifestFiles() throws Exception {
+    var tableMetadataLocation = generateMetadataWithManifestList(basePath(), objectWriter());
 
     var tableName = "checkTableMetadataManifestListManifestFiles";
 

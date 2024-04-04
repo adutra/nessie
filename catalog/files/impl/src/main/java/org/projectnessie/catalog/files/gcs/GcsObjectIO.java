@@ -113,4 +113,9 @@ public class GcsObjectIO implements ObjectIO {
       }
     };
   }
+
+  @Override
+  public boolean isValidUri(URI uri) {
+    return uri != null && "gs".equals(uri.getScheme());
+  }
 }

@@ -17,8 +17,6 @@ package org.projectnessie.catalog.files.s3;
 
 import java.net.URI;
 import java.util.Optional;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Utilities;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 public interface S3BucketOptions {
@@ -150,11 +148,6 @@ public interface S3BucketOptions {
    *     https schemes can be either path-style or virtual-host-style.
    */
   default Optional<String> extractBucket(URI uri) {
-    return S3Utilities.builder()
-        // we don't care about the region here
-        .region(Region.US_EAST_1)
-        .build()
-        .parseUri(uri)
-        .bucket();
+    return S3Utils.extractBucketName(uri);
   }
 }

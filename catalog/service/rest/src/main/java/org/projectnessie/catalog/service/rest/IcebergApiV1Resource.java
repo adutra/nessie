@@ -89,6 +89,7 @@ import org.projectnessie.model.Conflict;
 import org.projectnessie.model.Conflict.ConflictType;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.services.config.ExceptionConfig;
+import org.projectnessie.services.config.ServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +114,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
 
   @SuppressWarnings("unused")
   public IcebergApiV1Resource() {
-    this(null, null, null, null, null, null, null, null);
+    this(null, null, null, null, null, null, null, null, null);
   }
 
   @Inject
@@ -122,11 +123,20 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
       ObjectIO objectIO,
       RequestSigner signer,
       NessieApiV2 nessieApi,
+      ServerConfig serverConfig,
       CatalogConfig catalogConfig,
       ExceptionConfig exceptionConfig,
       S3Options<S3BucketOptions> s3Options,
       @TokenEndpointUri Optional<URI> tokenEndpoint) {
-    super(catalogService, objectIO, signer, nessieApi, catalogConfig, s3Options, tokenEndpoint);
+    super(
+        catalogService,
+        objectIO,
+        signer,
+        nessieApi,
+        serverConfig,
+        catalogConfig,
+        s3Options,
+        tokenEndpoint);
     this.exceptionConfig = exceptionConfig;
   }
 

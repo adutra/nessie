@@ -24,4 +24,6 @@ public interface ObjectIO {
   InputStream readObject(URI uri) throws IOException;
 
   OutputStream writeObject(URI uri) throws IOException;
+
+  boolean isValidUri(URI uri);
 }

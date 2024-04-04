@@ -16,6 +16,27 @@
 package org.projectnessie.catalog.service.server;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import java.util.UUID;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.BeforeEach;
+import org.projectnessie.objectstoragemock.HeapStorageBucket;
 
 @QuarkusTest
-public class TestIcebergCatalog extends AbstractIcebergCatalog {}
+@TestProfile(value = UnitTestProfile.class)
+public class TestIcebergCatalog extends AbstractIcebergCatalog {
+  @ConfigProperty(name = "nessie.catalog.default-warehouse.location")
+  String defaultWarehouseLocation;
+
+  HeapStorageBucket heapStorageBucket;
+
+  @BeforeEach
+  public void clearBucket() {
+    heapStorageBucket.clear();
+  }
+
+  @Override
+  protected String temporaryLocation() {
+    return defaultWarehouseLocation + "/" + UUID.randomUUID();
+  }
+}

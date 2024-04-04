@@ -46,4 +46,9 @@ public class AdlsObjectIO implements ObjectIO {
     clientSupplier.adlsOptions().writeBlockSize().ifPresent(transferOptions::setBlockSizeLong);
     return new BufferedOutputStream(file.getOutputStream(options));
   }
+
+  @Override
+  public boolean isValidUri(URI uri) {
+    return uri != null && ("abfs".equals(uri.getScheme()) || "abfss".equals(uri.getScheme()));
+  }
 }

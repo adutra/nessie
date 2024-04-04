@@ -16,22 +16,16 @@
 package org.projectnessie.catalog.service.server.config;
 
 import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithConverter;
 import io.smallrye.config.WithName;
 import java.util.Map;
-import org.projectnessie.api.v2.params.ParsedReference;
+import java.util.Optional;
 import org.projectnessie.catalog.service.common.config.CatalogConfig;
 
 @ConfigMapping(prefix = "nessie.catalog")
 public interface QuarkusCatalogConfig extends CatalogConfig {
   @Override
-  @WithName("default-branch")
-  @WithConverter(ParsedReferenceConverter.class)
-  ParsedReference defaultBranch();
-
-  @Override
   @WithName("default-warehouse")
-  QuarkusWarehouseConfig defaultWarehouse();
+  Optional<QuarkusWarehouseConfig> defaultWarehouse();
 
   @Override
   @WithName("warehouses")

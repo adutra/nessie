@@ -16,15 +16,14 @@
 package org.projectnessie.catalog.service.server;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.google.common.collect.ImmutableMap;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.UUID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.BaseTable;
 import org.apache.iceberg.BaseTransaction;
@@ -35,19 +34,15 @@ import org.apache.iceberg.HasTableOperations;
 import org.apache.iceberg.ImmutableGenericPartitionStatisticsFile;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.PartitionStatisticsFile;
-import org.apache.iceberg.ReachableFileUtil;
 import org.apache.iceberg.Schema;
-import org.apache.iceberg.SortOrder;
 import org.apache.iceberg.StatisticsFile;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableMetadata;
 import org.apache.iceberg.TableMetadataParser;
 import org.apache.iceberg.TableOperations;
-import org.apache.iceberg.TableProperties;
 import org.apache.iceberg.Transaction;
 import org.apache.iceberg.UpdatePartitionSpec;
 import org.apache.iceberg.UpdateSchema;
-import org.apache.iceberg.catalog.CatalogTests;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableCommit;
 import org.apache.iceberg.catalog.TableIdentifier;
@@ -57,9 +52,7 @@ import org.apache.iceberg.rest.RESTCatalog;
 import org.apache.iceberg.types.Types;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.model.Branch;
@@ -68,16 +61,6 @@ import org.projectnessie.model.Reference;
 public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
   public static final String EMPTY_OBJ_ID =
       "2e1cfa82b035c26cbbbdae632cea070514eb8b773f616aaeaf668e2f0be8f10d";
-
-  // TODO remove this once there's Iceberg 1.5 (the field's `protected` there)
-  protected static final PartitionSpec SPEC =
-      PartitionSpec.builderFor(SCHEMA).bucket("id", 16).build();
-
-  // TODO remove this once there's Iceberg 1.5 (the field's `protected` there)
-  protected static final SortOrder WRITE_ORDER =
-      SortOrder.builderFor(SCHEMA).asc(Expressions.bucket("id", 16)).asc("id").build();
-
-  protected static final Namespace NS = Namespace.of("newdb");
 
   protected final List<RESTCatalog> catalogs = new ArrayList<>();
 
@@ -122,6 +105,11 @@ public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
   }
 
   @Override
+  protected boolean supportsPerTableHistory() {
+    return false;
+  }
+
+  @Override
   protected boolean requiresNamespaceCreate() {
     return true;
   }
@@ -141,11 +129,15 @@ public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
     return true;
   }
 
-  /** Nessie Catalog does not expose previous metadata files - at least not yet. */
   @Override
-  public void assertPreviousMetadataFileCount(Table table, int metadataFileCount) {
-    TableOperations ops = ((BaseTable) table).operations();
-    Assertions.assertThat(ops.current().previousFiles()).isEmpty();
+  protected boolean overridesRequestedLocation() {
+    // TODO Nessie Catalog should force the metadata location
+    return super.overridesRequestedLocation();
+  }
+
+  @Override
+  protected String temporaryLocation() {
+    throw new UnsupportedOperationException("Implement in a super class");
   }
 
   /**
@@ -158,7 +150,7 @@ public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
    * registers a table from an external object store.
    */
   @Test
-  public void testRegisterTableFromFileSystem(@TempDir Path dir) throws Exception {
+  public void testRegisterTableFromFileSystem() throws Exception {
     @SuppressWarnings("resource")
     RESTCatalog catalog = catalog();
 
@@ -181,12 +173,14 @@ public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
 
     TableOperations ops = ((BaseTable) originalTable).operations();
 
-    Path metadataFile = dir.resolve("my-metadata.json");
-    Files.writeString(metadataFile, TableMetadataParser.toJson(ops.current()));
+    String metadataLocation = temporaryLocation() + "/my-metadata-" + UUID.randomUUID() + ".json";
+    try (OutputStream output = ops.io().newOutputFile(metadataLocation).create()) {
+      output.write(TableMetadataParser.toJson(ops.current()).getBytes(StandardCharsets.UTF_8));
+    }
 
     catalog.dropTable(TABLE, false /* do not purge */);
 
-    Table registeredTable = catalog.registerTable(TABLE, metadataFile.toString());
+    Table registeredTable = catalog.registerTable(TABLE, metadataLocation);
 
     Assertions.assertThat(registeredTable).isNotNull();
     Assertions.assertThat(catalog.tableExists(TABLE)).as("Table must exist").isTrue();
@@ -359,69 +353,6 @@ public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
     Assertions.assertThat(schema2.findField("more")).isNotNull();
     Assertions.assertThat(schema2.findField("new-column")).isNull();
     Assertions.assertThat(schema2.columns()).hasSize(4);
-  }
-
-  // TODO port this to Iceberg
-
-  protected boolean exposesHistory() {
-    return false;
-  }
-
-  @Test
-  @Disabled("Port to Iceberg")
-  @Override
-  public void testMetadataFileLocationsRemovalAfterCommit() {
-    assumeThat(exposesHistory()).isTrue();
-
-    RESTCatalog catalog = catalog();
-
-    if (requiresNamespaceCreate()) {
-      catalog.createNamespace(NS);
-    }
-
-    Table table = catalog.buildTable(TABLE, SCHEMA).create();
-    table.updateSchema().addColumn("a", Types.LongType.get()).commit();
-    table.updateSchema().addColumn("b", Types.LongType.get()).commit();
-    table.updateSchema().addColumn("c", Types.LongType.get()).commit();
-
-    Set<String> metadataFileLocations = ReachableFileUtil.metadataFileLocations(table, false);
-    Assertions.assertThat(metadataFileLocations).hasSize(4);
-
-    int maxPreviousVersionsToKeep = 2;
-    table
-        .updateProperties()
-        .set(TableProperties.METADATA_DELETE_AFTER_COMMIT_ENABLED, "true")
-        .set(
-            TableProperties.METADATA_PREVIOUS_VERSIONS_MAX,
-            Integer.toString(maxPreviousVersionsToKeep))
-        .commit();
-
-    metadataFileLocations = ReachableFileUtil.metadataFileLocations(table, false);
-    Assertions.assertThat(metadataFileLocations).hasSize(maxPreviousVersionsToKeep + 1);
-
-    // for each new commit, the amount of metadata files should stay the same and old files should
-    // be deleted
-    for (int i = 1; i <= 5; i++) {
-      table.updateSchema().addColumn("d" + i, Types.LongType.get()).commit();
-      metadataFileLocations = ReachableFileUtil.metadataFileLocations(table, false);
-      Assertions.assertThat(metadataFileLocations).hasSize(maxPreviousVersionsToKeep + 1);
-    }
-
-    maxPreviousVersionsToKeep = 4;
-    table
-        .updateProperties()
-        .set(
-            TableProperties.METADATA_PREVIOUS_VERSIONS_MAX,
-            Integer.toString(maxPreviousVersionsToKeep))
-        .commit();
-
-    // for each new commit, the amount of metadata files should stay the same and old files should
-    // be deleted
-    for (int i = 1; i <= 10; i++) {
-      table.updateSchema().addColumn("e" + i, Types.LongType.get()).commit();
-      metadataFileLocations = ReachableFileUtil.metadataFileLocations(table, false);
-      Assertions.assertThat(metadataFileLocations).hasSize(maxPreviousVersionsToKeep + 1);
-    }
   }
 
   @Test

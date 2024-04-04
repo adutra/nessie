@@ -25,16 +25,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.projectnessie.catalog.files.api.ObjectIO;
 
+/** An {@link ObjectIO} implementation purely for unit tests - and nothing else. */
 public class LocalObjectIO implements ObjectIO {
   @Override
   public InputStream readObject(URI uri) throws IOException {
-    // Awesome implementation of a local object IO :D
     return fileUri(uri).toURL().openStream();
   }
 
   @Override
   public OutputStream writeObject(URI uri) throws IOException {
-    // Awesome implementation of a local object IO :D
     try {
       Path path = Paths.get(fileUri(uri));
       Files.createDirectories(path.getParent());
@@ -50,5 +49,10 @@ public class LocalObjectIO implements ObjectIO {
       uri = Paths.get(uri.getPath()).toUri();
     }
     return uri;
+  }
+
+  @Override
+  public boolean isValidUri(URI uri) {
+    return uri != null && ("file".equals(uri.getScheme()) || uri.getScheme() == null);
   }
 }

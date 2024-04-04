@@ -16,19 +16,27 @@
 package org.projectnessie.catalog.service.server;
 
 import io.quarkus.test.junit.QuarkusTest;
-import java.lang.reflect.Field;
-import java.nio.file.Path;
-import org.apache.iceberg.view.ViewCatalogTests;
+import io.quarkus.test.junit.TestProfile;
+import java.util.UUID;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.io.TempDir;
+import org.projectnessie.objectstoragemock.HeapStorageBucket;
 
 @QuarkusTest
+@TestProfile(value = UnitTestProfile.class)
 public class TestIcebergViewsCatalog extends AbstractIcebergViewsCatalog {
+  @ConfigProperty(name = "nessie.catalog.default-warehouse.location")
+  String defaultWarehouseLocation;
+
+  HeapStorageBucket heapStorageBucket;
+
   @BeforeEach
-  public void quarkusWorkaround(@TempDir Path tempDir) throws Exception {
-    // See https://github.com/quarkusio/quarkus/issues/13261 for some background
-    Field tempDirField = ViewCatalogTests.class.getDeclaredField("tempDir");
-    tempDirField.setAccessible(true);
-    tempDirField.set(this, tempDir);
+  public void clearBucket() {
+    heapStorageBucket.clear();
+  }
+
+  @Override
+  protected String temporaryLocation() {
+    return defaultWarehouseLocation + "/" + UUID.randomUUID();
   }
 }

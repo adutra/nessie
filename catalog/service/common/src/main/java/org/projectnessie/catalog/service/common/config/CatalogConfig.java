@@ -16,14 +16,12 @@
 package org.projectnessie.catalog.service.common.config;
 
 import java.util.Map;
-import org.projectnessie.api.v2.params.ParsedReference;
+import java.util.Optional;
 
 public interface CatalogConfig {
 
-  ParsedReference defaultBranch();
-
   /** Default warehouse configuration. This is used when a warehouse is not specified in a query. */
-  WarehouseConfig defaultWarehouse();
+  Optional<? extends WarehouseConfig> defaultWarehouse();
 
   /**
    * Iceberg config defaults applicable to all clients and warehouses. Any properties that are
@@ -61,7 +59,15 @@ public interface CatalogConfig {
         return wc;
       }
     }
-    return defaultWarehouse();
+    return defaultWarehouse()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    warehouse != null
+                        ? "Warehouse "
+                            + warehouse
+                            + " is not defined and no default-warehouse is configured"
+                        : "No default-warehouse configured"));
   }
 
   private static String removeTrailingSlash(String s) {

@@ -22,12 +22,10 @@ import org.projectnessie.catalog.files.adls.AdlsObjectIO;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.gcs.GcsObjectIO;
 import org.projectnessie.catalog.files.gcs.GcsStorageSupplier;
-import org.projectnessie.catalog.files.local.LocalObjectIO;
 import org.projectnessie.catalog.files.s3.S3ClientSupplier;
 import org.projectnessie.catalog.files.s3.S3ObjectIO;
 
 public class ResolvingObjectIO extends DelegatingObjectIO {
-  private final LocalObjectIO localObjectIO;
   private final S3ObjectIO s3ObjectIO;
   private final GcsObjectIO gcsObjectIO;
   private final AdlsObjectIO adlsObjectIO;
@@ -36,7 +34,6 @@ public class ResolvingObjectIO extends DelegatingObjectIO {
       S3ClientSupplier s3ClientSupplier,
       AdlsClientSupplier adlsClientSupplier,
       GcsStorageSupplier gcsStorageSupplier) {
-    this.localObjectIO = new LocalObjectIO();
     this.s3ObjectIO = new S3ObjectIO(s3ClientSupplier, Clock.systemUTC());
     this.gcsObjectIO = new GcsObjectIO(gcsStorageSupplier);
     this.adlsObjectIO = new AdlsObjectIO(adlsClientSupplier);
@@ -56,11 +53,25 @@ public class ResolvingObjectIO extends DelegatingObjectIO {
       case "abfs":
       case "abfss":
         return adlsObjectIO;
-      case "file":
-        // TODO MUST remove this one - at least for production code
-        return localObjectIO;
       default:
-        throw new IllegalArgumentException("Unknown scheme: " + scheme);
+        throw new IllegalArgumentException("Unknown or unsupported scheme: " + scheme);
+    }
+  }
+
+  @Override
+  public boolean isValidUri(URI uri) {
+    String scheme = uri.getScheme();
+    if (scheme == null) {
+      return false;
+    }
+    switch (scheme) {
+      case "s3":
+      case "gs":
+      case "abfs":
+      case "abfss":
+        return true;
+      default:
+        return false;
     }
   }
 }

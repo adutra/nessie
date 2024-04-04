@@ -422,7 +422,6 @@ jobs:
             :nessie-events-quarkus:intTest
             :nessie-catalog-service-server:intTest
             :nessie-catalog-service-server:intTest
-            :nessie-catalog-service-server:sparkIntTest
             --scan
 
       - name: Dump quarkus.log

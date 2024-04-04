@@ -1,5 +1,9 @@
 # TODOs
 
+## Notes / FYI / Docs
+
+* S3 signing from Iceberg using OAuth2 uses the `sign` scope (hard-coded)
+
 ## General
 
 * Do not use `java.nio.ByteBuffer` in (value) objects
@@ -61,7 +65,7 @@ would automatically be migrated to the Nessie Catalog.
     nessie.catalog.service.s3.cloud=private
     nessie.catalog.service.s3.region=us-east-1
     nessie.catalog.service.s3.endpoint=http://localhost:9000
-    nessie.catalog.service.s3.domain=localhost
+    nessie.catalog.service.s3.path-style-access=true
     nessie.catalog.service.s3.access-key-id-ref=s3-access-key
     nessie.catalog.service.s3.secret-access-key-ref=s3-secret-key
     nessie.catalog.secrets.s3-access-key=minioadmin

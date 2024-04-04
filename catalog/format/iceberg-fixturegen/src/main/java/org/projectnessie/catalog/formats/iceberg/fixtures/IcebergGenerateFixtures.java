@@ -21,8 +21,11 @@ import static java.util.UUID.randomUUID;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergFixtures.tableMetadataSimple;
 
 import com.fasterxml.jackson.databind.SerializationFeature;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,39 +40,51 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
 public class IcebergGenerateFixtures {
   private IcebergGenerateFixtures() {}
 
-  public static String generateSimpleMetadata(Path targetDir, int icebergSpecVersion)
-      throws Exception {
-    targetDir = targetDir.resolve("table-metadata-simple-no-manifest");
-    Files.createDirectories(targetDir);
+  @FunctionalInterface
+  public interface ObjectWriter {
+    String write(URI name, byte[] data);
+  }
 
-    Path metadataSimpleFile = targetDir.resolve("table-metadata-simple-no-manifest.json");
+  public static ObjectWriter objectWriterForPath(Path path) {
+    return (name, data) -> {
+      try {
+        Path resolved =
+            name.isAbsolute() ? Paths.get(name.getPath()) : path.resolve(name.getPath());
+        Files.createDirectories(resolved.getParent());
+        Files.write(resolved, data);
+        return resolved.toString();
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    };
+  }
+
+  public static String generateSimpleMetadata(ObjectWriter writer, int icebergSpecVersion)
+      throws Exception {
     IcebergTableMetadata simpleTableMetadata =
         tableMetadataSimple().formatVersion(icebergSpecVersion).build();
-    Files.write(
-        metadataSimpleFile,
+    return writer.write(
+        URI.create("table-metadata-simple-no-manifest/table-metadata-simple-no-manifest.json"),
         IcebergJson.objectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .writeValueAsString(simpleTableMetadata)
             .getBytes(UTF_8));
-    return metadataSimpleFile.toUri().toString();
   }
 
-  public static String generateMetadataWithManifestList(Path targetDir) throws Exception {
-    targetDir = targetDir.resolve("table-metadata-with-manifest-list");
-    Files.createDirectories(targetDir);
-
-    Path metadataWithManifestList = targetDir.resolve("table-metadata-with-manifest-list.json");
+  public static String generateMetadataWithManifestList(String basePath, ObjectWriter writer)
+      throws Exception {
     IcebergSchemaGenerator schemaGenerator =
         IcebergSchemaGenerator.spec().numColumns(10).numPartitionColumns(2).generate();
-    String basePath = targetDir.toString() + '/';
+
     Function<String, OutputStream> outputFunction =
-        file -> {
-          try {
-            return Files.newOutputStream(Paths.get(file));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        };
+        file ->
+            new ByteArrayOutputStream() {
+              @Override
+              public void close() throws IOException {
+                super.close();
+                writer.write(URI.create(file), toByteArray());
+              }
+            };
     UUID commitId = randomUUID();
     long snapshotId = 1;
     long sequenceNumber = 1;
@@ -112,23 +127,18 @@ public class IcebergGenerateFixtures {
             .defaultSpecId(schemaGenerator.getIcebergPartitionSpec().specId())
             .snapshots(singletonList(snapshotWithManifestList))
             .build();
-    Files.write(
-        metadataWithManifestList,
+    return writer.write(
+        URI.create("table-metadata-with-manifest-list/table-metadata-with-manifest-list.json"),
         IcebergJson.objectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .writeValueAsString(icebergMetadataWithManifestList)
             .getBytes(UTF_8));
-    return metadataWithManifestList.toUri().toString();
   }
 
-  public static String generateMetadataWithManifests(Path targetDir) throws Exception {
-    targetDir = targetDir.resolve("table-metadata-with-manifests");
-    Files.createDirectories(targetDir);
-
-    Path metadataWithManifests = targetDir.resolve("table-metadata-with-manifests.json");
+  public static String generateMetadataWithManifests(String basePath, ObjectWriter writer)
+      throws Exception {
     IcebergSchemaGenerator schemaGenerator =
         IcebergSchemaGenerator.spec().numColumns(10).numPartitionColumns(2).generate();
-    String basePath = targetDir.toString() + '/';
     Function<String, OutputStream> outputFunction =
         file -> {
           try {
@@ -185,13 +195,11 @@ public class IcebergGenerateFixtures {
             .defaultSpecId(schemaGenerator.getIcebergPartitionSpec().specId())
             .snapshots(singletonList(snapshotWithManifests))
             .build();
-    Files.write(
-        metadataWithManifests,
+    return writer.write(
+        URI.create("table-metadata-with-manifests/table-metadata-with-manifests.json"),
         IcebergJson.objectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT)
             .writeValueAsString(icebergMetadataWithManifests)
             .getBytes(UTF_8));
-
-    return metadataWithManifests.toUri().toString();
   }
 }

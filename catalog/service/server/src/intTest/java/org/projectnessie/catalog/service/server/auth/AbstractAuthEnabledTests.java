@@ -19,12 +19,17 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.projectnessie.catalog.service.server.AbstractIcebergCatalog;
+import org.projectnessie.catalog.service.server.HeapS3MockResource;
 import org.projectnessie.catalog.service.server.auth.AbstractAuthEnabledTests.Profile;
 import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.auth.oauth2.OAuth2AuthenticationProvider;
 import org.projectnessie.client.auth.oauth2.OAuth2AuthenticatorConfig;
+import org.projectnessie.objectstoragemock.HeapStorageBucket;
 import org.projectnessie.quarkus.tests.profiles.KeycloakTestResourceLifecycleManager;
 import org.projectnessie.quarkus.tests.profiles.KeycloakTestResourceLifecycleManager.KeycloakClientId;
 import org.projectnessie.quarkus.tests.profiles.KeycloakTestResourceLifecycleManager.KeycloakClientSecret;
@@ -41,6 +46,13 @@ public abstract class AbstractAuthEnabledTests extends AbstractIcebergCatalog {
   @KeycloakClientId protected String clientId;
 
   @KeycloakClientSecret protected String clientSecret;
+
+  HeapStorageBucket heapStorageBucket;
+
+  @BeforeEach
+  public void clearBucket() {
+    heapStorageBucket.clear();
+  }
 
   @Override
   protected NessieClientBuilder nessieClientBuilder() {
@@ -60,5 +72,16 @@ public abstract class AbstractAuthEnabledTests extends AbstractIcebergCatalog {
     public Map<String, String> getConfigOverrides() {
       return Map.of("nessie.server.authentication.enabled", "true");
     }
+
+    @Override
+    public List<TestResourceEntry> testResources() {
+      return List.of(new TestResourceEntry(HeapS3MockResource.class));
+    }
+  }
+
+  @Override
+  protected String temporaryLocation() {
+    // Rely on the bucket name to be "bucket" for HeapS3MockResource
+    return "s3://bucket/" + UUID.randomUUID();
   }
 }

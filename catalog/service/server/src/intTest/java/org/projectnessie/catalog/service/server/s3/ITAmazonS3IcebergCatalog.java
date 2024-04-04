@@ -19,6 +19,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.aws.AwsClientProperties;
@@ -53,5 +54,10 @@ public class ITAmazonS3IcebergCatalog extends AbstractIcebergCatalog {
             minio.s3BucketUri("").toString()));
     catalogs.add(catalog);
     return catalog;
+  }
+
+  @Override
+  protected String temporaryLocation() {
+    return minio.s3BucketUri("") + "/" + UUID.randomUUID();
   }
 }
