@@ -25,7 +25,7 @@ opentelemetryAlpha = "1.31.0-alpha"
 opentracing = "0.33.0"
 picocli = "4.7.5"
 protobuf = "3.25.3"
-quarkusPlatform = "3.9.1"
+quarkusPlatform = "3.9.2"
 quarkusPlugin = "3.9.2"
 slf4j = "1.7.36"
 smallryeConfig = "2.13.3"
@@ -108,7 +108,7 @@ microprofile-contextpropagation-api = { module = "org.eclipse.microprofile.conte
 microprofile-openapi = { module = "org.eclipse.microprofile.openapi:microprofile-openapi-api", version = "3.1.1" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
 mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
-mongodb-driver-sync = { module = "org.mongodb:mongodb-driver-sync", version = "5.0.0" }
+mongodb-driver-sync = { module = "org.mongodb:mongodb-driver-sync", version = "5.0.1" }
 nessie-runner-common = { module = "org.projectnessie.nessie-runner:nessie-runner-common", version = "0.31.0" }
 nessie-ui = { module = "org.projectnessie.nessie.ui:nessie-ui", version = "0.63.6" }
 opentelemetry-bom = { module = "io.opentelemetry:opentelemetry-bom", version.ref = "opentelemetry" }
