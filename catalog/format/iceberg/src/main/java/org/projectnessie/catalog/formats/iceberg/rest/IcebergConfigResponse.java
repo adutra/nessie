@@ -39,6 +39,7 @@ public interface IcebergConfigResponse {
     return ImmutableIcebergConfigResponse.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

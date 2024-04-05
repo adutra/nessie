@@ -88,6 +88,7 @@ public interface IcebergSortField {
     return transform().equals(other.transform());
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

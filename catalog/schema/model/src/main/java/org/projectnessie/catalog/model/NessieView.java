@@ -48,6 +48,7 @@ public interface NessieView extends NessieEntity {
     return ImmutableNessieView.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder extends NessieEntity.Builder<Builder> {
     @CanIgnoreReturnValue
     Builder from(NessieView instance);

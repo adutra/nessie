@@ -149,6 +149,7 @@ public interface NessieFileManifestEntry {
     return ImmutableNessieFileManifestEntry.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessieFileManifestEntry instance);

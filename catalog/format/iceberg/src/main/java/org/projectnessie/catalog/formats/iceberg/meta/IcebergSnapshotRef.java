@@ -64,6 +64,7 @@ public interface IcebergSnapshotRef {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Long maxRefAgeMs();
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

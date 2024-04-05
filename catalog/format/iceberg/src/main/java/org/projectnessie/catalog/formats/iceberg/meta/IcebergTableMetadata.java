@@ -138,6 +138,7 @@ public interface IcebergTableMetadata {
     return ImmutableIcebergTableMetadata.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergTableMetadata icebergTableMetadata);

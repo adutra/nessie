@@ -55,6 +55,7 @@ public interface IcebergCreateTableRequest {
     return ImmutableIcebergCreateTableRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     IcebergCreateTableRequest build();
   }

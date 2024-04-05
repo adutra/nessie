@@ -44,6 +44,7 @@ public interface IcebergListTablesResponse {
     return ImmutableIcebergListTablesResponse.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergListTablesResponse instance);

@@ -38,6 +38,7 @@ public interface NessieFileManifestGroup {
     return ImmutableNessieFileManifestGroup.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessieFileManifestGroup fileManifestGroup);

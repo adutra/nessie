@@ -93,6 +93,7 @@ public interface IcebergMapType extends IcebergComplexType {
                     keyValueName, null, null, false, ImmutableList.of(keyField, valueField))));
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

@@ -54,6 +54,7 @@ public interface IcebergError {
     return ImmutableIcebergError.of(message, type, code, stack);
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergError instance);

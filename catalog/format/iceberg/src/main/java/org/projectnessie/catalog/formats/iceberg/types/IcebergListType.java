@@ -62,6 +62,7 @@ public interface IcebergListType extends IcebergComplexType {
     return schema;
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

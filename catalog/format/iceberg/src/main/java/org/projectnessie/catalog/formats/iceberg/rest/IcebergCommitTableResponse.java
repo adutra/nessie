@@ -33,5 +33,6 @@ public interface IcebergCommitTableResponse extends IcebergBaseTableResult {
     return ImmutableIcebergCommitTableResponse.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder extends IcebergBaseTableResult.Builder<IcebergCommitTableResponse, Builder> {}
 }

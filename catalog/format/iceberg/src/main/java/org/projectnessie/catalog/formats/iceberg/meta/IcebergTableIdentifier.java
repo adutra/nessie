@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.immutables.value.Value;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -54,7 +55,14 @@ public interface IcebergTableIdentifier {
     return ImmutableIcebergTableIdentifier.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
+    @CanIgnoreReturnValue
+    Builder namespace(IcebergNamespace namespace);
+
+    @CanIgnoreReturnValue
+    Builder name(String name);
+
     IcebergTableIdentifier build();
   }
 }

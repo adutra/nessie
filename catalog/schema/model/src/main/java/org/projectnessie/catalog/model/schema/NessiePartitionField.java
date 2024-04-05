@@ -71,6 +71,7 @@ public interface NessiePartitionField extends Hashable {
     return ImmutableNessiePartitionField.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessiePartitionField instance);

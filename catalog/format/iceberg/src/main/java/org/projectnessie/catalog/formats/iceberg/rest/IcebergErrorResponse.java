@@ -40,6 +40,7 @@ public interface IcebergErrorResponse {
     return ImmutableIcebergErrorResponse.of(error);
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergErrorResponse instance);

@@ -28,6 +28,7 @@ public interface AvroReadWriteContext {
 
   Map<String, Schema> schemaOverrides();
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

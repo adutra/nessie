@@ -44,6 +44,7 @@ public interface IcebergS3SignResponse {
     return ImmutableIcebergS3SignResponse.of(uri, headers);
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergS3SignResponse instance);

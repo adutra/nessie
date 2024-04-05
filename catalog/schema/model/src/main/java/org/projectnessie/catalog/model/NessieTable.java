@@ -51,6 +51,7 @@ public interface NessieTable extends NessieEntity {
     return ImmutableNessieTable.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder extends NessieEntity.Builder<Builder> {
     @CanIgnoreReturnValue
     Builder from(NessieTable instance);

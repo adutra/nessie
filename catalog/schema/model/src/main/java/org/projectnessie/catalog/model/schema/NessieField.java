@@ -79,6 +79,7 @@ public interface NessieField {
   @jakarta.annotation.Nullable
   String doc();
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

@@ -52,6 +52,7 @@ public interface IcebergS3SignRequest {
     return ImmutableIcebergS3SignRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergS3SignRequest instance);

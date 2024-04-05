@@ -118,6 +118,7 @@ public interface IcebergDataFile {
 
   GenericData.Record partition();
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

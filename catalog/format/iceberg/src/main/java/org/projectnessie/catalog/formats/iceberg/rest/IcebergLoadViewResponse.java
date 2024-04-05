@@ -44,6 +44,7 @@ public interface IcebergLoadViewResponse {
     return ImmutableIcebergLoadViewResponse.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergLoadViewResponse instance);

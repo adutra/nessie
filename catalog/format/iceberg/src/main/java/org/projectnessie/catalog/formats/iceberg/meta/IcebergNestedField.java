@@ -75,6 +75,7 @@ public interface IcebergNestedField {
 
   IcebergNestedField withRequired(boolean required);
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

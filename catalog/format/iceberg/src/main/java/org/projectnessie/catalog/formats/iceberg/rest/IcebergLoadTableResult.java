@@ -31,6 +31,7 @@ public interface IcebergLoadTableResult extends IcebergBaseTableResult {
 
   Map<String, String> config();
 
+  @SuppressWarnings("unused")
   interface Builder<R extends IcebergLoadTableResult, B extends Builder<R, B>>
       extends IcebergBaseTableResult.Builder<R, B> {
     @CanIgnoreReturnValue

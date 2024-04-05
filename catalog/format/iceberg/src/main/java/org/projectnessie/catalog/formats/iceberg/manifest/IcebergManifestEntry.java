@@ -44,6 +44,7 @@ public interface IcebergManifestEntry {
   @jakarta.annotation.Nullable
   IcebergDataFile dataFile();
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

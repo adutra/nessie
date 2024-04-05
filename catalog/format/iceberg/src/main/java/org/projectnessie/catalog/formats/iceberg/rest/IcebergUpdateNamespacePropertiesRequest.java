@@ -39,6 +39,7 @@ public interface IcebergUpdateNamespacePropertiesRequest {
     return ImmutableIcebergUpdateNamespacePropertiesRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     IcebergUpdateNamespacePropertiesRequest build();
   }

@@ -41,6 +41,7 @@ public interface IcebergHistoryEntry {
 
   String metadataFile();
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

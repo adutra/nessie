@@ -75,6 +75,7 @@ public interface IcebergViewMetadata {
                 .collect(Collectors.joining(", ")));
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergViewMetadata instance);

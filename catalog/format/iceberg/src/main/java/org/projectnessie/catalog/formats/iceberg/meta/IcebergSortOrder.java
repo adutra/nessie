@@ -81,6 +81,7 @@ public interface IcebergSortOrder {
         .allMatch(index -> fields().get(index).satisfies(anotherSortOrder.fields().get(index)));
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

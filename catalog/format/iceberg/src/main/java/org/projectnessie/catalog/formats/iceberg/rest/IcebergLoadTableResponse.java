@@ -33,5 +33,6 @@ public interface IcebergLoadTableResponse extends IcebergLoadTableResult {
     return ImmutableIcebergLoadTableResponse.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder extends IcebergLoadTableResult.Builder<IcebergLoadTableResponse, Builder> {}
 }

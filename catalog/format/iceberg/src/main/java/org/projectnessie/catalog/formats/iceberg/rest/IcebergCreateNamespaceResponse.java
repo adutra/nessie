@@ -41,6 +41,7 @@ public interface IcebergCreateNamespaceResponse {
     return ImmutableIcebergCreateNamespaceResponse.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergCreateNamespaceResponse instance);

@@ -33,6 +33,7 @@ public interface IcebergMetadataLogEntry {
     return ImmutableIcebergMetadataLogEntry.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

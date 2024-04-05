@@ -54,6 +54,7 @@ public interface NessieSortField extends Hashable {
     return ImmutableNessieSortField.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessieSortField instance);

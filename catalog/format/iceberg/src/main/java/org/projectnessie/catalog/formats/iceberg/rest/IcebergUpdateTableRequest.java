@@ -47,6 +47,7 @@ public interface IcebergUpdateTableRequest {
     return ImmutableIcebergUpdateTableRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     ImmutableIcebergUpdateTableRequest.Builder from(IcebergUpdateTableRequest instance);

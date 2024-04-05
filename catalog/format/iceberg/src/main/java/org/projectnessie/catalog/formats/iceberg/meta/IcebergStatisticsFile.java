@@ -55,6 +55,7 @@ public interface IcebergStatisticsFile {
 
   List<IcebergBlobMetadata> blobMetadata();
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

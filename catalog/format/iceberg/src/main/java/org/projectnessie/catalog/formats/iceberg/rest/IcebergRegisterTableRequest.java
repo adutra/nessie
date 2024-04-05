@@ -37,6 +37,7 @@ public interface IcebergRegisterTableRequest {
     return ImmutableIcebergRegisterTableRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     IcebergRegisterTableRequest build();
   }

@@ -25,6 +25,7 @@ public interface IcebergBaseTableResult {
 
   String metadataLocation();
 
+  @SuppressWarnings("unused")
   interface Builder<R extends IcebergBaseTableResult, B extends Builder<R, B>> {
     @CanIgnoreReturnValue
     B from(IcebergBaseTableResult instance);

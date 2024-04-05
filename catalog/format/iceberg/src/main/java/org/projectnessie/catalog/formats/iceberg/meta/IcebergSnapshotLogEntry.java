@@ -41,6 +41,7 @@ public interface IcebergSnapshotLogEntry {
 
   long snapshotId();
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

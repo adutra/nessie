@@ -60,6 +60,7 @@ public interface IcebergNamespace {
     return ImmutableIcebergNamespace.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergNamespace instance);

@@ -72,6 +72,7 @@ public interface ListContentsParam {
     return true;
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder namespace(Namespace namespace);

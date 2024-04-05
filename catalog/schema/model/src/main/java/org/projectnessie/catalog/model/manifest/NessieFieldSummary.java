@@ -116,6 +116,7 @@ public interface NessieFieldSummary extends Hashable {
     return ImmutableNessieFieldSummary.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessieFieldSummary instance);

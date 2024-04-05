@@ -37,6 +37,7 @@ public interface IcebergRenameTableRequest {
     return ImmutableIcebergRenameTableRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     IcebergRenameTableRequest build();
   }

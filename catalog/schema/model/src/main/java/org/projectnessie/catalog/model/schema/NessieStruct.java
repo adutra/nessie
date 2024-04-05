@@ -51,6 +51,7 @@ public interface NessieStruct extends Hashable {
     return ImmutableNessieStruct.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder addField(NessieField field);

@@ -57,6 +57,7 @@ public interface IcebergViewVersion {
     return ImmutableIcebergViewVersion.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergViewVersion instance);

@@ -79,7 +79,6 @@ public interface IcebergSnapshot {
 
   String OPERATION = "operation";
 
-  // TODO mandatory entry with key 'operation'
   Map<String, String> summary();
 
   @JsonView(IcebergSpec.IcebergSpecV1.class)
@@ -105,6 +104,7 @@ public interface IcebergSnapshot {
         OPERATION);
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergSnapshot instance);

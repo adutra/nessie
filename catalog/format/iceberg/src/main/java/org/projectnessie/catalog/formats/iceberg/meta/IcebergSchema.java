@@ -83,6 +83,7 @@ public interface IcebergSchema {
         && identifierFieldIds().equals(anotherSchema.identifierFieldIds());
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergSchema schema);

@@ -47,6 +47,7 @@ public interface IcebergCommitViewRequest {
     return ImmutableIcebergCommitViewRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergCommitViewRequest instance);

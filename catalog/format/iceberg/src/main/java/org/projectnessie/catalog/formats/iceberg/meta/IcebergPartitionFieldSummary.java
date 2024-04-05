@@ -58,6 +58,7 @@ public interface IcebergPartitionFieldSummary {
   @jakarta.annotation.Nullable
   Boolean containsNan();
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

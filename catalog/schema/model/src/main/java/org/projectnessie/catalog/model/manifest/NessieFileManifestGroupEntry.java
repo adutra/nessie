@@ -126,6 +126,7 @@ public interface NessieFileManifestGroupEntry {
     return ImmutableNessieFileManifestGroupEntry.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessieFileManifestGroupEntry listManifestEntry);

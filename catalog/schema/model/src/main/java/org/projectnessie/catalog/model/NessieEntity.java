@@ -52,6 +52,7 @@ public interface NessieEntity {
   @JsonDeserialize(using = InstantDeserializer.class)
   Instant createdTimestamp();
 
+  @SuppressWarnings("unused")
   interface Builder<B extends Builder<B>> {
     @CanIgnoreReturnValue
     B nessieContentId(String nessieContentId);

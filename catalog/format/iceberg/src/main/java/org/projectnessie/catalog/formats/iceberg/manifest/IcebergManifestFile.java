@@ -79,6 +79,7 @@ public interface IcebergManifestFile {
 
   List<IcebergPartitionFieldSummary> partitions();
 
+  @SuppressWarnings("unused")
   interface Builder {
     IcebergManifestFile build();
 

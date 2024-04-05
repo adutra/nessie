@@ -47,6 +47,7 @@ public interface IcebergCommitTransactionRequest {
     return ImmutableIcebergCommitTransactionRequest.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     IcebergCommitTransactionRequest build();
   }

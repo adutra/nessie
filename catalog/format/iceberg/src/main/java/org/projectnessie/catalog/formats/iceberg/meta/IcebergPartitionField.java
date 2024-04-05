@@ -90,6 +90,7 @@ public interface IcebergPartitionField {
         INITIAL_COLUMN_ID);
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(IcebergPartitionField field);

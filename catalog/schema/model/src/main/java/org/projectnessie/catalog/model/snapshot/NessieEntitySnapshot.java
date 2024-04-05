@@ -113,6 +113,7 @@ public interface NessieEntitySnapshot<E extends NessieEntity> {
   // FIXME is this nullable? The builder method says yes, but the interface says no.
   Instant lastUpdatedTimestamp();
 
+  @SuppressWarnings("unused")
   interface Builder<B extends Builder<B>> {
     @CanIgnoreReturnValue
     B id(NessieId id);

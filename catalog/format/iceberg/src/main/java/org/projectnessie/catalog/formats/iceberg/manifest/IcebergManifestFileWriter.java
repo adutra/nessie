@@ -73,6 +73,7 @@ public abstract class IcebergManifestFileWriter {
     return false;
   }
 
+  @SuppressWarnings("unused")
   public interface Builder {
 
     @CanIgnoreReturnValue

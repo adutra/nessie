@@ -52,6 +52,7 @@ public interface IcebergCatalogOperation extends CatalogOperation {
     return requirements().stream().anyMatch(u -> u instanceof AssertCreate);
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(CatalogOperation instance);

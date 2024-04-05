@@ -55,6 +55,7 @@ public interface IcebergBlobMetadata {
 
   Map<String, String> properties();
 
+  @SuppressWarnings("unused")
   interface Builder {
 
     @CanIgnoreReturnValue

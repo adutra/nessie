@@ -132,6 +132,7 @@ public interface IcebergPartitionSpec {
     return true;
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder clear();

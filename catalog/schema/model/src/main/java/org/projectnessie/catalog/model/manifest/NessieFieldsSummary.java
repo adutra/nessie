@@ -106,6 +106,7 @@ public interface NessieFieldsSummary {
     return ImmutableNessieFieldsSummary.builder();
   }
 
+  @SuppressWarnings("unused")
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(NessieFieldsSummary instance);
