@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.zip.GZIPOutputStream;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
@@ -57,6 +58,26 @@ public class IcebergGenerateFixtures {
         throw new UncheckedIOException(e);
       }
     };
+  }
+
+  public static String generateCompressedMetadata(ObjectWriter writer, int icebergSpecVersion)
+      throws Exception {
+    IcebergTableMetadata simpleTableMetadata =
+        tableMetadataSimple().formatVersion(icebergSpecVersion).build();
+
+    byte[] data;
+    try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        GZIPOutputStream gzip = new GZIPOutputStream(bytes)) {
+      IcebergJson.objectMapper()
+          .enable(SerializationFeature.INDENT_OUTPUT)
+          .writeValue(gzip, simpleTableMetadata);
+      gzip.flush();
+      data = bytes.toByteArray();
+    }
+    return writer.write(
+        URI.create(
+            "table-metadata-simple-no-manifest/table-metadata-simple-compressed-no-manifest.json.gz"),
+        data);
   }
 
   public static String generateSimpleMetadata(ObjectWriter writer, int icebergSpecVersion)

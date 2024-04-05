@@ -27,11 +27,13 @@ import static org.projectnessie.versioned.storage.common.persist.ObjId.randomObj
 import static org.projectnessie.versioned.storage.common.persist.ObjIdHasher.objIdHasher;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongSupplier;
+import java.util.zip.GZIPInputStream;
 import org.projectnessie.catalog.formats.iceberg.manifest.IcebergFileFormat;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
@@ -106,11 +108,11 @@ final class ImportSnapshotWorker {
       IcebergTableMetadata tableMetadata;
       URI metadataLocation = URI.create(content.getMetadataLocation());
       try {
-        tableMetadata =
-            IcebergJson.objectMapper()
-                .readValue(
-                    taskRequest.objectIO().readObject(metadataLocation),
-                    IcebergTableMetadata.class);
+        InputStream input = taskRequest.objectIO().readObject(metadataLocation);
+        if (metadataLocation.getPath().endsWith(".gz")) {
+          input = new GZIPInputStream(input);
+        }
+        tableMetadata = IcebergJson.objectMapper().readValue(input, IcebergTableMetadata.class);
       } catch (IOException e) {
         throw new IOException(
             "Failed to read table metadata from " + content.getMetadataLocation(), e);
@@ -197,10 +199,12 @@ final class ImportSnapshotWorker {
       IcebergViewMetadata viewMetadata;
       URI metadataLocation = URI.create(content.getMetadataLocation());
       try {
-        viewMetadata =
-            IcebergJson.objectMapper()
-                .readValue(
-                    taskRequest.objectIO().readObject(metadataLocation), IcebergViewMetadata.class);
+
+        InputStream input = taskRequest.objectIO().readObject(metadataLocation);
+        if (metadataLocation.getPath().endsWith(".gz")) {
+          input = new GZIPInputStream(input);
+        }
+        viewMetadata = IcebergJson.objectMapper().readValue(input, IcebergViewMetadata.class);
       } catch (IOException e) {
         throw new IOException(
             "Failed to read view metadata from " + content.getMetadataLocation(), e);

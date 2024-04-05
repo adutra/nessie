@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.list;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
+import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.generateCompressedMetadata;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.generateMetadataWithManifestList;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.generateMetadataWithManifests;
 import static org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures.generateSimpleMetadata;
@@ -110,8 +111,8 @@ public class TestIcebergStuff {
   }
 
   @ParameterizedTest
-  @MethodSource("icebergImports")
-  public void icebergImportsRetrieveManifests(
+  @MethodSource("icebergTableImports")
+  public void icebergTableImportsRetrieveManifests(
       @SuppressWarnings("unused") String testName,
       String icebergTableMetadata,
       @SuppressWarnings("unused") boolean hasManifests)
@@ -132,8 +133,8 @@ public class TestIcebergStuff {
   }
 
   @ParameterizedTest
-  @MethodSource("icebergImports")
-  public void icebergImportsWithoutManifests(
+  @MethodSource("icebergTableImports")
+  public void icebergTableImportsWithoutManifests(
       @SuppressWarnings("unused") String testName,
       String icebergTableMetadata,
       boolean hasManifestGroup)
@@ -191,9 +192,10 @@ public class TestIcebergStuff {
     }
   }
 
-  static Stream<Arguments> icebergImports() throws Exception {
+  static Stream<Arguments> icebergTableImports() throws Exception {
     IcebergGenerateFixtures.ObjectWriter objectWriter = objectWriterForPath(tempDir);
     return Stream.of(
+        arguments("compressed table-metadata", generateCompressedMetadata(objectWriter, 2), false),
         arguments("no manifests", generateSimpleMetadata(objectWriter, 2), false),
         arguments(
             "with manifest list",
