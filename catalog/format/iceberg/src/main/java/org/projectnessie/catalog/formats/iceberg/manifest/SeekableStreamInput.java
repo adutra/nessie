@@ -23,12 +23,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import org.apache.avro.file.SeekableFileInput;
 import org.apache.avro.file.SeekableInput;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class SeekableStreamInput implements SeekableInput {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SeekableStreamInput.class);
-  private final URI uri;
   private final Path tempFile;
   private final SeekableFileInput seekableFileInput;
   private boolean closed;
@@ -39,7 +35,6 @@ public final class SeekableStreamInput implements SeekableInput {
   }
 
   public SeekableStreamInput(URI uri, SourceProvider source) throws IOException {
-    this.uri = uri;
     this.tempFile = Files.createTempFile("manifest-list-temp-", ".avro");
     // TODO Need some tooling to create an Avro `SeekableInput` from an `InputStream` without
     //  copying it to a temporary file. Something like org.apache.iceberg.aws.s3.S3InputStream ?
@@ -51,29 +46,21 @@ public final class SeekableStreamInput implements SeekableInput {
 
   @Override
   public void seek(long p) throws IOException {
-    // TODO trace level
-    LOGGER.info("seek({}) for {}", p, uri);
     seekableFileInput.seek(p);
   }
 
   @Override
   public long tell() throws IOException {
-    // TODO trace level
-    LOGGER.info("tell() for {}", uri);
     return seekableFileInput.tell();
   }
 
   @Override
   public long length() throws IOException {
-    // TODO trace level
-    LOGGER.info("length() for {}", uri);
     return seekableFileInput.length();
   }
 
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
-    // TODO trace level
-    LOGGER.info("read({}, {}, {}) for {}", b.length, off, len, uri);
     return seekableFileInput.read(b, off, len);
   }
 
@@ -82,8 +69,6 @@ public final class SeekableStreamInput implements SeekableInput {
     if (closed) {
       return;
     }
-    // TODO trace level
-    LOGGER.info("close() for {}", uri);
     try {
       seekableFileInput.close();
     } finally {

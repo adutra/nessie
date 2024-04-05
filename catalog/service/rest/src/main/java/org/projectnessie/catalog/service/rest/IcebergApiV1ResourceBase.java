@@ -147,12 +147,8 @@ import org.projectnessie.model.Operation;
 import org.projectnessie.model.Reference;
 import org.projectnessie.model.TableReference;
 import org.projectnessie.services.config.ServerConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(IcebergApiV1ResourceBase.class);
 
   /**
    * This is the signer endpoint (like {@code v1/aws/s3/sign}), it is evaluated per {@code S3FileIO}
@@ -542,18 +538,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               ICEBERG_TABLE.equals(existing.getType()) ? "" : "with same name ",
               tableRef.contentKey()));
     }
-    Branch target = checkBranch(contentResponse.getEffectiveReference());
+    checkBranch(contentResponse.getEffectiveReference());
 
     if (createTableRequest.stageCreate()) {
-      // TODO reduce log level to trace (or remove logging)
-      LOGGER.info(
-          "Staged create-table for table '{}' on '{}' with schema: {}, spec: {}, sort-order: {}",
-          tableRef.contentKey(),
-          target,
-          schema,
-          spec,
-          sortOrder);
-
       NessieTableSnapshot snapshot =
           new IcebergTableMetadataUpdateState(
                   newIcebergTableSnapshot(updates), tableRef.contentKey(), false)
@@ -573,7 +560,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                   prefix,
                   tableRef.contentKey()));
     }
-    LOGGER.info("Create-table for table '{}' on '{}'", tableRef.contentKey(), target.getName());
 
     IcebergUpdateTableRequest updateTableReq =
         IcebergUpdateTableRequest.builder()
@@ -831,9 +817,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               ICEBERG_VIEW.equals(existing.getType()) ? "" : "with same name ",
               tableRef.contentKey()));
     }
-    Branch target = checkBranch(contentResponse.getEffectiveReference());
-
-    LOGGER.info("Create-view for view '{}' on '{}'", tableRef.contentKey(), target.getName());
+    checkBranch(contentResponse.getEffectiveReference());
 
     IcebergCommitViewRequest updateTableReq =
         IcebergCommitViewRequest.builder()

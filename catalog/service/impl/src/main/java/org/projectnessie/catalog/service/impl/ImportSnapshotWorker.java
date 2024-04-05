@@ -93,7 +93,7 @@ final class ImportSnapshotWorker {
       IcebergTable content, NessieTableSnapshot snapshot) throws Exception {
     NessieId snapshotId = objIdToNessieId(taskRequest.objId());
 
-    LOGGER.info(
+    LOGGER.debug(
         "{} Iceberg table metadata from object store for snapshot ID {} from {}",
         snapshot == null ? "Fetching" : "Storing",
         taskRequest.objId(),
@@ -184,7 +184,7 @@ final class ImportSnapshotWorker {
       IcebergView content, NessieViewSnapshot snapshot) throws Exception {
     NessieId snapshotId = objIdToNessieId(taskRequest.objId());
 
-    LOGGER.info(
+    LOGGER.debug(
         "{} Iceberg view metadata from object store for snapshot ID {} from {}",
         snapshot == null ? "Fetching" : "Storing",
         taskRequest.objId(),

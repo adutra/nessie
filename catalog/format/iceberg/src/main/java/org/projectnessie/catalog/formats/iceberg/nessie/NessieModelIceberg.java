@@ -1635,9 +1635,6 @@ public class NessieModelIceberg {
     }
     sortOrder = sortOrderBuilder.build();
 
-    // TODO reduce log level to trace
-    LOGGER.info("Add sort order (after ID reassignment): {}", sortOrder);
-
     // Check if a similar order exists, and if so then update the "last added order ID"
     // accordingly for a following "set-current-order -1".
     ReuseOrCreate<IcebergSortOrder> reuseOrCreate =

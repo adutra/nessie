@@ -174,7 +174,7 @@ final class ImportManifestFileWorker {
         // TODO append `nessieDataFile` to a "huge" persisted object containing all
         //  manifest-file-entries.
 
-        LOGGER.debug(
+        LOGGER.trace(
             "Generated new manifest file entry:\n    {}\n    nessieDataFile: {}",
             manifestEntry,
             nessieDataFile);

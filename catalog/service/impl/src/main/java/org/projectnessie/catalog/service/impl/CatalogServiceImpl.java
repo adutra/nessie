@@ -160,8 +160,7 @@ public class CatalogServiceImpl implements CatalogService {
       throws NessieNotFoundException {
     ParsedReference reference = reqParams.ref();
 
-    // TODO remove this log information / move to "trace" / remove sensitive information
-    LOGGER.info(
+    LOGGER.trace(
         "retrieveTableSnapshots ref-name:{} ref-hash:{} keys:{}",
         reference.name(),
         reference.hashWithRelativeSpec(),
@@ -192,9 +191,7 @@ public class CatalogServiceImpl implements CatalogService {
               return (Supplier<CompletionStage<SnapshotResponse>>)
                   () -> {
                     ContentKey key = c.getKey();
-                    // TODO remove this log information / move to "trace" / remove sensitive
-                    // information
-                    LOGGER.info(
+                    LOGGER.trace(
                         "retrieveTableSnapshots - individual ref-name:{} ref-hash:{} key:{}",
                         reference.name(),
                         reference.hashWithRelativeSpec(),
@@ -221,8 +218,7 @@ public class CatalogServiceImpl implements CatalogService {
 
     ParsedReference reference = reqParams.ref();
 
-    // TODO remove this log information / move to "trace" / remove sensitive information
-    LOGGER.info(
+    LOGGER.trace(
         "retrieveTableSnapshot ref-name:{} ref-hash:{} key:{}",
         reference.name(),
         reference.hashWithRelativeSpec(),
@@ -467,8 +463,7 @@ public class CatalogServiceImpl implements CatalogService {
 
     MultiTableUpdate multiTableUpdate = new MultiTableUpdate(nessieCommit);
 
-    // TODO reduce log level to trace or remove logging
-    LOGGER.info(
+    LOGGER.trace(
         "Executing commit containing {} operations against '{}@{}'",
         commit.getOperations().size(),
         target.getName(),
@@ -601,14 +596,15 @@ public class CatalogServiceImpl implements CatalogService {
                   // TODO This throws `IcebergConflictException`s, even if the request came via
                   //  `CatalogTransportResource` - need some way to distinguish exceptions.
                   try {
-                    // TODO reduce log level to trace or remove logging
-                    LOGGER.info(
-                        "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
-                        icebergOp.updates().size(),
-                        icebergOp.requirements().size(),
-                        op.getKey(),
-                        reference.getName(),
-                        reference.getHash());
+                    if (LOGGER.isTraceEnabled()) {
+                      LOGGER.trace(
+                          "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
+                          icebergOp.updates().size(),
+                          icebergOp.requirements().size(),
+                          op.getKey(),
+                          reference.getName(),
+                          reference.getHash());
+                    }
                     return new IcebergTableMetadataUpdateState(
                             nessieSnapshot, op.getKey(), content != null)
                         .checkRequirements(icebergOp.requirements())
@@ -684,14 +680,15 @@ public class CatalogServiceImpl implements CatalogService {
                   // TODO This throws `IcebergConflictException`s, even if the request came via
                   //  `CatalogTransportResource` - need some way to distinguish exceptions.
                   try {
-                    // TODO reduce log level to trace or remove logging
-                    LOGGER.info(
-                        "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
-                        icebergOp.updates().size(),
-                        icebergOp.requirements().size(),
-                        op.getKey(),
-                        reference.getName(),
-                        reference.getHash());
+                    if (LOGGER.isTraceEnabled()) {
+                      LOGGER.trace(
+                          "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
+                          icebergOp.updates().size(),
+                          icebergOp.requirements().size(),
+                          op.getKey(),
+                          reference.getName(),
+                          reference.getHash());
+                    }
                     return new IcebergViewMetadataUpdateState(
                             nessieSnapshot, op.getKey(), content != null)
                         .checkRequirements(icebergOp.requirements())
@@ -706,7 +703,7 @@ public class CatalogServiceImpl implements CatalogService {
                 })
             .thenApply(
                 nessieSnapshot -> {
-                  // TODO: support GZIP
+                  // TODO: support GZIP ??
                   // TODO: support TableProperties.WRITE_METADATA_LOCATION
                   String location =
                       String.format(
@@ -886,16 +883,6 @@ public class CatalogServiceImpl implements CatalogService {
                         new RuntimeException(
                             "No NessieFileManifestGroupEntry with ID " + manifestFileId));
 
-        LOGGER.info(
-            "Producing manifest file for manifest-list-entry {} for snapshot {}/{}, schema {}/{}, partition-definition {}/{}",
-            nessieFileManifestGroupEntry.manifestId().idAsString(),
-            snapshot.icebergSnapshotId(),
-            snapshot.id().idAsString(),
-            schema.icebergId(),
-            schema.id().idAsString(),
-            partitionDefinition.icebergId(),
-            partitionDefinition.id().idAsString());
-
         IcebergSchema icebergSchema = nessieSchemaToIcebergSchema(schema);
         IcebergPartitionSpec partitionSpec =
             nessiePartitionDefinitionToIceberg(partitionDefinition);
@@ -1033,16 +1020,6 @@ public class CatalogServiceImpl implements CatalogService {
                                 + " partition definitions"));
 
         NessieFileManifestGroup nessieFileManifestGroup = snapshot.fileManifestGroup();
-
-        LOGGER.info(
-            "Producing manifest list with {} entries for snapshot {}/{}, schema {}/{}, partition-definition {}/{}",
-            nessieFileManifestGroup.manifests().size(),
-            snapshot.icebergSnapshotId(),
-            snapshot.id().idAsString(),
-            schema.icebergId(),
-            schema.id().idAsString(),
-            partitionDefinition.icebergId(),
-            partitionDefinition.id().idAsString());
 
         Map<String, String> properties = new HashMap<>(snapshot.properties());
         tablePropertiesTweak.accept(properties);

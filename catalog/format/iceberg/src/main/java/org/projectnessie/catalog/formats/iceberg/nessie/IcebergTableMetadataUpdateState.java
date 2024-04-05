@@ -29,8 +29,6 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.model.ContentKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Maintains state when applying {@linkplain IcebergMetadataUpdate Iceberg metadata updates} to a
@@ -48,9 +46,6 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class IcebergTableMetadataUpdateState {
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(IcebergTableMetadataUpdateState.class);
-
   private final NessieTableSnapshot.Builder builder;
   private final ContentKey key;
   private final boolean tableExists;
@@ -93,8 +88,6 @@ public class IcebergTableMetadataUpdateState {
   }
 
   public void schemaAdded(int schemaId) {
-    // TODO reduce log level to trace (or remove logging)
-    LOGGER.info("added schema ID {}", schemaId);
     if (schemaId >= 0) {
       addedSchemaIds.add(schemaId);
     }
@@ -110,8 +103,6 @@ public class IcebergTableMetadataUpdateState {
   }
 
   public void specAdded(int specId) {
-    // TODO reduce log level to trace (or remove logging)
-    LOGGER.info("added spec ID {}", specId);
     if (specId >= 0) {
       addedSpecIds.add(specId);
     }
@@ -127,8 +118,6 @@ public class IcebergTableMetadataUpdateState {
   }
 
   public void sortOrderAdded(int orderId) {
-    // TODO reduce log level to trace (or remove logging)
-    LOGGER.info("added order ID {}", orderId);
     if (orderId >= 0) {
       addedOrderIds.add(orderId);
     }
@@ -141,20 +130,14 @@ public class IcebergTableMetadataUpdateState {
 
   public IcebergTableMetadataUpdateState checkRequirements(
       List<IcebergUpdateRequirement> requirements) {
-    // TODO reduce log level to trace
-    LOGGER.info("check {} requirements against {}", requirements.size(), key);
     for (IcebergUpdateRequirement requirement : requirements) {
-      LOGGER.info("check requirement: {}", requirement);
       requirement.checkForTable(snapshot, tableExists, key);
     }
     return this;
   }
 
   public IcebergTableMetadataUpdateState applyUpdates(List<IcebergMetadataUpdate> updates) {
-    // TODO reduce log level to trace
-    LOGGER.info("apply {} updates to {}", updates.size(), key);
     for (IcebergMetadataUpdate update : updates) {
-      LOGGER.info("apply update: {}", update);
       update.applyToTable(this);
       snapshot = builder.lastUpdatedTimestamp(now()).build();
     }

@@ -92,9 +92,8 @@ public class S3ClientSupplier {
             .serviceConfiguration(
                 serviceConfig -> serviceConfig.profileFile(() -> EMPTY_PROFILE_FILE));
 
-    // TODO reduce log level to TRACE
-    if (LOGGER.isInfoEnabled()) {
-      LOGGER.info(
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace(
           "Building S3-client for bucket {} using endpoint {} with {}",
           bucketName,
           bucketOptions.endpoint(),
