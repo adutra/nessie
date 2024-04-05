@@ -15,24 +15,29 @@
  */
 package org.projectnessie.catalog.files.api;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.Optional;
 
-public abstract class ObjectIOException extends IOException {
-  public ObjectIOException(Throwable cause) {
+public class NonRetryableException extends ObjectIOException {
+  public NonRetryableException(Throwable cause) {
     super(cause);
   }
 
-  public ObjectIOException(String message) {
+  public NonRetryableException(String message) {
     super(message);
   }
 
-  public ObjectIOException(String message, Throwable cause) {
+  public NonRetryableException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public abstract boolean isRetryable();
+  @Override
+  public boolean isRetryable() {
+    return false;
+  }
 
-  public abstract Optional<Instant> retryNotBefore();
+  @Override
+  public Optional<Instant> retryNotBefore() {
+    return Optional.empty();
+  }
 }

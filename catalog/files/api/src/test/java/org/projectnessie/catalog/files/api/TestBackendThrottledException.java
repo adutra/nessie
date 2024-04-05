@@ -20,6 +20,7 @@ import static java.time.Instant.now;
 import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.SECONDS;
+import static org.assertj.core.api.InstanceOfAssertFactories.optional;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.Clock;
@@ -76,7 +77,8 @@ public class TestBackendThrottledException {
                   instant -> new BackendThrottledException(instant, "hello"),
                   fallback))
           .get()
-          .extracting(BackendThrottledException::retryNotBefore)
+          .extracting(BackendThrottledException::retryNotBefore, optional(Instant.class))
+          .get()
           .isEqualTo(expected);
     }
   }
@@ -111,7 +113,8 @@ public class TestBackendThrottledException {
                   instant -> new BackendThrottledException(instant, "hello"),
                   fallback))
           .get()
-          .extracting(BackendThrottledException::retryNotBefore)
+          .extracting(BackendThrottledException::retryNotBefore, optional(Instant.class))
+          .get()
           .isEqualTo(expected);
     }
   }

@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.files.s3;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
+import static org.assertj.core.api.InstanceOfAssertFactories.optional;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -68,7 +69,8 @@ public class TestS3ObjectIO {
     soft.assertThatThrownBy(() -> objectIO.readObject(location))
         .isInstanceOf(BackendThrottledException.class)
         .asInstanceOf(type(BackendThrottledException.class))
-        .extracting(BackendThrottledException::retryNotBefore)
+        .extracting(BackendThrottledException::retryNotBefore, optional(Instant.class))
+        .get()
         .isEqualTo(now.plus(defaultRetryAfter));
   }
 }

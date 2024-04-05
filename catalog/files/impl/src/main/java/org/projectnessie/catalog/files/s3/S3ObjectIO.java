@@ -26,8 +26,8 @@ import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import org.projectnessie.catalog.files.api.BackendThrottledException;
+import org.projectnessie.catalog.files.api.NonRetryableException;
 import org.projectnessie.catalog.files.api.ObjectIO;
-import org.projectnessie.catalog.files.api.ObjectIOException;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -68,7 +68,7 @@ public class S3ObjectIO implements ObjectIO {
             "S3 throttled",
             e);
       }
-      throw new ObjectIOException(e);
+      throw new NonRetryableException(e);
     }
   }
 

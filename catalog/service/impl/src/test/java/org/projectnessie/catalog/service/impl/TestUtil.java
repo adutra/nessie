@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.projectnessie.catalog.files.api.BackendThrottledException;
+import org.projectnessie.catalog.files.api.ObjectIOException;
 import org.projectnessie.nessie.tasks.api.TaskState;
 
 @ExtendWith(SoftAssertionsExtension.class)
@@ -44,8 +45,8 @@ public class TestUtil {
             Util.anyCauseMatches(
                 throwable,
                 t ->
-                    t instanceof BackendThrottledException
-                        ? ((BackendThrottledException) t).retryNotBefore()
+                    t instanceof ObjectIOException
+                        ? ((ObjectIOException) t).retryNotBefore().orElse(null)
                         : null))
         .isEqualTo(Optional.ofNullable(expected));
   }

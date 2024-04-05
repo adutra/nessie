@@ -25,26 +25,17 @@ import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class BackendThrottledException extends ObjectIOException {
-  private final Instant retryNotBefore;
-
+public class BackendThrottledException extends RetryableException {
   public BackendThrottledException(Instant retryNotBefore, Throwable cause) {
-    super(cause);
-    this.retryNotBefore = retryNotBefore;
+    super(retryNotBefore, cause);
   }
 
   public BackendThrottledException(Instant retryNotBefore, String message) {
-    super(message);
-    this.retryNotBefore = retryNotBefore;
+    super(retryNotBefore, message);
   }
 
   public BackendThrottledException(Instant retryNotBefore, String message, Throwable cause) {
-    super(message, cause);
-    this.retryNotBefore = retryNotBefore;
-  }
-
-  public Instant retryNotBefore() {
-    return retryNotBefore;
+    super(retryNotBefore, message, cause);
   }
 
   /**

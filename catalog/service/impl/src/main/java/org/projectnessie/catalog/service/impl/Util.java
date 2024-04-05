@@ -20,7 +20,7 @@ import static org.projectnessie.nessie.tasks.api.TaskState.retryableErrorState;
 
 import java.util.Optional;
 import java.util.function.Function;
-import org.projectnessie.catalog.files.api.BackendThrottledException;
+import org.projectnessie.catalog.files.api.ObjectIOException;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.tasks.api.TaskState;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
@@ -40,9 +40,11 @@ final class Util {
     return anyCauseMatches(
             throwable,
             e -> {
-              if (e instanceof BackendThrottledException) {
-                BackendThrottledException throttledException = (BackendThrottledException) e;
-                return retryableErrorState(throttledException.retryNotBefore(), e.toString());
+              if (e instanceof ObjectIOException) {
+                return ((ObjectIOException) e)
+                    .retryNotBefore()
+                    .map(notBefore -> retryableErrorState(notBefore, e.toString()))
+                    .orElse(null);
               }
               return null;
             })
