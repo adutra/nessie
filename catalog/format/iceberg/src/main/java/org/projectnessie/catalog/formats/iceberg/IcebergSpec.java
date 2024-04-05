@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.formats.iceberg;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import org.projectnessie.catalog.formats.iceberg.manifest.Avro;
@@ -42,12 +43,22 @@ public enum IcebergSpec {
   }
 
   public ObjectReader jsonReader() {
-    // TODO use "final" instance
+    if (jsonView == IcebergSpecV1.class) {
+      return IcebergJsonReadersWriters.readerV1;
+    }
+    if (jsonView == IcebergSpecV2.class) {
+      return IcebergJsonReadersWriters.readerV2;
+    }
     return IcebergJson.objectMapper().readerWithView(jsonView());
   }
 
   public ObjectWriter jsonWriter() {
-    // TODO use "final" instance
+    if (jsonView == IcebergSpecV1.class) {
+      return IcebergJsonReadersWriters.writerV1;
+    }
+    if (jsonView == IcebergSpecV2.class) {
+      return IcebergJsonReadersWriters.writerV2;
+    }
     return IcebergJson.objectMapper().writerWithView(jsonView());
   }
 
@@ -72,5 +83,20 @@ public enum IcebergSpec {
 
   public static final class IcebergSpecV2 {
     private IcebergSpecV2() {}
+  }
+
+  private static final class IcebergJsonReadersWriters {
+    static final ObjectReader readerV1;
+    static final ObjectReader readerV2;
+    static final ObjectWriter writerV1;
+    static final ObjectWriter writerV2;
+
+    static {
+      ObjectMapper mapper = IcebergJson.objectMapper();
+      readerV1 = mapper.readerWithView(IcebergSpecV1.class);
+      readerV2 = mapper.readerWithView(IcebergSpecV2.class);
+      writerV1 = mapper.writerWithView(IcebergSpecV1.class);
+      writerV2 = mapper.writerWithView(IcebergSpecV2.class);
+    }
   }
 }
