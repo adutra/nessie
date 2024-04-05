@@ -15,8 +15,6 @@
  */
 package org.projectnessie.catalog.formats.iceberg.meta;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -24,7 +22,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Objects;
-import org.immutables.value.Value;
+import org.projectnessie.catalog.model.schema.NessieNullOrder;
+import org.projectnessie.catalog.model.schema.NessieSortDirection;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -34,17 +33,12 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public interface IcebergSortField {
 
-  String NULLS_FIRST = "nulls-first";
-  String NULLS_LAST = "nulls-last";
-  String ASC = "asc";
-  String DESC = "desc";
-
   static Builder builder() {
     return ImmutableIcebergSortField.builder();
   }
 
   static IcebergSortField sortField(
-      String transform, int sourceId, String direction, String nullOrder) {
+      String transform, int sourceId, NessieSortDirection direction, NessieNullOrder nullOrder) {
     return ImmutableIcebergSortField.of(transform, sourceId, direction, nullOrder);
   }
 
@@ -56,23 +50,9 @@ public interface IcebergSortField {
 
   int sourceId();
 
-  // TODO make it an enum?
-  String direction();
+  NessieSortDirection direction();
 
-  // TODO make it an enum?
-  String nullOrder();
-
-  @Value.Check
-  default void check() {
-    checkState(
-        NULLS_FIRST.equals(nullOrder()) || NULLS_LAST.equals(nullOrder()),
-        "Illegal value for null-oder: %s",
-        nullOrder());
-    checkState(
-        ASC.equals(direction()) || DESC.equals(direction()),
-        "Illegal value for direction: %s",
-        nullOrder());
-  }
+  NessieNullOrder nullOrder();
 
   default boolean satisfies(IcebergSortField other) {
     if (Objects.equals(this, other)) {
@@ -103,10 +83,10 @@ public interface IcebergSortField {
     Builder sourceId(int sourceId);
 
     @CanIgnoreReturnValue
-    Builder direction(String direction);
+    Builder direction(NessieSortDirection direction);
 
     @CanIgnoreReturnValue
-    Builder nullOrder(String nullOrder);
+    Builder nullOrder(NessieNullOrder nullOrder);
 
     IcebergSortField build();
   }

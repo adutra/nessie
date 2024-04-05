@@ -61,10 +61,12 @@ import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.locations.BaseLocation;
 import org.projectnessie.catalog.model.schema.NessieField;
 import org.projectnessie.catalog.model.schema.NessieFieldTransform;
+import org.projectnessie.catalog.model.schema.NessieNullOrder;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessiePartitionField;
 import org.projectnessie.catalog.model.schema.NessieSchema;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
+import org.projectnessie.catalog.model.schema.NessieSortDirection;
 import org.projectnessie.catalog.model.schema.types.NessieTypeSpec;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.model.snapshot.TableFormat;
@@ -179,8 +181,8 @@ public class TestNessieModelIceberg {
                 IcebergSortField.sortField(
                     IcebergTransform.identity().toString(),
                     123,
-                    IcebergSortField.ASC,
-                    IcebergSortField.NULLS_FIRST)));
+                    NessieSortDirection.ASC,
+                    NessieNullOrder.NULLS_FIRST)));
     soft.assertThat(icebergJsonSerializeDeserialize(icebergSortOrder, IcebergSortOrder.class))
         .isEqualTo(icebergSortOrder);
 

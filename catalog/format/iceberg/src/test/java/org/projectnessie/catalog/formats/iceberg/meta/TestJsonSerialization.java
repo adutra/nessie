@@ -42,6 +42,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
+import org.projectnessie.catalog.model.schema.NessieNullOrder;
+import org.projectnessie.catalog.model.schema.NessieSortDirection;
 
 @ExtendWith(SoftAssertionsExtension.class)
 public class TestJsonSerialization {
@@ -88,7 +90,16 @@ public class TestJsonSerialization {
                 partitionSpec(
                     3, singletonList(partitionField("one_bucket", "bucket[16]", 1, 1111))))
             .addSortOrders(
-                sortOrder(2, singletonList(sortField("identity", 2, "asc", "nulls-first"))))
+                sortOrder(
+                    2,
+                    singletonList(
+                        sortField(
+                            "identity", 2, NessieSortDirection.ASC, NessieNullOrder.NULLS_FIRST))),
+                sortOrder(
+                    3,
+                    singletonList(
+                        sortField(
+                            "identity", 1, NessieSortDirection.DESC, NessieNullOrder.NULLS_LAST))))
             .addSnapshots(
                 snapshot(
                     333L,

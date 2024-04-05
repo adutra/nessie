@@ -36,9 +36,9 @@ public interface NessieSortField extends Hashable {
   @JsonDeserialize(using = NessieFieldTransformDeserializer.class)
   NessieFieldTransform transformSpec();
 
-  String nullOrder();
+  NessieNullOrder nullOrder();
 
-  String direction();
+  NessieSortDirection direction();
 
   @Override
   default void hash(NessieIdHasher idHasher) {
@@ -46,8 +46,8 @@ public interface NessieSortField extends Hashable {
         .hash(sourceField().id())
         .hash(type())
         .hash(transformSpec())
-        .hash(nullOrder())
-        .hash(direction());
+        .hash(nullOrder().name())
+        .hash(direction().name());
   }
 
   static Builder builder() {
@@ -69,10 +69,10 @@ public interface NessieSortField extends Hashable {
     Builder transformSpec(NessieFieldTransform transformSpec);
 
     @CanIgnoreReturnValue
-    Builder nullOrder(String nullOrder);
+    Builder nullOrder(NessieNullOrder nullOrder);
 
     @CanIgnoreReturnValue
-    Builder direction(String direction);
+    Builder direction(NessieSortDirection direction);
 
     NessieSortField build();
   }

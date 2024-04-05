@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.model.schema;
 
 import static java.util.Collections.emptyList;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -26,14 +27,25 @@ import java.util.stream.Stream;
 import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
 import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.schema.types.NessieType;
 
 @ExtendWith(SoftAssertionsExtension.class)
 public class TestNessieSchema {
   @InjectSoftAssertions protected SoftAssertions soft;
+
+  static ObjectMapper mapper;
+
+  @BeforeAll
+  public static void createMapper() {
+    mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).findAndRegisterModules();
+  }
 
   @Test
   public void allTypes() throws Exception {
@@ -79,8 +91,6 @@ public class TestNessieSchema {
     NessieId schemaId = NessieId.randomNessieId();
     NessieSchema schema = NessieSchema.nessieSchema(schemaId, struct.build(), 42, emptyList());
 
-    ObjectMapper mapper =
-        new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).findAndRegisterModules();
     String json = mapper.writeValueAsString(schema);
     NessieSchema deserialized = mapper.readValue(json, NessieSchema.class);
 
@@ -88,5 +98,123 @@ public class TestNessieSchema {
         .containsExactlyElementsOf(schema.struct().fields());
     soft.assertThat(deserialized).isEqualTo(schema);
     soft.assertThat(mapper.writeValueAsString(deserialized)).isEqualTo(json);
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  public void jsonSerialization(String json, Object object, Class<?> type) throws Exception {
+    String ser = mapper.writeValueAsString(object);
+    Object reser = mapper.readValue(ser, type);
+    soft.assertThat(reser).isEqualTo(object);
+
+    Object deser = mapper.readValue(json, type);
+    soft.assertThat(deser).isEqualTo(object);
+  }
+
+  static Stream<Arguments> jsonSerialization() {
+    UUID id = UUID.fromString("8c4f7079-5905-4604-9333-e928d21613df");
+
+    return Stream.of(
+        arguments(
+            "{\n"
+                + "  \"sourceField\" : {\n"
+                + "    \"id\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
+                + "    \"icebergId\" : -1,\n"
+                + "    \"name\" : \"foo\",\n"
+                + "    \"type\" : {\n"
+                + "      \"type\" : \"int\"\n"
+                + "    },\n"
+                + "    \"nullable\" : true\n"
+                + "  },\n"
+                + "  \"type\" : {\n"
+                + "    \"type\" : \"int\"\n"
+                + "  },\n"
+                + "  \"transformSpec\" : \"bucket[42]\",\n"
+                + "  \"nullOrder\" : \"nulls-first\",\n"
+                + "  \"direction\" : \"asc\"\n"
+                + "}",
+            NessieSortField.builder()
+                .direction(NessieSortDirection.ASC)
+                .nullOrder(NessieNullOrder.NULLS_FIRST)
+                .type(NessieType.intType())
+                .transformSpec(NessieFieldTransform.bucket(42))
+                .sourceField(
+                    NessieField.builder()
+                        .id(id)
+                        .name("foo")
+                        .type(NessieType.intType())
+                        .nullable(true)
+                        .build())
+                .build(),
+            NessieSortField.class),
+        //
+        arguments(
+            "{\n"
+                + "  \"sourceField\" : {\n"
+                + "    \"id\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
+                + "    \"icebergId\" : -1,\n"
+                + "    \"name\" : \"foo\",\n"
+                + "    \"type\" : {\n"
+                + "      \"type\" : \"int\"\n"
+                + "    },\n"
+                + "    \"nullable\" : true\n"
+                + "  },\n"
+                + "  \"type\" : {\n"
+                + "    \"type\" : \"int\"\n"
+                + "  },\n"
+                + "  \"transformSpec\" : \"bucket[42]\",\n"
+                + "  \"nullOrder\" : \"nulls-last\",\n"
+                + "  \"direction\" : \"desc\"\n"
+                + "}",
+            NessieSortField.builder()
+                .direction(NessieSortDirection.DESC)
+                .nullOrder(NessieNullOrder.NULLS_LAST)
+                .type(NessieType.intType())
+                .transformSpec(NessieFieldTransform.bucket(42))
+                .sourceField(
+                    NessieField.builder()
+                        .id(id)
+                        .name("foo")
+                        .type(NessieType.intType())
+                        .nullable(true)
+                        .build())
+                .build(),
+            NessieSortField.class),
+        //
+        arguments(
+            "{\n"
+                + "  \"sourceField\" : {\n"
+                + "    \"id\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
+                + "    \"icebergId\" : -1,\n"
+                + "    \"name\" : \"foo\",\n"
+                + "    \"type\" : {\n"
+                + "      \"type\" : \"int\"\n"
+                + "    },\n"
+                + "    \"nullable\" : true\n"
+                + "  },\n"
+                + "  \"type\" : {\n"
+                + "    \"type\" : \"int\"\n"
+                + "  },\n"
+                + "  \"transformSpec\" : \"bucket[42]\",\n"
+                + "  \"nullOrder\" : \"nulls-random\",\n"
+                + "  \"direction\" : \"mixed\"\n"
+                + "}",
+            NessieSortField.builder()
+                // unknown sort-direction + null-order
+                .direction(ImmutableNessieSortDirection.of("mixed", "mixed"))
+                .nullOrder(ImmutableNessieNullOrder.of("nulls-random", "nulls-random"))
+                .type(NessieType.intType())
+                .transformSpec(NessieFieldTransform.bucket(42))
+                .sourceField(
+                    NessieField.builder()
+                        .id(id)
+                        .name("foo")
+                        .type(NessieType.intType())
+                        .nullable(true)
+                        .build())
+                .build(),
+            NessieSortField.class)
+        //
+        );
   }
 }

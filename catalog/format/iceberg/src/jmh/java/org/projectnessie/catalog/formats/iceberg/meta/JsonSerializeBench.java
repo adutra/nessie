@@ -51,6 +51,8 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.projectnessie.catalog.formats.iceberg.IcebergSpec;
+import org.projectnessie.catalog.model.schema.NessieNullOrder;
+import org.projectnessie.catalog.model.schema.NessieSortDirection;
 
 @Warmup(iterations = 2, time = 2000, timeUnit = MILLISECONDS)
 @Measurement(iterations = 3, time = 1000, timeUnit = MILLISECONDS)
@@ -138,7 +140,9 @@ public class JsonSerializeBench {
         List<IcebergSortField> sortFields = new ArrayList<>(sortOrderFields);
         int fieldOffset = 1000 * sv;
         for (int f = 0; f < sortOrderFields; f++) {
-          sortFields.add(sortField("identity", fieldOffset, "asc", "nulls-first"));
+          sortFields.add(
+              sortField(
+                  "identity", fieldOffset, NessieSortDirection.ASC, NessieNullOrder.NULLS_FIRST));
         }
         builder.addSortOrders(sortOrder(sv, sortFields));
       }
