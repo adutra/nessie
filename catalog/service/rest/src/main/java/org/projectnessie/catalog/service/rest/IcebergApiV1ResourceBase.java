@@ -657,16 +657,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     // Register table from "external" metadata-location
 
-    // TODO We need the table-metadata to import here to construct the Nessie `IcebergTable` content
-    //  object. But the `loadTable()` below will trigger another read of the same table-metadata
-    //  object. Need a way to prevent the duplicate read operation.
-
-    // TODO the following readObject() call allows reading a table-metadata from _any_ supported
-    // location and
-    //  MUST be guarded with access-checks. We'd also need a way to register ANY table-metadata -
-    // but that might
-    //  require a different / custom endpoint?
-
     IcebergTableMetadata tableMetadata;
     try (InputStream metadataInput =
         objectIO.readObject(URI.create(registerTableRequest.metadataLocation()))) {
@@ -755,8 +745,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               return IcebergCommitTableResponse.builder()
                   .metadata(tableMetadata)
                   .metadataLocation(snapshotMetadataLocation(snap))
-                  // TODO there is no 'config' in IcebergCommitTableResponse, so no place to change
-                  //  vended authorization tokens for file/object access
                   .build();
             });
   }
@@ -894,8 +882,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               return IcebergLoadViewResponse.builder()
                   .metadata(viewMetadata)
                   .metadataLocation(snapshotMetadataLocation(snap))
-                  // TODO there is no 'config' in IcebergCommitTableResponse, so no place to change
-                  //  vended authorization tokens for file/object access
                   .build();
             });
   }
@@ -976,8 +962,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       String celFilter,
       Consumer<String> responsePagingToken)
       throws NessieNotFoundException {
-
-    // TODO marry Nessie paging with Iceberg paging
 
     EntriesResponse entriesResponse =
         applyPaging(
@@ -1275,8 +1259,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     WarehouseConfig warehouse = catalogConfig.getWarehouse(tableRef.warehouse());
     ContentKey key = tableRef.contentKey();
 
-    // TODO do we need to URLEncode the path elements of the Namespace and ContentKey ?
-
     Namespace ns = key.getNamespace();
     if (!ns.isEmpty()) {
       List<ContentKey> parentNamespaces = new ArrayList<>();
@@ -1377,11 +1359,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     return builder
         .metadata(tableMetadata)
         .metadataLocation(metadataLocation)
-        // TODO this is the place to add vended authorization tokens for file/object access
-        // TODO add (correct) S3_CLIENT_REGION for the table here (based on the table's location?)
         .putConfig(
             S3_SIGNER_ENDPOINT,
-            // TODO does it make sense to use a separate endpoint (service) just for signing?
             uriInfo
                 .icebergBaseURI()
                 .resolve(
@@ -1396,12 +1375,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       String metadataLocation,
       IcebergViewMetadata viewMetadata,
       IcebergLoadViewResponse.Builder builder) {
-    return builder
-        .metadata(viewMetadata)
-        .metadataLocation(metadataLocation)
-        // TODO this is the place to add vended authorization tokens for file/object access
-        // .config(...)
-        .build();
+    return builder.metadata(viewMetadata).metadataLocation(metadataLocation).build();
   }
 
   private <R extends IcebergLoadTableResult, B extends IcebergLoadTableResult.Builder<R, B>>

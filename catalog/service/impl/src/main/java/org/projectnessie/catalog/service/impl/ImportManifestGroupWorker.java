@@ -60,13 +60,6 @@ final class ImportManifestGroupWorker {
 
     NessieFileManifestGroup manifestGroup = importIcebergManifests(snapshot);
 
-    // TODO if the manifest-list is small(-ish), we could add NessieFileManifestGroup to the
-    //  NessieTableSnapshot in EntitySnapshotObj and save one database read-op at the expense of a
-    //  bigger snapshot object.
-    // TODO with the above, it would also be necessary to do that when the manifest-group has
-    //  already been imported (i.e. another snapshot referencing the same manifest-group, which
-    //  would not trigger a 2nd import, so it would not run this method!).
-
     return ManifestGroupObj.builder()
         .id(manifestGroupId)
         .manifestGroup(manifestGroup)

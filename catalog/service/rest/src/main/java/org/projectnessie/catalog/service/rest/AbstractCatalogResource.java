@@ -62,10 +62,6 @@ abstract class AbstractCatalogResource {
   }
 
   private static Response snapshotToResponse(SnapshotResponse snapshot) {
-    // TODO For REST return an ETag header + cache-relevant fields (consider Nessie commit
-    //  ID and state of the manifest-list/files to reflect "in-place" changes, like
-    //  compaction/optimization)
-
     // TODO need the effective Nessie reference incl commit-ID here, add as a HTTP response header?
 
     Optional<Object> entity = snapshot.entityObject();

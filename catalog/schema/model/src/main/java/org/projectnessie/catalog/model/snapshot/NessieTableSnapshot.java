@@ -179,7 +179,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   // TODO Find a way to put multiple NessieListManifestEntry in a database row.
   NessieFileManifestGroup fileManifestGroup();
 
-  // TODO Iceberg last updated timestamp (ms since epoch)
   // TODO Iceberg external name mapping (see org.apache.iceberg.mapping.NameMappingParser +
   //  org.apache.iceberg.TableProperties.DEFAULT_NAME_MAPPING)
 

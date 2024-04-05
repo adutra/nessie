@@ -53,7 +53,6 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
   @Override
   public URI icebergManifestList(
       Reference effectiveReference, ContentKey key, NessieTableSnapshot snapshot) {
-    // TODO memoize toPathString representations
     return snapshotFormat.asImported()
         ? URI.create(snapshot.icebergManifestListLocation())
         : baseUri.resolve(
@@ -67,7 +66,6 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
   @Override
   public URI icebergManifestFile(
       Reference effectiveReference, ContentKey key, NessieId manifestFileId) {
-    // TODO memoize toPathString representations
     return baseUri.resolve(
         "trees/"
             + encode(effectiveReference.toPathString(), UTF_8)
@@ -90,7 +88,6 @@ class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
         dataFile.endsWith(fileFormat.fileExtension())
             ? ""
             : "&format=" + encode(fileFormat.name(), UTF_8);
-    // TODO memoize toPathString representations
     return baseUri.resolve(
         "trees/"
             + encode(effectiveReference.toPathString(), UTF_8)
