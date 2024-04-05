@@ -474,29 +474,36 @@ public class CatalogServiceImpl implements CatalogService {
         target.getName(),
         target.getHash());
 
-    String message = null;
     CompletionStage<MultiTableUpdate> commitBuilderStage = completedStage(null);
+    StringBuilder message = new StringBuilder();
+    if (commit.getOperations().size() > 1) {
+      message.append("Catalog commit with ");
+      message.append(commit.getOperations().size());
+      message.append(" operations\n");
+    }
     for (CatalogOperation op : commit.getOperations()) {
       Content content = contents.get(op.getKey());
+      message
+          .append(commit.getOperations().size() > 1 ? "\n* " : "")
+          .append(contents.containsKey(op.getKey()) ? "Update" : "Create")
+          .append(" ")
+          .append(op.getType())
+          .append(" ")
+          .append(op.getKey());
       if (op.getType().equals(ICEBERG_TABLE)) {
         commitBuilderStage =
             applyIcebergTableCommitOperation(
                 target, op, content, multiTableUpdate, commitBuilderStage);
-        message = format("Update table %s", op.getKey());
       } else if (op.getType().equals(Content.Type.ICEBERG_VIEW)) {
         commitBuilderStage =
             applyIcebergViewCommitOperation(
                 target, op, content, multiTableUpdate, commitBuilderStage);
-        message = format("Update view %s", op.getKey());
       } else {
         throw new IllegalArgumentException("(Yet) unsupported entity type: " + op.getType());
       }
     }
 
-    if (commit.getOperations().size() > 1) {
-      message = format("Iceberg commit with %d operations", commit.getOperations().size());
-    }
-    nessieCommit.commitMeta(CommitMeta.fromMessage(message));
+    nessieCommit.commitMeta(CommitMeta.fromMessage(message.toString()));
 
     return commitBuilderStage.thenApply(
         updates -> {

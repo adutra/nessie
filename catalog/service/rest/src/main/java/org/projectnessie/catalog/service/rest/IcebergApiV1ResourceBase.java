@@ -135,7 +135,6 @@ import org.projectnessie.error.NessieContentNotFoundException;
 import org.projectnessie.error.NessieNamespaceNotFoundException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.Branch;
-import org.projectnessie.model.CommitMeta;
 import org.projectnessie.model.CommitResponse;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
@@ -583,7 +582,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
             .addRequirement(IcebergUpdateRequirement.AssertCreate.assertTableDoesNotExist())
             .build();
 
-    return createOrUpdateTable(tableRef, warehouse, updateTableReq)
+    return createOrUpdateTable(tableRef, updateTableReq)
         .map(
             snap ->
                 loadTableResultFromSnapshotResponse(
@@ -600,7 +599,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     nessieApi
         .commitMultipleOperations()
         .branch(ref)
-        .commitMeta(fromMessage(format("drop table %s", tableRef.contentKey())))
+        .commitMeta(fromMessage(format("Drop ICEBERG_TABLE %s", tableRef.contentKey())))
         .operation(Operation.Delete.of(tableRef.contentKey()))
         .commitWithResponse();
   }
@@ -762,7 +761,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     TableRef tableRef = decodeTableRefWithHash(prefix, namespace, table);
     WarehouseConfig warehouse = catalogConfig.getWarehouse(tableRef.warehouse());
 
-    return createOrUpdateTable(tableRef, warehouse, commitTableRequest)
+    return createOrUpdateTable(tableRef, commitTableRequest)
         .map(
             snap -> {
               IcebergTableMetadata tableMetadata =
@@ -843,7 +842,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
             .addRequirement(IcebergUpdateRequirement.AssertCreate.assertTableDoesNotExist())
             .build();
 
-    return createOrUpdateView(tableRef, warehouse, updateTableReq)
+    return createOrUpdateView(tableRef, updateTableReq)
         .map(snap -> loadViewResultFromSnapshotResponse(snap, IcebergLoadViewResponse.builder()));
   }
 
@@ -857,7 +856,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     nessieApi
         .commitMultipleOperations()
         .branch(ref)
-        .commitMeta(fromMessage(format("drop view %s", tableRef.contentKey())))
+        .commitMeta(fromMessage(format("Drop ICEBERG_VIEW %s", tableRef.contentKey())))
         .operation(Operation.Delete.of(tableRef.contentKey()))
         .commitWithResponse();
   }
@@ -903,7 +902,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     TableRef tableRef = decodeTableRefWithHash(prefix, namespace, view);
     WarehouseConfig warehouse = catalogConfig.getWarehouse(tableRef.warehouse());
 
-    return createOrUpdateView(tableRef, warehouse, commitViewRequest)
+    return createOrUpdateView(tableRef, commitViewRequest)
         .map(
             snap -> {
               IcebergViewMetadata viewMetadata =
@@ -934,11 +933,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     DecodedPrefix decoded = decodePrefix(prefix);
     ParsedReference ref = decoded.parsedReference();
 
-    WarehouseConfig warehouse = catalogConfig.getWarehouse(decoded.warehouse());
-
-    CommitMeta commitMeta = fromMessage("foo");
-
-    CatalogCommit.Builder commit = CatalogCommit.builder().commitMeta(commitMeta);
+    CatalogCommit.Builder commit = CatalogCommit.builder();
     commitTransactionRequest.tableChanges().stream()
         .map(
             tableChange -> {
@@ -1110,8 +1105,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   }
 
   Uni<SnapshotResponse> createOrUpdateTable(
-      TableRef tableRef, WarehouseConfig warehouse, IcebergUpdateTableRequest commitTableRequest)
-      throws IOException {
+      TableRef tableRef, IcebergUpdateTableRequest commitTableRequest) throws IOException {
 
     boolean isCreate =
         commitTableRequest.requirements().stream()
@@ -1125,8 +1119,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
           invalidRequirements.isEmpty(), "Invalid create requirements: %s", invalidRequirements);
     }
 
-    // TODO commit message
-    CommitMeta commitMeta = fromMessage("foo");
     IcebergCatalogOperation op =
         IcebergCatalogOperation.builder()
             .updates(commitTableRequest.updates())
@@ -1135,7 +1127,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
             .type(ICEBERG_TABLE)
             .build();
 
-    CatalogCommit commit = CatalogCommit.builder().commitMeta(commitMeta).addOperations(op).build();
+    CatalogCommit commit = CatalogCommit.builder().addOperations(op).build();
 
     SnapshotReqParams reqParams =
         SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg_imported", null);
@@ -1151,8 +1143,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   }
 
   Uni<SnapshotResponse> createOrUpdateView(
-      TableRef tableRef, WarehouseConfig warehouse, IcebergCommitViewRequest commitViewRequest)
-      throws IOException {
+      TableRef tableRef, IcebergCommitViewRequest commitViewRequest) throws IOException {
 
     boolean isCreate =
         commitViewRequest.requirements().stream()
@@ -1166,8 +1157,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
           invalidRequirements.isEmpty(), "Invalid create requirements: %s", invalidRequirements);
     }
 
-    // TODO commit message
-    CommitMeta commitMeta = fromMessage("foo");
     IcebergCatalogOperation op =
         IcebergCatalogOperation.builder()
             .updates(commitViewRequest.updates())
@@ -1176,7 +1165,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
             .type(ICEBERG_VIEW)
             .build();
 
-    CatalogCommit commit = CatalogCommit.builder().commitMeta(commitMeta).addOperations(op).build();
+    CatalogCommit commit = CatalogCommit.builder().addOperations(op).build();
 
     SnapshotReqParams reqParams =
         SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg_imported", null);

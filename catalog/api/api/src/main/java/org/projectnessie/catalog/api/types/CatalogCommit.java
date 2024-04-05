@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import org.immutables.value.Value;
-import org.projectnessie.model.CommitMeta;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -29,8 +28,6 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonSerialize(as = ImmutableCatalogCommit.class)
 @JsonDeserialize(as = ImmutableCatalogCommit.class)
 public interface CatalogCommit {
-
-  CommitMeta getCommitMeta();
 
   List<CatalogOperation> getOperations();
 
@@ -41,9 +38,6 @@ public interface CatalogCommit {
   interface Builder {
     @CanIgnoreReturnValue
     Builder from(CatalogCommit instance);
-
-    @CanIgnoreReturnValue
-    Builder commitMeta(CommitMeta commitMeta);
 
     @CanIgnoreReturnValue
     Builder addOperations(CatalogOperation element);
