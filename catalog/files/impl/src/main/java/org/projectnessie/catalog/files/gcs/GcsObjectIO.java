@@ -24,9 +24,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.Storage.BlobSourceOption;
 import com.google.cloud.storage.Storage.BlobWriteOption;
-import java.io.FilterInputStream;
-import java.io.FilterOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
@@ -59,23 +56,7 @@ public class GcsObjectIO implements ObjectIO {
             BlobId.of(location.bucket(), location.path()),
             sourceOptions.toArray(new BlobSourceOption[0]));
     bucketOptions.readChunkSize().ifPresent(reader::setChunkSize);
-    return new FilterInputStream(Channels.newInputStream(reader)) {
-      @Override
-      public void close() throws IOException {
-        try {
-          super.close();
-        } finally {
-          // TODO the `throw`s below are not good practice, but defer a better solution to later
-          try {
-            client.close();
-          } catch (IOException e) {
-            throw e;
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      }
-    };
+    return Channels.newInputStream(reader);
   }
 
   @Override
@@ -95,23 +76,7 @@ public class GcsObjectIO implements ObjectIO {
     BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(location.bucket(), location.path())).build();
     WriteChannel channel = client.writer(blobInfo, writeOptions.toArray(new BlobWriteOption[0]));
     bucketOptions.writeChunkSize().ifPresent(channel::setChunkSize);
-    return new FilterOutputStream(Channels.newOutputStream(channel)) {
-      @Override
-      public void close() throws IOException {
-        try {
-          super.close();
-        } finally {
-          // TODO the `throw`s below are not good practice, but defer a better solution to later
-          try {
-            client.close();
-          } catch (IOException e) {
-            throw e;
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      }
-    };
+    return Channels.newOutputStream(channel);
   }
 
   @Override
