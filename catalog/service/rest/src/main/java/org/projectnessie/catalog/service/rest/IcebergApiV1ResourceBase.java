@@ -397,21 +397,6 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     IcebergListNamespacesResponse.Builder response = IcebergListNamespacesResponse.builder();
 
-    /*
-    // Use the client-side get-multiple-namespaces here, it has all the needed CEL-expression logic
-    nessieApi
-        .getMultipleNamespaces()
-        .refName(namespaceRef.referenceName())
-        .hashOnRef(namespaceRef.hashWithRelativeSpec())
-        .namespace(namespaceRef.namespace())
-        .onlyDirectChildren(true)
-        .get()
-        .getNamespaces()
-        .stream()
-        .map(IcebergNamespace::fromNessieNamespace)
-        .forEach(response::addNamespace);
-     */
-
     NamespaceRef namespaceRef = decodeNamespaceRef(prefix, parent);
     Namespace namespace = namespaceRef.namespace();
     String celFilter =
