@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 plugins {
   id("nessie-conventions-server")
   id("nessie-jacoco")
+  alias(libs.plugins.jmh)
 }
 
 extra["maven.name"] = "Nessie - Catalog - Object I/O"
@@ -60,4 +61,16 @@ dependencies {
   testFixturesApi(project(":nessie-object-storage-mock"))
 
   testRuntimeOnly(libs.logback.classic)
+
+  jmhImplementation(libs.jmh.core)
+  jmhImplementation(project(":nessie-object-storage-mock"))
+  jmhAnnotationProcessor(libs.jmh.generator.annprocess)
 }
+
+tasks.named("processJmhJandexIndex").configure { enabled = false }
+
+tasks.named("processTestJandexIndex").configure { enabled = false }
+
+jmh { jmhVersion = libs.versions.jmh.get() }
+
+tasks.named<Jar>("jmhJar") { manifest { attributes["Multi-Release"] = "true" } }

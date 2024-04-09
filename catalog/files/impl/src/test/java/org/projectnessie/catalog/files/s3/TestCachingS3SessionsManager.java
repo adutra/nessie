@@ -77,7 +77,7 @@ class TestCachingS3SessionsManager {
 
     CachingS3SessionsManager cache =
         new CachingS3SessionsManager(
-            s3options, time::get, clientBuilder, Optional.empty(), s -> s, loader);
+            s3options, time::get, null, clientBuilder, Optional.empty(), s -> s, loader);
     S3BucketOptions options = S3ProgrammaticOptions.builder().region("R1").build();
 
     credentials.set(credentials(time.get() + 100));
@@ -122,7 +122,7 @@ class TestCachingS3SessionsManager {
         (client, key) -> credentials.get();
     CachingS3SessionsManager cache =
         new CachingS3SessionsManager(
-            s3options, time::get, (p) -> null, Optional.empty(), s -> s, loader);
+            s3options, time::get, null, (p) -> null, Optional.empty(), s -> s, loader);
 
     S3BucketOptions options = S3ProgrammaticOptions.builder().region("R1").build();
     Credentials c1 = credentials(time.get() + 100);
@@ -146,6 +146,7 @@ class TestCachingS3SessionsManager {
     new CachingS3SessionsManager(
         s3options,
         () -> 1L,
+        null,
         (p) -> null,
         Optional.of(meterRegistry),
         s -> s,

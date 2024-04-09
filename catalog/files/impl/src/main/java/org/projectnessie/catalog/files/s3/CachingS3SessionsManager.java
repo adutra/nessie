@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.files.s3;
 
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.projectnessie.catalog.files.s3.S3Clients.basicCredentialsProvider;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -32,6 +33,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -39,6 +41,7 @@ import java.util.function.LongSupplier;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.nessie.immutables.NessieImmutable;
+import software.amazon.awssdk.endpoints.Endpoint;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.StsClient;
@@ -61,13 +64,14 @@ public class CachingS3SessionsManager {
 
   public CachingS3SessionsManager(
       S3Options<?> options,
-      SdkHttpClient sdkClient,
+      SdkHttpClient sdkHttpClient,
       MeterRegistry meterRegistry,
       SecretsProvider secretsProvider) {
     this(
         options,
         System::currentTimeMillis,
-        (parameters) -> client(parameters, sdkClient),
+        sdkHttpClient,
+        null,
         Optional.of(meterRegistry),
         secretsProvider,
         null);
@@ -77,11 +81,13 @@ public class CachingS3SessionsManager {
   CachingS3SessionsManager(
       S3Options<?> options,
       LongSupplier systemTimeMillis,
+      SdkHttpClient sdkHttpClient,
       Function<StsClientKey, StsClient> clientBuilder,
       Optional<MeterRegistry> meterRegistry,
       SecretsProvider secretsProvider,
       BiFunction<StsClient, SessionKey, Credentials> sessionCredentialsFetcher) {
-    this.clientBuilder = clientBuilder;
+    this.clientBuilder =
+        clientBuilder != null ? clientBuilder : (parameters) -> client(parameters, sdkHttpClient);
     this.expiryReduction = options.effectiveSessionCredentialRefreshGracePeriod();
     this.secretsProvider = secretsProvider;
     this.sessionCredentialsFetcher =
@@ -230,7 +236,14 @@ public class CachingS3SessionsManager {
   private static StsClient client(StsClientKey parameters, SdkHttpClient sdkClient) {
     StsClientBuilder builder = StsClient.builder();
     builder.httpClient(sdkClient);
-    parameters.endpoint().ifPresent(builder::endpointOverride);
+    // TODO the URI path of the endpoint will get LOST if configured via
+    //  StsClientBuilder.endpointOverride(), but not when provided via an endpoint.provider.
+    // parameters.endpoint().ifPresent(builder::endpointOverride);
+    if (parameters.endpoint().isPresent()) {
+      CompletableFuture<Endpoint> endpointFuture =
+          completedFuture(Endpoint.builder().url(parameters.endpoint().get()).build());
+      builder.endpointProvider(params -> endpointFuture);
+    }
     builder.region(Region.of(parameters.region()));
     return builder.build();
   }
