@@ -27,7 +27,7 @@ public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketO
   int DEFAULT_MAX_SESSION_CREDENTIAL_CACHE_ENTRIES = 1000;
 
   /** Default value for {@link #stsClientsCacheMaxEntries()}. */
-  int DEFAULT_MAX_STS_CLIENT_CACHE_ENTRIES = 1000;
+  int DEFAULT_MAX_STS_CLIENT_CACHE_ENTRIES = 50;
 
   /** Default value for {@link #sessionCredentialRefreshGracePeriod()}. */
   Duration DEFAULT_SESSION_REFRESH_GRACE_PERIOD = Duration.ofMinutes(5);
