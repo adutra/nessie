@@ -77,6 +77,10 @@ public interface CatalogAdlsConfig extends AdlsConfig, AdlsOptions<CatalogAdlsFi
   @Override
   Optional<String> endpoint();
 
+  @WithName("external-endpoint")
+  @Override
+  Optional<String> externalEndpoint();
+
   @WithName("retry-policy")
   @Override
   Optional<AdlsRetryStrategy> retryPolicy();

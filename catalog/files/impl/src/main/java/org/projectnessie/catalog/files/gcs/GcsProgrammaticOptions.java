@@ -45,6 +45,9 @@ public interface GcsProgrammaticOptions extends GcsOptions<GcsBucketOptions> {
     Builder host(URI host);
 
     @CanIgnoreReturnValue
+    Builder externalHost(URI externalHost);
+
+    @CanIgnoreReturnValue
     Builder projectId(String projectId);
 
     @CanIgnoreReturnValue
@@ -126,6 +129,9 @@ public interface GcsProgrammaticOptions extends GcsOptions<GcsBucketOptions> {
 
       @CanIgnoreReturnValue
       Builder host(URI host);
+
+      @CanIgnoreReturnValue
+      Builder externalHost(URI externalHost);
 
       @CanIgnoreReturnValue
       Builder projectId(String projectId);

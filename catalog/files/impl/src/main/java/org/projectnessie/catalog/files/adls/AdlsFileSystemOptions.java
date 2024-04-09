@@ -33,6 +33,8 @@ public interface AdlsFileSystemOptions {
 
   Optional<String> endpoint();
 
+  Optional<String> externalEndpoint();
+
   Optional<AdlsRetryStrategy> retryPolicy();
 
   /** Mandatory, if any {@link AdlsRetryStrategy} is configured. */

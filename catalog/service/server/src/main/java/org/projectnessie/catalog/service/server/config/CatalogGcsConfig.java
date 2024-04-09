@@ -38,6 +38,10 @@ public interface CatalogGcsConfig extends GcsConfig, GcsOptions<CatalogGcsBucket
   @Override
   Optional<URI> host();
 
+  @WithName("external-host")
+  @Override
+  Optional<URI> externalHost();
+
   @WithName("project-id")
   @Override
   Optional<String> projectId();

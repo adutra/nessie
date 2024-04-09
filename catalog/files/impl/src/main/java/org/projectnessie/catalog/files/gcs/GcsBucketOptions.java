@@ -28,6 +28,8 @@ public interface GcsBucketOptions {
 
   Optional<URI> host();
 
+  Optional<URI> externalHost();
+
   Optional<String> projectId();
 
   Optional<String> quotaProjectId();

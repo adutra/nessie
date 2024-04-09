@@ -37,6 +37,9 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
     Builder endpoint(URI endpoint);
 
     @CanIgnoreReturnValue
+    Builder externalEndpoint(URI externalEndpoint);
+
+    @CanIgnoreReturnValue
     Builder region(String region);
 
     @CanIgnoreReturnValue
@@ -91,6 +94,9 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
 
       @CanIgnoreReturnValue
       Builder endpoint(URI endpoint);
+
+      @CanIgnoreReturnValue
+      Builder externalEndpoint(URI externalEndpoint);
 
       @CanIgnoreReturnValue
       Builder region(String region);

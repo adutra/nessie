@@ -272,7 +272,11 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       S3BucketOptions s3BucketOptions =
           s3Options.effectiveOptionsForBucket(Optional.ofNullable(bucket));
       s3BucketOptions.region().ifPresent(r -> configOverrides.put(AWS_REGION, r));
-      s3BucketOptions.endpoint().ifPresent(e -> configOverrides.put(S3_ENDPOINT, e.toString()));
+      if (s3BucketOptions.externalEndpoint().isPresent()) {
+        configOverrides.put(S3_ENDPOINT, s3BucketOptions.externalEndpoint().get().toString());
+      } else {
+        s3BucketOptions.endpoint().ifPresent(e -> configOverrides.put(S3_ENDPOINT, e.toString()));
+      }
       s3BucketOptions
           .accessPoint()
           .ifPresent(ap -> configOverrides.put(S3_ACCESS_POINTS_PREFIX + bucket, ap));

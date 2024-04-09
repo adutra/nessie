@@ -43,9 +43,20 @@ public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketO
    * The default endpoint override to use, if not configured {@linkplain #buckets() per bucket}. The
    * endpoint must be specified for {@linkplain Cloud#PRIVATE private clouds}, either {@linkplain
    * #buckets() per bucket} or here.
+   *
+   * <p>If the endpoint URIs for the Nessie server and clients differ, this one defines the endpoint
+   * used for the Nessie server.
    */
   @Override
   Optional<URI> endpoint();
+
+  /**
+   * When using a {@linkplain #endpoint() specific endpoint} and the endpoint URIs for the Nessie
+   * server differ, you can specify the URI passed down to clients using this setting. Otherwise
+   * clients will receive the value from the {@link #endpoint()} setting.
+   */
+  @Override
+  Optional<URI> externalEndpoint();
 
   /**
    * Whether to use path-style access. If true, path-style access will be used, as in: {@code

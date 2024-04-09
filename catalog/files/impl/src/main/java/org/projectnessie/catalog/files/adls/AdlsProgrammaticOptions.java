@@ -111,6 +111,9 @@ public interface AdlsProgrammaticOptions extends AdlsOptions<AdlsFileSystemOptio
       Builder endpoint(String endpoint);
 
       @CanIgnoreReturnValue
+      Builder externalEndpoint(String externalEndpoint);
+
+      @CanIgnoreReturnValue
       Builder retryPolicy(AdlsRetryStrategy retryPolicy);
 
       @CanIgnoreReturnValue

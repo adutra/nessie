@@ -27,6 +27,10 @@ public interface CatalogS3BucketConfig extends S3BucketOptions {
   @Override
   Optional<URI> endpoint();
 
+  @WithName("external-endpoint")
+  @Override
+  Optional<URI> externalEndpoint();
+
   @WithName("path-style-access")
   @Override
   Optional<Boolean> pathStyleAccess();
