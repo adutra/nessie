@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.server.s3;
+package org.projectnessie.catalog.service.server;
 
-import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import static org.projectnessie.catalog.service.server.ObjectStorageMockTestResourceLifecycleManager.GCS_WAREHOUSE_LOCATION;
+
+import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
-import org.apache.iceberg.aws.AwsClientProperties;
 import org.apache.iceberg.rest.RESTCatalog;
-import org.projectnessie.catalog.service.server.AbstractIcebergCatalogTests;
-import org.projectnessie.catalog.service.server.MinioTestResourceLifecycleManager;
-import org.projectnessie.minio.MinioContainer;
 
-@QuarkusTestResource(
-    restrictToAnnotatedClass = true,
-    value = MinioTestResourceLifecycleManager.class)
-@QuarkusIntegrationTest
-@TestProfile(AmazonCloudProfile.class)
-public class ITAmazonS3IcebergCatalog extends AbstractIcebergCatalogTests {
-
-  @SuppressWarnings("unused")
-  // Injected by MinioTestResourceLifecycleManager
-  private MinioContainer minio;
+@QuarkusTest
+@TestProfile(GcsUnitTestProfile.class)
+public class TestGcsIcebergCatalog extends AbstractIcebergCatalogUnitTests {
 
   @Override
   protected RESTCatalog catalog() {
@@ -45,20 +35,18 @@ public class ITAmazonS3IcebergCatalog extends AbstractIcebergCatalogTests {
     RESTCatalog catalog = new RESTCatalog();
     catalog.setConf(new Configuration());
     catalog.initialize(
-        "nessie-s3-iceberg-api",
+        "nessie-gcs-iceberg-api",
         Map.of(
             CatalogProperties.URI,
             String.format("http://127.0.0.1:%d/iceberg/", catalogServerPort),
-            AwsClientProperties.CLIENT_REGION,
-            MinioTestResourceLifecycleManager.TEST_REGION,
             CatalogProperties.WAREHOUSE_LOCATION,
-            minio.s3BucketUri("").toString()));
+            GCS_WAREHOUSE_LOCATION));
     catalogs.add(catalog);
     return catalog;
   }
 
   @Override
   protected String temporaryLocation() {
-    return minio.s3BucketUri("") + "/" + UUID.randomUUID();
+    return GCS_WAREHOUSE_LOCATION + "/temp/" + UUID.randomUUID();
   }
 }

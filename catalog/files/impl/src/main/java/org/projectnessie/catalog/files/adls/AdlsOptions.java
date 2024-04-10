@@ -17,6 +17,7 @@ package org.projectnessie.catalog.files.adls;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.OptionalLong;
 import org.projectnessie.catalog.files.adls.AdlsProgrammaticOptions.AdlsPerFileSystemOptions;
 
@@ -25,6 +26,8 @@ public interface AdlsOptions<PER_FILE_SYSTEM extends AdlsFileSystemOptions>
 
   /** For configuration options, see {@link com.azure.core.util.Configuration}. */
   Map<String, String> configurationOptions();
+
+  OptionalInt readBlockSize();
 
   OptionalLong writeBlockSize();
 

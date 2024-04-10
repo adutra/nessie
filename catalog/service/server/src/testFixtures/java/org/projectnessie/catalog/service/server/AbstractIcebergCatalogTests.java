@@ -58,7 +58,7 @@ import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.model.Branch;
 import org.projectnessie.model.Reference;
 
-public abstract class AbstractIcebergCatalog extends CatalogTests<RESTCatalog> {
+public abstract class AbstractIcebergCatalogTests extends CatalogTests<RESTCatalog> {
   public static final String EMPTY_OBJ_ID =
       "2e1cfa82b035c26cbbbdae632cea070514eb8b773f616aaeaf668e2f0be8f10d";
 

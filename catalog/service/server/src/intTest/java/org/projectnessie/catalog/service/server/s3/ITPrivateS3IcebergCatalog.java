@@ -24,7 +24,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.aws.AwsClientProperties;
 import org.apache.iceberg.rest.RESTCatalog;
-import org.projectnessie.catalog.service.server.AbstractIcebergCatalog;
+import org.projectnessie.catalog.service.server.AbstractIcebergCatalogTests;
+import org.projectnessie.catalog.service.server.MinioTestResourceLifecycleManager;
 import org.projectnessie.minio.MinioContainer;
 
 @QuarkusTestResource(
@@ -32,7 +33,7 @@ import org.projectnessie.minio.MinioContainer;
     value = MinioTestResourceLifecycleManager.class)
 @QuarkusIntegrationTest
 @TestProfile(PrivateCloudProfile.class)
-public class ITPrivateS3IcebergCatalog extends AbstractIcebergCatalog {
+public class ITPrivateS3IcebergCatalog extends AbstractIcebergCatalogTests {
 
   @SuppressWarnings("unused")
   // Injected by MinioTestResourceLifecycleManager

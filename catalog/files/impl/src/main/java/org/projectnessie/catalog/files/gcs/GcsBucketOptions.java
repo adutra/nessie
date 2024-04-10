@@ -40,7 +40,7 @@ public interface GcsBucketOptions {
 
   Optional<String> authCredentialsJsonRef();
 
-  Optional<String> oauth2tokenRef();
+  Optional<String> oauth2TokenRef();
 
   Optional<Instant> oauth2TokenExpiresAt();
 
@@ -62,11 +62,27 @@ public interface GcsBucketOptions {
 
   OptionalDouble rpcTimeoutMultiplier();
 
+  /** The read chunk size in bytes. */
   OptionalInt readChunkSize();
 
+  /** The write chunk size in bytes. */
   OptionalInt writeChunkSize();
 
+  OptionalInt deleteBatchSize();
+
+  /**
+   * Customer-supplied AES256 key for blob encryption when writing.
+   *
+   * @implNote This is currently unsupported.
+   */
   Optional<String> encryptionKeyRef();
+
+  /**
+   * Customer-supplied AES256 key for blob decryption when reading.
+   *
+   * @implNote This is currently unsupported.
+   */
+  Optional<String> decryptionKeyRef();
 
   Optional<String> userProject();
 

@@ -15,16 +15,22 @@
  */
 package org.projectnessie.catalog.service.server.auth;
 
+import static org.projectnessie.catalog.service.server.ObjectStorageMockTestResourceLifecycleManager.INIT_ADDRESS;
+import static org.projectnessie.catalog.service.server.ObjectStorageMockTestResourceLifecycleManager.S3_INIT_ADDRESS;
+import static org.projectnessie.catalog.service.server.ObjectStorageMockTestResourceLifecycleManager.S3_WAREHOUSE_LOCATION;
+
+import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.projectnessie.catalog.service.server.AbstractIcebergCatalog;
-import org.projectnessie.catalog.service.server.HeapS3MockResource;
+import org.projectnessie.catalog.service.server.AbstractIcebergCatalogTests;
+import org.projectnessie.catalog.service.server.ObjectStorageMockTestResourceLifecycleManager;
 import org.projectnessie.catalog.service.server.auth.AbstractAuthEnabledTests.Profile;
 import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.auth.oauth2.OAuth2AuthenticationProvider;
@@ -37,9 +43,10 @@ import org.projectnessie.quarkus.tests.profiles.KeycloakTestResourceLifecycleMan
 
 @QuarkusTestResource(
     restrictToAnnotatedClass = true,
+    parallel = true,
     value = KeycloakTestResourceLifecycleManager.class)
 @TestProfile(Profile.class)
-public abstract class AbstractAuthEnabledTests extends AbstractIcebergCatalog {
+public abstract class AbstractAuthEnabledTests extends AbstractIcebergCatalogTests {
 
   @KeycloakTokenEndpointUri protected URI tokenEndpoint;
 
@@ -70,18 +77,27 @@ public abstract class AbstractAuthEnabledTests extends AbstractIcebergCatalog {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-      return Map.of("nessie.server.authentication.enabled", "true");
+      return Map.of(
+          "nessie.server.authentication.enabled",
+          "true",
+          "nessie.catalog.default-warehouse.name",
+          "warehouse",
+          "nessie.catalog.default-warehouse.location",
+          S3_WAREHOUSE_LOCATION);
     }
 
     @Override
     public List<TestResourceEntry> testResources() {
-      return List.of(new TestResourceEntry(HeapS3MockResource.class));
+      return Collections.singletonList(
+          new TestResourceEntry(
+              ObjectStorageMockTestResourceLifecycleManager.class,
+              ImmutableMap.of(INIT_ADDRESS, S3_INIT_ADDRESS),
+              true));
     }
   }
 
   @Override
   protected String temporaryLocation() {
-    // Rely on the bucket name to be "bucket" for HeapS3MockResource
-    return "s3://bucket/" + UUID.randomUUID();
+    return S3_WAREHOUSE_LOCATION + "/temp/" + UUID.randomUUID();
   }
 }

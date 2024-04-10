@@ -22,18 +22,17 @@ import java.net.URI;
 import java.util.Optional;
 
 public final class AdlsLocation {
+
+  private final URI uri;
   private final String storageAccount;
   private final String container;
   private final String path;
 
-  private AdlsLocation(String storageAccount, String container, String path) {
+  private AdlsLocation(URI uri, String storageAccount, String container, String path) {
+    this.uri = uri;
     this.storageAccount = requireNonNull(storageAccount);
     this.container = container;
     this.path = requireNonNull(path);
-  }
-
-  public static AdlsLocation adlsLocation(String storageAccount, String container, String path) {
-    return new AdlsLocation(storageAccount, container, path);
   }
 
   public static AdlsLocation adlsLocation(URI location) {
@@ -54,12 +53,14 @@ public final class AdlsLocation {
       storageAccount = authority;
     }
 
-    String path = location.getPath();
-    path = path == null ? "" : path.startsWith("/") ? path.substring(1) : path;
-
-    return new AdlsLocation(storageAccount, container, path);
+    return new AdlsLocation(location, storageAccount, container, location.getPath());
   }
 
+  public URI getUri() {
+    return uri;
+  }
+
+  /** The fully-qualified storage account name, e.g. {@code "myaccount.dfs.core.windows.net"}. */
   public String storageAccount() {
     return storageAccount;
   }
@@ -69,6 +70,6 @@ public final class AdlsLocation {
   }
 
   public String path() {
-    return path;
+    return this.path == null ? "" : this.path.startsWith("/") ? this.path.substring(1) : this.path;
   }
 }

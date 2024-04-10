@@ -50,13 +50,15 @@ public interface CatalogConfig {
    * or the location to identify a warehouse.
    */
   default WarehouseConfig getWarehouse(String warehouse) {
-    WarehouseConfig w = warehouses().get(warehouse);
-    if (w != null) {
-      return w;
-    }
-    for (WarehouseConfig wc : warehouses().values()) {
-      if (removeTrailingSlash(wc.location()).equals(removeTrailingSlash(warehouse))) {
-        return wc;
+    if (warehouse != null && !warehouse.isEmpty()) {
+      WarehouseConfig w = warehouses().get(warehouse);
+      if (w != null) {
+        return w;
+      }
+      for (WarehouseConfig wc : warehouses().values()) {
+        if (removeTrailingSlash(wc.location()).equals(removeTrailingSlash(warehouse))) {
+          return wc;
+        }
       }
     }
     return defaultWarehouse()

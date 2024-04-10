@@ -101,18 +101,14 @@ dependencies {
   testFixturesApi(project(":nessie-quarkus-tests"))
   testFixturesApi(project(":nessie-object-storage-mock"))
 
-  testFixturesCompileOnly(libs.microprofile.openapi)
-
-  testFixturesImplementation(platform(libs.junit.bom))
-  testFixturesImplementation(libs.bundles.junit.testing)
-
-  intTestImplementation(project(":nessie-minio-testcontainer"))
-  intTestImplementation(platform(libs.awssdk.bom))
-  intTestImplementation("software.amazon.awssdk:s3")
-  intTestImplementation("software.amazon.awssdk:sts")
-  intTestImplementation(platform(libs.testcontainers.bom))
-  intTestImplementation("org.testcontainers:testcontainers")
-  intTestImplementation(project(":nessie-keycloak-testcontainer"))
+  testFixturesApi(platform(libs.testcontainers.bom))
+  testFixturesApi("org.testcontainers:testcontainers")
+  testFixturesApi(project(":nessie-keycloak-testcontainer"))
+  testFixturesApi(project(":nessie-gcs-testcontainer"))
+  testFixturesApi(project(":nessie-minio-testcontainer"))
+  testFixturesApi(project(":nessie-object-storage-mock"))
+  testFixturesApi(project(":nessie-client"))
+  testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
 
   testFixturesApi(platform("org.apache.iceberg:iceberg-bom:$versionIceberg"))
   testFixturesApi("org.apache.iceberg:iceberg-core")
@@ -123,8 +119,15 @@ dependencies {
   testFixturesApi("org.apache.iceberg:iceberg-api:$versionIceberg:tests")
   testFixturesApi("org.apache.iceberg:iceberg-core:$versionIceberg:tests")
   testFixturesApi(libs.hadoop.common) { hadoopExcludes() }
-  testFixturesApi(project(":nessie-client"))
-  testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
+
+  testFixturesCompileOnly(libs.microprofile.openapi)
+
+  testFixturesImplementation(platform(libs.junit.bom))
+  testFixturesImplementation(libs.bundles.junit.testing)
+
+  intTestImplementation(platform(libs.awssdk.bom))
+  intTestImplementation("software.amazon.awssdk:s3")
+  intTestImplementation("software.amazon.awssdk:sts")
 }
 
 quarkus {

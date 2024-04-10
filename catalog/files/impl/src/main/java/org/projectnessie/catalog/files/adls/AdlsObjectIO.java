@@ -15,8 +15,9 @@
  */
 package org.projectnessie.catalog.files.adls;
 
-import com.azure.storage.common.ParallelTransferOptions;
+import com.azure.storage.blob.models.ParallelTransferOptions;
 import com.azure.storage.file.datalake.DataLakeFileClient;
+import com.azure.storage.file.datalake.options.DataLakeFileInputStreamOptions;
 import com.azure.storage.file.datalake.options.DataLakeFileOutputStreamOptions;
 import java.io.BufferedOutputStream;
 import java.io.InputStream;
@@ -35,7 +36,9 @@ public class AdlsObjectIO implements ObjectIO {
   @Override
   public InputStream readObject(URI uri) {
     DataLakeFileClient file = clientSupplier.fileClientForLocation(uri);
-    return file.openInputStream().getInputStream();
+    DataLakeFileInputStreamOptions options = new DataLakeFileInputStreamOptions();
+    clientSupplier.adlsOptions().readBlockSize().ifPresent(options::setBlockSize);
+    return file.openInputStream(options).getInputStream();
   }
 
   @Override
@@ -44,6 +47,7 @@ public class AdlsObjectIO implements ObjectIO {
     DataLakeFileOutputStreamOptions options = new DataLakeFileOutputStreamOptions();
     ParallelTransferOptions transferOptions = new ParallelTransferOptions();
     clientSupplier.adlsOptions().writeBlockSize().ifPresent(transferOptions::setBlockSizeLong);
+    options.setParallelTransferOptions(transferOptions);
     return new BufferedOutputStream(file.getOutputStream(options));
   }
 

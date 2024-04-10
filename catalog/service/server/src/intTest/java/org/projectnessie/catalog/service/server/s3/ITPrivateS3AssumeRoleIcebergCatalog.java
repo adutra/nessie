@@ -33,6 +33,7 @@ import org.apache.iceberg.types.Types;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.projectnessie.catalog.service.server.MinioTestResourceLifecycleManager;
 import org.projectnessie.minio.MinioContainer;
 import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 

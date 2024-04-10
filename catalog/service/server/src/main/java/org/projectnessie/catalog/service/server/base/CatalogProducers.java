@@ -36,9 +36,13 @@ import org.eclipse.microprofile.context.ThreadContext;
 import org.projectnessie.catalog.files.ResolvingObjectIO;
 import org.projectnessie.catalog.files.adls.AdlsClientSupplier;
 import org.projectnessie.catalog.files.adls.AdlsClients;
+import org.projectnessie.catalog.files.adls.AdlsFileSystemOptions;
+import org.projectnessie.catalog.files.adls.AdlsOptions;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
 import org.projectnessie.catalog.files.gcs.GcsClients;
+import org.projectnessie.catalog.files.gcs.GcsOptions;
 import org.projectnessie.catalog.files.gcs.GcsStorageSupplier;
 import org.projectnessie.catalog.files.s3.CachingS3SessionsManager;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
@@ -93,9 +97,27 @@ public class CatalogProducers {
   @SuppressWarnings({"unchecked", "rawtypes", "UnnecessaryLocalVariable"})
   @Produces
   @Singleton
-  public S3Options<S3BucketOptions> s3options(CatalogS3Config s3config) {
-    S3Options opts = s3config;
+  public S3Options<S3BucketOptions> s3Options(CatalogS3Config s3Config) {
+    S3Options opts = s3Config;
     S3Options<S3BucketOptions> r = opts;
+    return r;
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes", "UnnecessaryLocalVariable"})
+  @Produces
+  @Singleton
+  public GcsOptions<GcsBucketOptions> gcsOptions(CatalogGcsConfig gcsConfig) {
+    GcsOptions opts = gcsConfig;
+    GcsOptions<GcsBucketOptions> r = opts;
+    return r;
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes", "UnnecessaryLocalVariable"})
+  @Produces
+  @Singleton
+  public AdlsOptions<AdlsFileSystemOptions> adlsOptions(CatalogAdlsConfig adlsConfig) {
+    AdlsOptions opts = adlsConfig;
+    AdlsOptions<AdlsFileSystemOptions> r = opts;
     return r;
   }
 

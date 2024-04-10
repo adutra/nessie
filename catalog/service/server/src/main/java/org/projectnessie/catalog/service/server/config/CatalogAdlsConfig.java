@@ -59,6 +59,10 @@ public interface CatalogAdlsConfig extends AdlsConfig, AdlsOptions<CatalogAdlsFi
   @Override
   OptionalLong writeBlockSize();
 
+  @WithName("read-block-size")
+  @Override
+  OptionalInt readBlockSize();
+
   // file-system options
 
   @WithName("account-name-ref")

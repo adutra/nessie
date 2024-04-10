@@ -61,7 +61,7 @@ public class GcsClientResourceBench {
 
       GcsOptions<GcsBucketOptions> gcsOptions =
           GcsProgrammaticOptions.builder()
-              .oauth2tokenRef("foo")
+              .oauth2TokenRef("foo")
               .host(server.getGcsBaseUri())
               .build();
 

@@ -46,10 +46,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
+import org.projectnessie.catalog.files.adls.AdlsFileSystemOptions;
+import org.projectnessie.catalog.files.adls.AdlsOptions;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
+import org.projectnessie.catalog.files.gcs.GcsOptions;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
 import org.projectnessie.catalog.files.s3.S3Options;
+import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.formats.iceberg.metrics.IcebergMetricsReport;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTableResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTransactionRequest;
@@ -114,7 +119,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
 
   @SuppressWarnings("unused")
   public IcebergApiV1Resource() {
-    this(null, null, null, null, null, null, null, null, null);
+    this(null, null, null, null, null, null, null, null, null, null, null, null);
   }
 
   @Inject
@@ -127,6 +132,9 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
       CatalogConfig catalogConfig,
       ExceptionConfig exceptionConfig,
       S3Options<S3BucketOptions> s3Options,
+      GcsOptions<GcsBucketOptions> gcsOptions,
+      AdlsOptions<AdlsFileSystemOptions> adlsOptions,
+      SecretsProvider secretsProvider,
       @TokenEndpointUri Optional<URI> tokenEndpoint) {
     super(
         catalogService,
@@ -136,6 +144,9 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
         serverConfig,
         catalogConfig,
         s3Options,
+        gcsOptions,
+        adlsOptions,
+        secretsProvider,
         tokenEndpoint);
     this.exceptionConfig = exceptionConfig;
   }

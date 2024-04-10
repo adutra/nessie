@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.service.server;
 
+import static org.projectnessie.catalog.service.server.ObjectStorageMockTestResourceLifecycleManager.S3_WAREHOUSE_LOCATION;
+
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
@@ -22,7 +24,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.UUID;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.BeforeEach;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures;
@@ -30,13 +31,10 @@ import org.projectnessie.catalog.service.server.tests.AbstractNessieCoreTests;
 import org.projectnessie.objectstoragemock.HeapStorageBucket;
 
 @QuarkusTest
-@TestProfile(value = UnitTestProfile.class)
+@TestProfile(value = S3UnitTestProfile.class)
 public class TestNessieCore extends AbstractNessieCoreTests {
 
   @Inject ObjectIO objectIO;
-
-  @ConfigProperty(name = "nessie.catalog.default-warehouse.location")
-  String defaultWarehouseLocation;
 
   String currentBase;
 
@@ -49,7 +47,7 @@ public class TestNessieCore extends AbstractNessieCoreTests {
 
   @BeforeEach
   protected void setup() {
-    currentBase = defaultWarehouseLocation + "/" + UUID.randomUUID() + "/";
+    currentBase = S3_WAREHOUSE_LOCATION + "/" + UUID.randomUUID() + "/";
   }
 
   @Override

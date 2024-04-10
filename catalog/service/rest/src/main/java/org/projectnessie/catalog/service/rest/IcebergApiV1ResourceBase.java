@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.UUID.randomUUID;
 import static org.projectnessie.api.v2.params.ParsedReference.parsedReference;
 import static org.projectnessie.api.v2.params.ReferenceResolver.resolveReferencePathElement;
+import static org.projectnessie.catalog.files.adls.AdlsLocation.adlsLocation;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec.unpartitioned;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergSortOrder.unsorted;
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableIdentifier.fromNessieContentKey;
@@ -79,10 +80,16 @@ import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.api.sign.SigningRequest;
 import org.projectnessie.catalog.api.sign.SigningResponse;
 import org.projectnessie.catalog.api.types.CatalogCommit;
+import org.projectnessie.catalog.files.adls.AdlsFileSystemOptions;
+import org.projectnessie.catalog.files.adls.AdlsLocation;
+import org.projectnessie.catalog.files.adls.AdlsOptions;
 import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
+import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
+import org.projectnessie.catalog.files.gcs.GcsOptions;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
 import org.projectnessie.catalog.files.s3.S3Options;
+import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergNamespace;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
@@ -159,25 +166,48 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   /** Boolean property that enables remote signing for tables. */
   public static final String S3_REMOTE_SIGNING_ENABLED = "s3.remote-signing-enabled";
 
-  public static final String AWS_REGION = "client.region";
-  public static final String S3_ENDPOINT = "s3.endpoint";
-  public static final String S3_ACCESS_POINTS_PREFIX = "s3.access-points.";
-  public static final String S3_CLIENT_REGION = "client.region";
+  private static final String AWS_REGION = "client.region";
+  private static final String S3_ENDPOINT = "s3.endpoint";
+  private static final String S3_ACCESS_POINTS_PREFIX = "s3.access-points.";
+  private static final String S3_CLIENT_REGION = "client.region";
   public static final String S3_PATH_STYLE_ACCESS = "s3.path-style-access";
   private static final String S3_USE_ARN_REGION_ENABLED = "s3.use-arn-region-enabled";
 
-  public static final String ICEBERG_PREFIX = "prefix";
-  public static final String ICEBERG_URI = "uri";
-  public static final String FILE_IO_IMPL = "io-impl";
-  public static final String ICEBERG_WAREHOUSE_LOCATION = "warehouse";
-  public static final String ICEBERG_TABLE_DEFAULT_PREFIX = "table-default.";
-  public static final String ICEBERG_TABLE_OVERRIDE_PREFIX = "table-override.";
+  private static final String GCS_PROJECT_ID = "gcs.project-id";
+  private static final String GCS_CLIENT_LIB_TOKEN = "gcs.client-lib-token";
+  private static final String GCS_SERVICE_HOST = "gcs.service.host";
+  private static final String GCS_DECRYPTION_KEY = "gcs.decryption-key";
+  private static final String GCS_ENCRYPTION_KEY = "gcs.encryption-key";
+  private static final String GCS_USER_PROJECT = "gcs.user-project";
+  private static final String GCS_READ_CHUNK_SIZE = "gcs.channel.read.chunk-size-bytes";
+  private static final String GCS_WRITE_CHUNK_SIZE = "gcs.channel.write.chunk-size-bytes";
+  private static final String GCS_DELETE_BATCH_SIZE = "gcs.delete.batch-size";
+  private static final String GCS_OAUTH2_TOKEN = "gcs.oauth2.token";
+  private static final String GCS_OAUTH2_TOKEN_EXPIRES_AT = "gcs.oauth2.token-expires-at";
+  private static final String GCS_NO_AUTH = "gcs.no-auth";
+
+  private static final String ADLS_AUTH_SHARED_KEY_ACCOUNT_NAME =
+      "adls.auth.shared-key.account.name";
+  private static final String ADLS_SAS_TOKEN_PREFIX = "adls.sas-token.";
+  private static final String ADLS_CONNECTION_STRING_PREFIX = "adls.connection-string.";
+  private static final String ADLS_READ_BLOCK_SIZE_BYTES = "adls.read.block-size-bytes";
+  private static final String ADLS_WRITE_BLOCK_SIZE_BYTES = "adls.write.block-size-bytes";
+
+  private static final String ICEBERG_PREFIX = "prefix";
+  private static final String ICEBERG_URI = "uri";
+  private static final String FILE_IO_IMPL = "io-impl";
+  private static final String ICEBERG_WAREHOUSE_LOCATION = "warehouse";
+  private static final String ICEBERG_TABLE_DEFAULT_PREFIX = "table-default.";
+  private static final String ICEBERG_TABLE_OVERRIDE_PREFIX = "table-override.";
 
   private final NessieApiV2 nessieApi;
   private final ServerConfig serverConfig;
   private final CatalogConfig catalogConfig;
   private final RequestSigner signer;
   private final S3Options<?> s3Options;
+  private final GcsOptions<?> gcsOptions;
+  private final AdlsOptions<?> adlsOptions;
+  private final SecretsProvider secretsProvider;
   private final Optional<URI> tokenEndpoint;
 
   protected IcebergApiV1ResourceBase(
@@ -188,6 +218,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       ServerConfig serverConfig,
       CatalogConfig catalogConfig,
       S3Options<?> s3Options,
+      GcsOptions<?> gcsOptions,
+      AdlsOptions<?> adlsOptions,
+      SecretsProvider secretsProvider,
       Optional<URI> tokenEndpoint) {
     super(catalogService, objectIO);
     this.nessieApi = nessieApi;
@@ -195,6 +228,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     this.serverConfig = serverConfig;
     this.catalogConfig = catalogConfig;
     this.s3Options = s3Options;
+    this.gcsOptions = gcsOptions;
+    this.adlsOptions = adlsOptions;
+    this.secretsProvider = secretsProvider;
     this.tokenEndpoint = tokenEndpoint;
   }
 
@@ -221,12 +257,15 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     // Pass Nessie client properties to the client
 
     configDefaults.put(FILE_IO_IMPL, "org.apache.iceberg.io.ResolvingFileIO");
+    configDefaults.put(ICEBERG_WAREHOUSE_LOCATION, w.location());
 
     configDefaults.putAll(catalogConfig.icebergConfigDefaults());
     s3Options.region().ifPresent(x -> configDefaults.put(S3_CLIENT_REGION, x));
     configDefaults.putAll(w.icebergConfigDefaults());
 
     putS3ConfigOverrides(w, configOverrides);
+    putGcsConfigOverrides(w, configOverrides);
+    putAdlsConfigOverrides(w, configOverrides);
 
     // Marker property telling clients that the backend is a Nessie Catalog.
     configOverrides.put("nessie.is-nessie-catalog", "true");
@@ -247,7 +286,11 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     // client. These properties are _not_ user configurable properties.
     configOverrides.put("nessie.default-branch.name", branch);
     // Set the "default" prefix
-    configDefaults.put(ICEBERG_PREFIX, encode(branch, UTF_8));
+    if (w.equals(catalogConfig.defaultWarehouse())) {
+      configDefaults.put(ICEBERG_PREFIX, encode(branch, UTF_8));
+    } else {
+      configDefaults.put(ICEBERG_PREFIX, encode(branch + "|" + w.name(), UTF_8));
+    }
 
     // FIXME the client needs this even before calling the /config endpoint
     tokenEndpoint.ifPresent(uri -> configOverrides.put("oauth2-server-uri", uri.toString()));
@@ -266,11 +309,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       WarehouseConfig warehouse, Map<String, String> configOverrides) {
     URI warehouseLocation = URI.create(warehouse.location());
     if (Objects.equals(warehouseLocation.getScheme(), "s3")) {
-      // Warehouse location MUST be an s3 URI otherwise ResolvingFileIO will not work,
-      // so we can safely assume the bucket is the whole authority. Cf. S3Utilities#parseUri.
       String bucket = warehouseLocation.getAuthority();
-      S3BucketOptions s3BucketOptions =
-          s3Options.effectiveOptionsForBucket(Optional.ofNullable(bucket));
+      S3BucketOptions s3BucketOptions = s3Options.effectiveOptionsForBucket(Optional.of(bucket));
       s3BucketOptions.region().ifPresent(r -> configOverrides.put(AWS_REGION, r));
       if (s3BucketOptions.externalEndpoint().isPresent()) {
         configOverrides.put(S3_ENDPOINT, s3BucketOptions.externalEndpoint().get().toString());
@@ -290,6 +330,90 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       configOverrides.put(S3_REMOTE_SIGNING_ENABLED, "true");
       // Note: leave S3 signer endpoint to its default for now, it is overridden on a per-table
       // basis, see loadTableResult() below
+    }
+  }
+
+  private void putGcsConfigOverrides(
+      WarehouseConfig warehouse, Map<String, String> configOverrides) {
+    URI warehouseLocation = URI.create(warehouse.location());
+    if (Objects.equals(warehouseLocation.getScheme(), "gs")) {
+      String bucket = warehouseLocation.getAuthority();
+      GcsBucketOptions gcsBucketOptions = gcsOptions.effectiveOptionsForBucket(Optional.of(bucket));
+      gcsBucketOptions.projectId().ifPresent(p -> configOverrides.put(GCS_PROJECT_ID, p));
+      gcsBucketOptions
+          .clientLibToken()
+          .ifPresent(t -> configOverrides.put(GCS_CLIENT_LIB_TOKEN, t));
+      gcsBucketOptions.host().ifPresent(h -> configOverrides.put(GCS_SERVICE_HOST, h.toString()));
+      gcsBucketOptions.userProject().ifPresent(u -> configOverrides.put(GCS_USER_PROJECT, u));
+      gcsBucketOptions
+          .readChunkSize()
+          .ifPresent(rcs -> configOverrides.put(GCS_READ_CHUNK_SIZE, Integer.toString(rcs)));
+      gcsBucketOptions
+          .writeChunkSize()
+          .ifPresent(wcs -> configOverrides.put(GCS_WRITE_CHUNK_SIZE, Integer.toString(wcs)));
+      gcsBucketOptions
+          .deleteBatchSize()
+          .ifPresent(dbs -> configOverrides.put(GCS_DELETE_BATCH_SIZE, Integer.toString(dbs)));
+      // FIXME it is not safe to send de/encryption keys and oauth2 tokens
+      gcsBucketOptions
+          .decryptionKeyRef()
+          .ifPresent(
+              ref -> configOverrides.put(GCS_DECRYPTION_KEY, secretsProvider.getSecret(ref)));
+      gcsBucketOptions
+          .encryptionKeyRef()
+          .ifPresent(
+              ref -> configOverrides.put(GCS_ENCRYPTION_KEY, secretsProvider.getSecret(ref)));
+      gcsBucketOptions
+          .oauth2TokenRef()
+          .ifPresent(ref -> configOverrides.put(GCS_OAUTH2_TOKEN, secretsProvider.getSecret(ref)));
+      gcsBucketOptions
+          .oauth2TokenExpiresAt()
+          .ifPresent(
+              e ->
+                  configOverrides.put(
+                      GCS_OAUTH2_TOKEN_EXPIRES_AT, String.valueOf(e.toEpochMilli())));
+      if (gcsBucketOptions.authType().isPresent()
+          && gcsBucketOptions.authType().get() == GcsBucketOptions.GcsAuthType.NONE) {
+        configOverrides.put(GCS_NO_AUTH, "true");
+      }
+    }
+  }
+
+  private void putAdlsConfigOverrides(
+      WarehouseConfig warehouse, Map<String, String> configOverrides) {
+    URI warehouseLocation = URI.create(warehouse.location());
+    if (Objects.equals(warehouseLocation.getScheme(), "abfs")
+        || Objects.equals(warehouseLocation.getScheme(), "abfss")) {
+      AdlsLocation location = adlsLocation(warehouseLocation);
+      Optional<String> fileSystem = location.container();
+      AdlsFileSystemOptions fileSystemOptions =
+          adlsOptions.effectiveOptionsForFileSystem(fileSystem);
+      String accountName =
+          fileSystemOptions
+              .accountNameRef()
+              .map(secretsProvider::getSecret)
+              .orElse(location.storageAccount());
+      // FIXME send account key and token?
+      fileSystemOptions
+          .accountKeyRef()
+          .ifPresent(
+              ref -> {
+                configOverrides.put(ADLS_AUTH_SHARED_KEY_ACCOUNT_NAME, accountName);
+                configOverrides.put(
+                    "adls.auth.shared-key.account.key", secretsProvider.getSecret(ref));
+              });
+      fileSystemOptions
+          .sasTokenRef()
+          .ifPresent(s -> configOverrides.put(ADLS_SAS_TOKEN_PREFIX + accountName, s));
+      fileSystemOptions
+          .endpoint()
+          .ifPresent(e -> configOverrides.put(ADLS_CONNECTION_STRING_PREFIX + accountName, e));
+      adlsOptions
+          .readBlockSize()
+          .ifPresent(r -> configOverrides.put(ADLS_READ_BLOCK_SIZE_BYTES, Integer.toString(r)));
+      adlsOptions
+          .writeBlockSize()
+          .ifPresent(s -> configOverrides.put(ADLS_WRITE_BLOCK_SIZE_BYTES, Long.toString(s)));
     }
   }
 
@@ -547,7 +671,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                   stagedTableMetadata,
                   IcebergCreateTableResponse.builder(),
                   prefix,
-                  tableRef.contentKey()));
+                  tableRef.contentKey(),
+                  warehouse));
     }
 
     IcebergUpdateTableRequest updateTableReq =
@@ -561,7 +686,11 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         .map(
             snap ->
                 loadTableResultFromSnapshotResponse(
-                    snap, IcebergCreateTableResponse.builder(), prefix, tableRef.contentKey()));
+                    snap,
+                    IcebergCreateTableResponse.builder(),
+                    prefix,
+                    tableRef.contentKey(),
+                    warehouse));
   }
 
   public void dropTable(String prefix, String namespace, String table, Boolean purgeRequested)
@@ -637,7 +766,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                   committed.getTargetBranch().getHash(),
                   BRANCH),
               null),
-          prefix);
+          prefix,
+          warehouse);
     } else if (nessieCatalogUri) {
       throw new IllegalArgumentException(
           "Cannot register an Iceberg table using the URI "
@@ -682,7 +812,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
                 committed.getTargetBranch().getHash(),
                 committed.getTargetBranch().getType()),
             null),
-        prefix);
+        prefix,
+        warehouse);
   }
 
   public IcebergListTablesResponse listTables(
@@ -708,7 +839,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     TableRef tableRef = decodeTableRef(prefix, namespace, table);
     WarehouseConfig warehouse = catalogConfig.getWarehouse(tableRef.warehouse());
 
-    return loadTable(tableRef, prefix);
+    return loadTable(tableRef, prefix, warehouse);
   }
 
   public void tableExists(String prefix, String namespace, String table) throws IOException {
@@ -994,8 +1125,8 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         .map(snap -> loadViewResultFromSnapshotResponse(snap, IcebergLoadViewResponse.builder()));
   }
 
-  private Uni<IcebergLoadTableResponse> loadTable(TableRef tableRef, String prefix)
-      throws NessieNotFoundException {
+  private Uni<IcebergLoadTableResponse> loadTable(
+      TableRef tableRef, String prefix, WarehouseConfig warehouse) throws NessieNotFoundException {
     ContentKey key = tableRef.contentKey();
 
     return snapshotResponse(
@@ -1005,7 +1136,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
         .map(
             snap ->
                 loadTableResultFromSnapshotResponse(
-                    snap, IcebergLoadTableResponse.builder(), prefix, key));
+                    snap, IcebergLoadTableResponse.builder(), prefix, key, warehouse));
   }
 
   private void renameContent(
@@ -1344,20 +1475,29 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
           IcebergTableMetadata tableMetadata,
           B builder,
           String prefix,
-          ContentKey contentKey) {
-    return builder
-        .metadata(tableMetadata)
-        .metadataLocation(metadataLocation)
-        .putConfig(
-            S3_SIGNER_ENDPOINT,
-            uriInfo
-                .icebergBaseURI()
-                .resolve(
-                    format(
-                        "v1/%s/s3-sign/%s",
-                        encode(prefix, UTF_8), encode(contentKey.toPathString(), UTF_8)))
-                .toString())
-        .build();
+          ContentKey contentKey,
+          WarehouseConfig warehouse) {
+    builder.metadata(tableMetadata).metadataLocation(metadataLocation);
+
+    // TODO this is the place to add vended authorization tokens for file/object access
+    // TODO add (correct) S3_CLIENT_REGION for the table here (based on the table's location?)
+    URI warehouseLocation = URI.create(warehouse.location());
+    if ("s3".equals(warehouseLocation.getScheme())) {
+      builder.putConfig(
+          S3_SIGNER_ENDPOINT,
+          // TODO does it make sense to use a separate endpoint (service) just for signing?
+          uriInfo
+              .icebergBaseURI()
+              .resolve(
+                  format(
+                      "v1/%s/s3-sign/%s",
+                      encode(prefix, UTF_8), encode(contentKey.toPathString(), UTF_8)))
+              .toString());
+    }
+
+    // TODO GCS and ADLS per-table config overrides
+
+    return builder.build();
   }
 
   private IcebergLoadViewResponse loadViewResult(
@@ -1369,10 +1509,14 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
   private <R extends IcebergLoadTableResult, B extends IcebergLoadTableResult.Builder<R, B>>
       R loadTableResultFromSnapshotResponse(
-          SnapshotResponse snap, B builder, String prefix, ContentKey contentKey) {
+          SnapshotResponse snap,
+          B builder,
+          String prefix,
+          ContentKey contentKey,
+          WarehouseConfig warehouse) {
     IcebergTableMetadata tableMetadata = (IcebergTableMetadata) snap.entityObject().orElseThrow();
     return loadTableResult(
-        snapshotMetadataLocation(snap), tableMetadata, builder, prefix, contentKey);
+        snapshotMetadataLocation(snap), tableMetadata, builder, prefix, contentKey, warehouse);
   }
 
   private IcebergLoadViewResponse loadViewResultFromSnapshotResponse(

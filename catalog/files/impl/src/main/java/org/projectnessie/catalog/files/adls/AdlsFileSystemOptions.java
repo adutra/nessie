@@ -25,6 +25,7 @@ import java.util.Optional;
 
 public interface AdlsFileSystemOptions {
 
+  /** Fully-qualified account name, e.g. {@code "myaccount.dfs.core.windows.net"}. */
   Optional<String> accountNameRef();
 
   Optional<String> accountKeyRef();

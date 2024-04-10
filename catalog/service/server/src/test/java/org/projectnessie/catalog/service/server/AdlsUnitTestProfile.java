@@ -15,13 +15,27 @@
  */
 package org.projectnessie.catalog.service.server;
 
+import static org.projectnessie.catalog.service.server.ObjectStorageMockTestResourceLifecycleManager.ADLS_WAREHOUSE_LOCATION;
+
+import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-public class UnitTestProfile implements QuarkusTestProfile {
+public class AdlsUnitTestProfile implements QuarkusTestProfile {
+
   @Override
   public List<TestResourceEntry> testResources() {
-    return Collections.singletonList(new TestResourceEntry(HeapS3MockResource.class));
+    return Collections.singletonList(
+        new TestResourceEntry(ObjectStorageMockTestResourceLifecycleManager.class));
+  }
+
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    return ImmutableMap.<String, String>builder()
+        .put("nessie.catalog.warehouses.warehouse1.name", "warehouse1")
+        .put("nessie.catalog.warehouses.warehouse1.location", ADLS_WAREHOUSE_LOCATION)
+        .build();
   }
 }

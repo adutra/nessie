@@ -126,7 +126,7 @@ public final class GcsClients {
       case ACCESS_TOKEN:
         AccessToken accessToken =
             new AccessToken(
-                bucketOptions.oauth2tokenRef().map(secretsProvider::getSecret).orElseThrow(),
+                bucketOptions.oauth2TokenRef().map(secretsProvider::getSecret).orElseThrow(),
                 bucketOptions
                     .oauth2TokenExpiresAt()
                     .map(i -> new Date(i.toEpochMilli()))

@@ -68,14 +68,19 @@ public final class AdlsClientSupplier {
 
     // MUST set the endpoint FIRST, because it ALSO sets accountName, fileSystemName and sasToken!
     // See com.azure.storage.file.datalake.DataLakeFileSystemClientBuilder.endpoint
+
+    String accountName =
+        fileSystemOptions
+            .accountNameRef()
+            .map(secretsProvider::getSecret)
+            .orElse(location.storageAccount());
+
     clientBuilder.endpoint(
-        fileSystemOptions.endpoint().orElse("https://" + location.storageAccount()));
+        fileSystemOptions.endpoint().orElse(location.getUri().resolve("/").toString()));
 
     if (fileSystemOptions.sasTokenRef().isPresent()) {
       clientBuilder.sasToken(secretsProvider.getSecret(fileSystemOptions.sasTokenRef().get()));
-    } else if (fileSystemOptions.accountNameRef().isPresent()
-        && fileSystemOptions.accountKeyRef().isPresent()) {
-      String accountName = secretsProvider.getSecret(fileSystemOptions.accountNameRef().get());
+    } else if (fileSystemOptions.accountKeyRef().isPresent()) {
       String accountKey = secretsProvider.getSecret(fileSystemOptions.accountKeyRef().get());
       clientBuilder.credential(new StorageSharedKeyCredential(accountName, accountKey));
     } else {

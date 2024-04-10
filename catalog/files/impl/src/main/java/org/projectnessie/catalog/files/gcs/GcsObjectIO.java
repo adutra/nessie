@@ -46,7 +46,7 @@ public class GcsObjectIO implements ObjectIO {
     Storage client = storageSupplier.forLocation(bucketOptions);
     List<BlobSourceOption> sourceOptions = new ArrayList<>();
     bucketOptions
-        .encryptionKeyRef()
+        .decryptionKeyRef()
         .map(keyRef -> storageSupplier.secretsProvider().getSecret(keyRef))
         .map(BlobSourceOption::decryptionKey)
         .ifPresent(sourceOptions::add);

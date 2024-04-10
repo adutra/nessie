@@ -63,7 +63,7 @@ public interface GcsProgrammaticOptions extends GcsOptions<GcsBucketOptions> {
     Builder authCredentialsJsonRef(String authCredentialsJsonRef);
 
     @CanIgnoreReturnValue
-    Builder oauth2tokenRef(String oauth2tokenRef);
+    Builder oauth2TokenRef(String oauth2tokenRef);
 
     @CanIgnoreReturnValue
     Builder oauth2TokenExpiresAt(Instant oauth2TokenExpiresAt);
@@ -149,7 +149,7 @@ public interface GcsProgrammaticOptions extends GcsOptions<GcsBucketOptions> {
       Builder authCredentialsJsonRef(String authCredentialsJsonRef);
 
       @CanIgnoreReturnValue
-      Builder oauth2tokenRef(String oauth2tokenRef);
+      Builder oauth2TokenRef(String oauth2tokenRef);
 
       @CanIgnoreReturnValue
       Builder oauth2TokenExpiresAt(Instant oauth2TokenExpiresAt);
