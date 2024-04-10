@@ -92,6 +92,10 @@ do
       AWS="true"
       shift
       ;;
+    --oauth)
+      OAUTH="true"
+      shift
+      ;;
     --debug)
       DEBUG="true"
       shift
@@ -121,7 +125,7 @@ if [[ -n "$HELP" ]]; then
   echo "  --warehouse <location>          Warehouse location. Default: $WAREHOUSE_LOCATION"
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
-  echo "  --no-start                      Do not start Nessie Core/Catalog, use externally provided instance(s). Default: start"
+  echo "  --no-nessie-start               Do not start Nessie Core/Catalog, use externally provided instance(s). Default: start"
   echo "  --no-extensions                 Do not use Spark SQL extensions"
   echo "  --clear-warehouse               Clear warehouse directory. Default: false"
   echo "  --debug                         Enable debug mode"
@@ -143,6 +147,15 @@ if [[ -n "$AWS" ]]; then
   PACKAGES+=(
     "software.amazon.awssdk:bundle:${AWS_SDK_VERSION}"
     "software.amazon.awssdk:url-connection-client:${AWS_SDK_VERSION}"
+  )
+fi
+
+if [[ -n "$OAUTH" ]]; then
+  AUTH_CONF=(
+    "--conf" "spark.sql.catalog.nessie.scope=email"
+    # TODO add some pre-configured credentials?
+    "--conf" "spark.sql.catalog.nessie.credential=democlient:zhConxW5K0x7aeHy8Ouq2CVhGmej4bjB"
+    "--conf" "spark.sql.catalog.nessie.oauth2-server-uri=http://127.0.0.1:8080/realms/master/protocol/openid-connect/token"
   )
 fi
 
@@ -173,8 +186,8 @@ packages_csv=${packages_csv:1}
 spark-sql "${DEBUG_SPARK_SHELL[@]}" \
   --packages "${packages_csv}" \
   "${SPARK_EXTENSIONS[@]}" \
+  "${AUTH_CONF[@]}" \
   --conf spark.sql.catalogImplementation=in-memory \
   --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/iceberg/main/ \
   --conf spark.sql.catalog.nessie.type=rest \
-  --conf spark.sql.catalog.nessie.warehouse="$WAREHOUSE_LOCATION" \
   --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
