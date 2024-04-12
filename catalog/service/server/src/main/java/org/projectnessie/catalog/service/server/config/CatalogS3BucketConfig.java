@@ -17,9 +17,11 @@ package org.projectnessie.catalog.service.server.config;
 
 import io.smallrye.config.WithName;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Optional;
 import org.projectnessie.catalog.files.s3.Cloud;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
+import org.projectnessie.catalog.files.s3.S3ClientAuthenticationMode;
 
 public interface CatalogS3BucketConfig extends S3BucketOptions {
 
@@ -82,4 +84,12 @@ public interface CatalogS3BucketConfig extends S3BucketOptions {
   @WithName("external-id")
   @Override
   Optional<String> externalId();
+
+  @WithName("auth-mode")
+  @Override
+  Optional<S3ClientAuthenticationMode> clientAuthenticationMode();
+
+  @WithName("client-session-duration")
+  @Override
+  Optional<Duration> clientSessionDuration();
 }

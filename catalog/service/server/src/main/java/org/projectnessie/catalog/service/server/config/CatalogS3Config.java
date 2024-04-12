@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.projectnessie.catalog.files.s3.Cloud;
+import org.projectnessie.catalog.files.s3.S3ClientAuthenticationMode;
 import org.projectnessie.catalog.files.s3.S3Config;
 import org.projectnessie.catalog.files.s3.S3Options;
 
@@ -133,6 +134,14 @@ public interface CatalogS3Config extends S3Config, S3Options<CatalogS3BucketConf
   @WithName("external-id")
   @Override
   Optional<String> externalId();
+
+  @WithName("auth-mode")
+  @Override
+  Optional<S3ClientAuthenticationMode> clientAuthenticationMode();
+
+  @WithName("client-session-duration")
+  @Override
+  Optional<Duration> clientSessionDuration();
 
   @WithName("buckets")
   @Override

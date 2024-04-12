@@ -88,6 +88,8 @@ import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
 import org.projectnessie.catalog.files.gcs.GcsOptions;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
+import org.projectnessie.catalog.files.s3.S3Credentials;
+import org.projectnessie.catalog.files.s3.S3CredentialsResolver;
 import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
@@ -166,6 +168,10 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   /** Boolean property that enables remote signing for tables. */
   public static final String S3_REMOTE_SIGNING_ENABLED = "s3.remote-signing-enabled";
 
+  public static final String S3_ACCESS_KEY_ID = "s3.access-key-id";
+  public static final String S3_SECRET_ACCESS_KEY = "s3.secret-access-key";
+  public static final String S3_SESSION_TOKEN = "s3.session-token";
+
   private static final String AWS_REGION = "client.region";
   private static final String S3_ENDPOINT = "s3.endpoint";
   private static final String S3_ACCESS_POINTS_PREFIX = "s3.access-points.";
@@ -204,6 +210,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
   private final ServerConfig serverConfig;
   private final CatalogConfig catalogConfig;
   private final RequestSigner signer;
+  private final S3CredentialsResolver s3CredentialsResolver;
   private final S3Options<?> s3Options;
   private final GcsOptions<?> gcsOptions;
   private final AdlsOptions<?> adlsOptions;
@@ -221,10 +228,12 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       GcsOptions<?> gcsOptions,
       AdlsOptions<?> adlsOptions,
       SecretsProvider secretsProvider,
+      S3CredentialsResolver s3CredentialsResolver,
       Optional<URI> tokenEndpoint) {
     super(catalogService, objectIO);
     this.nessieApi = nessieApi;
     this.signer = signer;
+    this.s3CredentialsResolver = s3CredentialsResolver;
     this.serverConfig = serverConfig;
     this.catalogConfig = catalogConfig;
     this.s3Options = s3Options;
@@ -327,9 +336,30 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       s3BucketOptions
           .pathStyleAccess()
           .ifPresent(psa -> configOverrides.put(S3_PATH_STYLE_ACCESS, psa ? "true" : "false"));
-      configOverrides.put(S3_REMOTE_SIGNING_ENABLED, "true");
-      // Note: leave S3 signer endpoint to its default for now, it is overridden on a per-table
-      // basis, see loadTableResult() below
+
+      switch (s3BucketOptions.effectiveClientAuthenticationMode()) {
+        case REQUEST_SIGNING:
+          configOverrides.put(S3_REMOTE_SIGNING_ENABLED, "true");
+          // Note: leave S3 signer endpoint to its default for now, it is overridden on a per-table
+          // basis, see loadTableResult() below
+          break;
+
+        case ASSUME_ROLE:
+          // TODO: expectedSessionDuration() should probably be declared by the client.
+          S3Credentials s3credentials =
+              s3CredentialsResolver.resolveSessionCredentials(s3BucketOptions);
+
+          configOverrides.put(S3_ACCESS_KEY_ID, s3credentials.accessKeyId());
+          configOverrides.put(S3_SECRET_ACCESS_KEY, s3credentials.secretAccessKey());
+          s3credentials.sessionToken().ifPresent(t -> configOverrides.put(S3_SESSION_TOKEN, t));
+          configOverrides.put(S3_REMOTE_SIGNING_ENABLED, "false");
+          break;
+
+        default:
+          throw new IllegalArgumentException(
+              "Unsupported client authentication mode: "
+                  + s3BucketOptions.clientAuthenticationMode());
+      }
     }
   }
 

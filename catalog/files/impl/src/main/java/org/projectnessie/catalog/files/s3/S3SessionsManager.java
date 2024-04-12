@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.files.s3;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.projectnessie.catalog.files.s3.S3Clients.basicCredentialsProvider;
@@ -35,7 +36,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -51,7 +51,7 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
 import software.amazon.awssdk.services.sts.model.Credentials;
 
 /** Maintains a pool of STS clients and manages refreshing session credentials on demand. */
-public class CachingS3SessionsManager {
+public class S3SessionsManager {
   public static final String CLIENTS_CACHE_NAME = "sts-clients";
   public static final String SESSIONS_CACHE_NAME = "sts-sessions";
 
@@ -60,9 +60,9 @@ public class CachingS3SessionsManager {
   private final Function<StsClientKey, StsClient> clientBuilder;
   private final Duration expiryReduction;
   private final SecretsProvider secretsProvider;
-  private final BiFunction<StsClient, SessionKey, Credentials> sessionCredentialsFetcher;
+  private final SessionCredentialsFetcher sessionCredentialsFetcher;
 
-  public CachingS3SessionsManager(
+  public S3SessionsManager(
       S3Options<?> options,
       SdkHttpClient sdkHttpClient,
       MeterRegistry meterRegistry,
@@ -78,14 +78,14 @@ public class CachingS3SessionsManager {
   }
 
   @VisibleForTesting
-  CachingS3SessionsManager(
+  S3SessionsManager(
       S3Options<?> options,
       LongSupplier systemTimeMillis,
       SdkHttpClient sdkHttpClient,
       Function<StsClientKey, StsClient> clientBuilder,
       Optional<MeterRegistry> meterRegistry,
       SecretsProvider secretsProvider,
-      BiFunction<StsClient, SessionKey, Credentials> sessionCredentialsFetcher) {
+      SessionCredentialsFetcher sessionCredentialsFetcher) {
     this.clientBuilder =
         clientBuilder != null ? clientBuilder : (parameters) -> client(parameters, sdkHttpClient);
     this.expiryReduction = options.effectiveSessionCredentialRefreshGracePeriod();
@@ -93,7 +93,7 @@ public class CachingS3SessionsManager {
     this.sessionCredentialsFetcher =
         sessionCredentialsFetcher != null
             ? sessionCredentialsFetcher
-            : this::fetchSessionCredentials;
+            : this::executeAssumeRoleRequest;
 
     // Cache clients without expiration time keyed by the parameters that cannot be adjusted
     // per-request. Note: Credentials are set individually in each STS request.
@@ -176,28 +176,34 @@ public class CachingS3SessionsManager {
   }
 
   private Credentials loadSession(SessionKey sessionKey) {
-    // Note: StsClients may be shared across repositories.
-    StsClientKey clientKey =
-        ImmutableStsClientKey.of(
-            sessionKey.stsEndpoint(),
-            sessionKey
-                .region()
-                .orElseThrow(() -> new IllegalArgumentException("S3 region must be provided")));
-    StsClient client = clients.get(clientKey, clientBuilder);
-
-    return sessionCredentialsFetcher.apply(client, sessionKey);
+    // Cached sessions use the default duration.
+    return fetchCredentials(sessionKey, Optional.empty());
   }
 
-  private Credentials fetchSessionCredentials(StsClient client, SessionKey sessionKey) {
+  private Credentials fetchCredentials(SessionKey sessionKey, Optional<Duration> sessionDuration) {
+    // Note: StsClients may be shared across repositories.
+    StsClientKey clientKey =
+        ImmutableStsClientKey.of(sessionKey.stsEndpoint(), sessionKey.region());
+    StsClient client = clients.get(clientKey, clientBuilder);
+
+    return sessionCredentialsFetcher.fetchCredentials(client, sessionKey, sessionDuration);
+  }
+
+  private Credentials executeAssumeRoleRequest(
+      StsClient client, SessionKey sessionKey, Optional<Duration> sessionDuration) {
     AssumeRoleRequest.Builder request = AssumeRoleRequest.builder();
     request.roleSessionName(
         sessionKey.roleSessionName().orElse(S3BucketOptions.DEFAULT_SESSION_NAME));
-    request.roleArn(
-        sessionKey
-            .roleArn()
-            .orElseThrow(() -> new IllegalArgumentException("Role ARN must be configured")));
+    request.roleArn(sessionKey.roleArn());
     sessionKey.externalId().ifPresent(request::externalId);
     sessionKey.iamPolicy().ifPresent(request::policy);
+    sessionDuration.ifPresent(
+        duration -> {
+          long seconds = duration.toSeconds();
+          checkArgument(
+              seconds < Integer.MAX_VALUE, "Requested session duration is too long: " + duration);
+          request.durationSeconds((int) seconds);
+        });
 
     request.overrideConfiguration(
         builder ->
@@ -211,22 +217,37 @@ public class CachingS3SessionsManager {
     return response.credentials();
   }
 
-  Credentials sessionCredentials(String repositoryId, S3BucketOptions options) {
-    // Client parameters are part of the credential's key because clients in different regions may
-    // issue different credentials.
+  Credentials sessionCredentialsForServer(String repositoryId, S3BucketOptions options) {
     SessionKey sessionKey = buildSessionKey(repositoryId, options);
-
     return sessions.get(sessionKey);
   }
 
+  Credentials sessionCredentialsForClient(String repositoryId, S3BucketOptions options) {
+    SessionKey sessionKey = buildSessionKey(repositoryId, options);
+    // In this case cache only the client, but not the credentials. Session cache hits are
+    // unlikely in the latter case as we'd have to include the exact expiry instant (not session
+    // duration) in the SessionKey, otherwise we risk reusing credentials that are about to expire
+    // for a fresh (long-running) session.
+    return fetchCredentials(sessionKey, options.clientSessionDuration());
+  }
+
   private static SessionKey buildSessionKey(String repositoryId, S3BucketOptions options) {
+    // Client parameters are part of the credential's key because clients in different regions may
+    // issue different credentials.
     return ImmutableSessionKey.builder()
         .repositoryId(repositoryId)
+        .region(
+            options
+                .region()
+                .orElseThrow(() -> new IllegalArgumentException("S3 region must be provided")))
+        .stsEndpoint(options.stsEndpoint())
+        .roleArn(
+            options
+                .roleArn()
+                .orElseThrow(() -> new IllegalArgumentException("Role ARN must be configured")))
         .accessKeyIdRef(options.accessKeyIdRef())
         .secretAccessKeyRef(options.secretAccessKeyRef())
-        .region(options.region())
         .stsEndpoint(options.stsEndpoint())
-        .roleArn(options.roleArn())
         .iamPolicy(options.iamPolicy())
         .roleSessionName(options.roleSessionName())
         .externalId(options.externalId())
@@ -252,15 +273,15 @@ public class CachingS3SessionsManager {
   interface SessionKey {
     String repositoryId();
 
+    String region();
+
+    String roleArn();
+
     Optional<URI> stsEndpoint();
 
     Optional<String> accessKeyIdRef();
 
     Optional<String> secretAccessKeyRef();
-
-    Optional<String> region();
-
-    Optional<String> roleArn();
 
     Optional<String> iamPolicy();
 
@@ -274,5 +295,11 @@ public class CachingS3SessionsManager {
     Optional<URI> endpoint();
 
     String region();
+  }
+
+  @FunctionalInterface
+  interface SessionCredentialsFetcher {
+    Credentials fetchCredentials(
+        StsClient client, SessionKey sessionKey, Optional<Duration> sessionDuration);
   }
 }

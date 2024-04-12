@@ -43,6 +43,9 @@ public interface S3ProgrammaticOptions extends S3Options<S3BucketOptions> {
     Builder region(String region);
 
     @CanIgnoreReturnValue
+    Builder roleArn(String roleArn);
+
+    @CanIgnoreReturnValue
     Builder pathStyleAccess(boolean pathStyleAccess);
 
     @CanIgnoreReturnValue

@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.files.s3;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Optional;
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
@@ -25,6 +26,17 @@ public interface S3BucketOptions {
    * session.
    */
   String DEFAULT_SESSION_NAME = "nessie";
+
+  /** Default value for {@link #minSessionCredentialValidityPeriod()}. */
+  Duration DEFAULT_SESSION_DURATION =
+      Duration.ofHours(1); // 1 hour lifetime is common for session credentials in S3
+
+  /**
+   * Default value for {@link #clientAuthenticationMode()}, being {@link
+   * S3ClientAuthenticationMode#REQUEST_SIGNING}.
+   */
+  S3ClientAuthenticationMode DEFAULT_AUTHENTICATION_MODE =
+      S3ClientAuthenticationMode.REQUEST_SIGNING;
 
   /**
    * The type of cloud running the S3 service. The cloud type must be configured, either per bucket
@@ -148,6 +160,33 @@ public interface S3BucketOptions {
    * @see AssumeRoleRequest#externalId()
    */
   Optional<String> externalId();
+
+  /** Controls the authentication mode for Catalog clients accessing this bucket. */
+  Optional<S3ClientAuthenticationMode> clientAuthenticationMode();
+
+  default S3ClientAuthenticationMode effectiveClientAuthenticationMode() {
+    return clientAuthenticationMode().orElse(DEFAULT_AUTHENTICATION_MODE);
+  }
+
+  /**
+   * A higher bound estimate of the expected duration of client "sessions" working with data in this
+   * bucket. A session, for example, is the lifetime of an Iceberg REST catalog object on the client
+   * side. This value is used for validating expiration times of credentials associated with the
+   * warehouse.
+   *
+   * <p>This parameter is relevant only when {@link #clientAuthenticationMode()} is {@link
+   * S3ClientAuthenticationMode#ASSUME_ROLE}.
+   */
+  Optional<Duration> clientSessionDuration();
+
+  /**
+   * The minimum required validity period for session credentials. The value of {@link
+   * #clientSessionDuration()} is used if set, otherwise the {@link #DEFAULT_SESSION_DURATION
+   * default} session duration is assumed.
+   */
+  default Duration minSessionCredentialValidityPeriod() {
+    return clientSessionDuration().orElse(DEFAULT_SESSION_DURATION);
+  }
 
   /**
    * Extract the bucket name from the URI. Only relevant for {@linkplain Cloud#AMAZON AWS} or

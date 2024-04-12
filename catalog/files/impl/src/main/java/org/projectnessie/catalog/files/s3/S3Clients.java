@@ -67,6 +67,6 @@ public class S3Clients {
           bucketOptions.accessKeyIdRef(), bucketOptions.secretAccessKeyRef(), secretsProvider);
     }
 
-    return sessions.assumeRole(bucketOptions, secretsProvider);
+    return sessions.assumeRoleForServer(bucketOptions);
   }
 }

@@ -53,6 +53,7 @@ import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
 import org.projectnessie.catalog.files.gcs.GcsOptions;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
+import org.projectnessie.catalog.files.s3.S3CredentialsResolver;
 import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.formats.iceberg.metrics.IcebergMetricsReport;
@@ -119,7 +120,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
 
   @SuppressWarnings("unused")
   public IcebergApiV1Resource() {
-    this(null, null, null, null, null, null, null, null, null, null, null, null);
+    this(null, null, null, null, null, null, null, null, null, null, null, null, Optional.empty());
   }
 
   @Inject
@@ -135,6 +136,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
       GcsOptions<GcsBucketOptions> gcsOptions,
       AdlsOptions<AdlsFileSystemOptions> adlsOptions,
       SecretsProvider secretsProvider,
+      S3CredentialsResolver s3CredentialsResolver,
       @TokenEndpointUri Optional<URI> tokenEndpoint) {
     super(
         catalogService,
@@ -147,6 +149,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
         gcsOptions,
         adlsOptions,
         secretsProvider,
+        s3CredentialsResolver,
         tokenEndpoint);
     this.exceptionConfig = exceptionConfig;
   }

@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.assertj.core.api.AbstractListAssert;
 import org.assertj.core.api.ObjectAssert;
@@ -36,12 +35,13 @@ import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
-import org.projectnessie.catalog.files.s3.CachingS3SessionsManager.StsClientKey;
+import org.projectnessie.catalog.files.s3.S3SessionsManager.SessionCredentialsFetcher;
+import org.projectnessie.catalog.files.s3.S3SessionsManager.StsClientKey;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.model.Credentials;
 
 @ExtendWith(SoftAssertionsExtension.class)
-class TestCachingS3SessionsManager {
+class TestS3SessionsManager {
 
   @InjectSoftAssertions protected SoftAssertions soft;
 
@@ -69,48 +69,85 @@ class TestCachingS3SessionsManager {
 
     AtomicInteger counter = new AtomicInteger();
     AtomicReference<Credentials> credentials = new AtomicReference<>();
-    BiFunction<StsClient, CachingS3SessionsManager.SessionKey, Credentials> loader =
-        (client, key) -> {
+    SessionCredentialsFetcher loader =
+        (client, key, duration) -> {
           counter.incrementAndGet();
           return credentials.get();
         };
 
-    CachingS3SessionsManager cache =
-        new CachingS3SessionsManager(
+    S3SessionsManager manager =
+        new S3SessionsManager(
             s3options, time::get, null, clientBuilder, Optional.empty(), s -> s, loader);
-    S3BucketOptions options = S3ProgrammaticOptions.builder().region("R1").build();
+    S3BucketOptions options = S3ProgrammaticOptions.builder().region("R1").roleArn("role").build();
 
     credentials.set(credentials(time.get() + 100));
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(credentials.get());
     soft.assertThat(clientCounter.get()).isEqualTo(1);
     soft.assertThat(counter.get()).isEqualTo(1);
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(credentials.get());
     soft.assertThat(clientCounter.get()).isEqualTo(1);
     soft.assertThat(counter.get()).isEqualTo(1);
 
     time.set(89); // just before the expiry time minus grace time
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(credentials.get());
     soft.assertThat(counter.get()).isEqualTo(1);
 
     time.set(90); // at the grace period - the entry is expired
     credentials.set(credentials(time.get() + 200));
 
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(credentials.get());
     soft.assertThat(clientCounter.get()).isEqualTo(1);
     soft.assertThat(counter.get()).isEqualTo(2);
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(credentials.get());
     soft.assertThat(clientCounter.get()).isEqualTo(1);
     soft.assertThat(counter.get()).isEqualTo(2);
 
     // test expiry in the past
     time.set(1000);
     credentials.set(Credentials.builder().expiration(Instant.ofEpochMilli(time.get() - 1)).build());
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(credentials.get());
     soft.assertThat(clientCounter.get()).isEqualTo(1);
     soft.assertThat(counter.get()).isEqualTo(3);
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(credentials.get());
     soft.assertThat(clientCounter.get()).isEqualTo(1);
     soft.assertThat(counter.get()).isEqualTo(4);
+  }
+
+  @Test
+  void testClientSessionCredentials() {
+    AtomicLong time = new AtomicLong();
+
+    AtomicInteger clientCounter = new AtomicInteger();
+    Function<StsClientKey, StsClient> clientBuilder =
+        (parameters) -> {
+          clientCounter.incrementAndGet();
+          return Mockito.mock(StsClient.class);
+        };
+
+    AtomicInteger counter = new AtomicInteger();
+    AtomicReference<Credentials> credentials = new AtomicReference<>();
+    SessionCredentialsFetcher loader =
+        (client, key, duration) -> {
+          counter.incrementAndGet();
+          return credentials.get();
+        };
+
+    S3SessionsManager manager =
+        new S3SessionsManager(
+            s3options, time::get, null, clientBuilder, Optional.empty(), s -> s, loader);
+    S3BucketOptions options = S3ProgrammaticOptions.builder().region("R1").roleArn("role").build();
+
+    credentials.set(credentials(time.get() + 100));
+
+    soft.assertThat(manager.sessionCredentialsForClient("r1", options)).isSameAs(credentials.get());
+    soft.assertThat(clientCounter.get()).isEqualTo(1);
+    soft.assertThat(counter.get()).isEqualTo(1);
+
+    soft.assertThat(manager.sessionCredentialsForClient("r1", options)).isSameAs(credentials.get());
+    // STS clients are cached
+    soft.assertThat(clientCounter.get()).isEqualTo(1);
+    // Client session credentials are not cached
+    soft.assertThat(counter.get()).isEqualTo(2);
   }
 
   @Test
@@ -118,39 +155,38 @@ class TestCachingS3SessionsManager {
     AtomicLong time = new AtomicLong();
 
     AtomicReference<Credentials> credentials = new AtomicReference<>();
-    BiFunction<StsClient, CachingS3SessionsManager.SessionKey, Credentials> loader =
-        (client, key) -> credentials.get();
-    CachingS3SessionsManager cache =
-        new CachingS3SessionsManager(
+    SessionCredentialsFetcher loader = (client, key, duration) -> credentials.get();
+    S3SessionsManager manager =
+        new S3SessionsManager(
             s3options, time::get, null, (p) -> null, Optional.empty(), s -> s, loader);
 
-    S3BucketOptions options = S3ProgrammaticOptions.builder().region("R1").build();
+    S3BucketOptions options = S3ProgrammaticOptions.builder().region("R1").roleArn("role").build();
     Credentials c1 = credentials(time.get() + 100);
     Credentials c2 = credentials(time.get() + 200);
 
     credentials.set(c1);
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(c1);
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(c1);
     credentials.set(c2);
-    soft.assertThat(cache.sessionCredentials("r2", options)).isSameAs(c2);
+    soft.assertThat(manager.sessionCredentialsForServer("r2", options)).isSameAs(c2);
 
     // cached responses
     credentials.set(null);
-    soft.assertThat(cache.sessionCredentials("r1", options)).isSameAs(c1);
-    soft.assertThat(cache.sessionCredentials("r2", options)).isSameAs(c2);
+    soft.assertThat(manager.sessionCredentialsForServer("r1", options)).isSameAs(c1);
+    soft.assertThat(manager.sessionCredentialsForServer("r2", options)).isSameAs(c2);
   }
 
   @Test
   void testMetrics() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 
-    new CachingS3SessionsManager(
+    new S3SessionsManager(
         s3options,
         () -> 1L,
         null,
         (p) -> null,
         Optional.of(meterRegistry),
         s -> s,
-        (client, key) -> null);
+        (client, key, duration) -> null);
 
     Function<Meter, AbstractListAssert<?, List<?>, Object, ObjectAssert<Object>>> extractor =
         meter ->

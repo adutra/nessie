@@ -18,9 +18,12 @@ package org.projectnessie.catalog.service.server;
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.projectnessie.objectstoragemock.HeapStorageBucket;
 import org.projectnessie.objectstoragemock.ObjectStorageMock;
 import org.projectnessie.objectstoragemock.ObjectStorageMock.MockServer;
+import org.projectnessie.objectstoragemock.sts.AssumeRoleHandler;
+import org.projectnessie.objectstoragemock.sts.AssumeRoleResult;
 
 public class ObjectStorageMockTestResourceLifecycleManager
     implements QuarkusTestResourceLifecycleManager {
@@ -39,6 +42,8 @@ public class ObjectStorageMockTestResourceLifecycleManager
           ? "s3.localhost.localdomain"
           : "s3.127-0-0-1.nip.io";
 
+  private final AssumeRoleHandlerHolder assumeRoleHandler = new AssumeRoleHandlerHolder();
+
   private String initAddress;
   private HeapStorageBucket heapStorageBucket;
   private MockServer server;
@@ -56,6 +61,7 @@ public class ObjectStorageMockTestResourceLifecycleManager
         ObjectStorageMock.builder()
             .initAddress(initAddress)
             .putBuckets(BUCKET, heapStorageBucket.bucket())
+            .assumeRoleHandler(assumeRoleHandler)
             .build()
             .start();
 
@@ -65,6 +71,7 @@ public class ObjectStorageMockTestResourceLifecycleManager
 
     return ImmutableMap.<String, String>builder()
         // S3
+        .put("nessie.catalog.service.s3.sts.endpoint", server.getStsEndpointURI().toString())
         .put("nessie.catalog.service.s3.buckets." + BUCKET + ".cloud", "private")
         .put("nessie.catalog.service.s3.buckets." + BUCKET + ".endpoint", s3Endpoint)
         .put("nessie.catalog.service.s3.buckets." + BUCKET + ".region", "us-east-1")
@@ -90,6 +97,9 @@ public class ObjectStorageMockTestResourceLifecycleManager
   public void inject(TestInjector testInjector) {
     testInjector.injectIntoFields(
         heapStorageBucket, new TestInjector.MatchesType(HeapStorageBucket.class));
+
+    testInjector.injectIntoFields(
+        assumeRoleHandler, new TestInjector.MatchesType(AssumeRoleHandlerHolder.class));
   }
 
   @Override
@@ -102,6 +112,37 @@ public class ObjectStorageMockTestResourceLifecycleManager
       } finally {
         server = null;
       }
+    }
+  }
+
+  public static final class AssumeRoleHandlerHolder implements AssumeRoleHandler {
+    private final AtomicReference<AssumeRoleHandler> handler = new AtomicReference<>();
+
+    public void set(AssumeRoleHandler handler) {
+      this.handler.set(handler);
+    }
+
+    @Override
+    public AssumeRoleResult assumeRole(
+        String action,
+        String version,
+        String roleArn,
+        String roleSessionName,
+        String policy,
+        Integer durationSeconds,
+        String externalId,
+        String serialNumber) {
+      return handler
+          .get()
+          .assumeRole(
+              action,
+              version,
+              roleArn,
+              roleSessionName,
+              policy,
+              durationSeconds,
+              externalId,
+              serialNumber);
     }
   }
 }

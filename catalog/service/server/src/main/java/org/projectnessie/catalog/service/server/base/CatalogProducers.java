@@ -26,6 +26,7 @@ import jakarta.enterprise.inject.Disposes;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import java.time.Clock;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -44,12 +45,13 @@ import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
 import org.projectnessie.catalog.files.gcs.GcsClients;
 import org.projectnessie.catalog.files.gcs.GcsOptions;
 import org.projectnessie.catalog.files.gcs.GcsStorageSupplier;
-import org.projectnessie.catalog.files.s3.CachingS3SessionsManager;
 import org.projectnessie.catalog.files.s3.S3BucketOptions;
 import org.projectnessie.catalog.files.s3.S3ClientSupplier;
 import org.projectnessie.catalog.files.s3.S3Clients;
+import org.projectnessie.catalog.files.s3.S3CredentialsResolver;
 import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.files.s3.S3Sessions;
+import org.projectnessie.catalog.files.s3.S3SessionsManager;
 import org.projectnessie.catalog.files.s3.S3Signer;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.service.common.config.CatalogServerConfig;
@@ -123,19 +125,25 @@ public class CatalogProducers {
 
   @Produces
   @Singleton
-  public CachingS3SessionsManager s3SessionsManager(
+  public S3SessionsManager s3SessionsManager(
       S3Options<?> s3options,
       @CatalogS3Client SdkHttpClient sdkClient,
       MeterRegistry meterRegistry,
       SecretsProvider secretsProvider) {
-    return new CachingS3SessionsManager(s3options, sdkClient, meterRegistry, secretsProvider);
+    return new S3SessionsManager(s3options, sdkClient, meterRegistry, secretsProvider);
   }
 
   @Produces
   @Singleton
-  public S3Sessions s3sessions(StoreConfig storeConfig, CachingS3SessionsManager cache) {
+  public S3Sessions s3sessions(StoreConfig storeConfig, S3SessionsManager sessionsManager) {
     String repositoryId = storeConfig.repositoryId();
-    return new S3Sessions(repositoryId, cache);
+    return new S3Sessions(repositoryId, sessionsManager);
+  }
+
+  @Produces
+  @Singleton
+  public S3CredentialsResolver s3CredentialsResolver(S3Sessions sessions) {
+    return new S3CredentialsResolver(Clock.systemUTC(), sessions);
   }
 
   @Produces

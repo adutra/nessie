@@ -15,7 +15,7 @@
  */
 package org.projectnessie.catalog.files.s3;
 
-import org.projectnessie.catalog.files.secrets.SecretsProvider;
+import java.util.function.Supplier;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.services.sts.model.Credentials;
@@ -23,14 +23,33 @@ import software.amazon.awssdk.services.sts.model.Credentials;
 public class S3Sessions {
 
   private final String repositoryId;
-  private final CachingS3SessionsManager cache;
+  private final S3SessionsManager sessionsManager;
 
-  public S3Sessions(String repositoryId, CachingS3SessionsManager cache) {
+  public S3Sessions(String repositoryId, S3SessionsManager sessionsManager) {
     this.repositoryId = repositoryId;
-    this.cache = cache;
+    this.sessionsManager = sessionsManager;
   }
 
-  AwsCredentialsProvider assumeRole(S3BucketOptions options, SecretsProvider secretsProvider) {
+  /**
+   * Returns potentially shared session credentials for the specified role using the default session
+   * duration.
+   */
+  AwsCredentialsProvider assumeRoleForServer(S3BucketOptions options) {
+    return credentials(
+        options, () -> sessionsManager.sessionCredentialsForServer(repositoryId, options));
+  }
+
+  /**
+   * Returns session credentials for the specified role and the expected session duration. Note:
+   * credentials returned from this method are generally not shared across sessions.
+   */
+  AwsCredentialsProvider assumeRoleForClient(S3BucketOptions options) {
+    return credentials(
+        options, () -> sessionsManager.sessionCredentialsForClient(repositoryId, options));
+  }
+
+  private AwsCredentialsProvider credentials(
+      S3BucketOptions options, Supplier<Credentials> supplier) {
     if (options.cloud().orElse(null) != Cloud.AMAZON) {
       if (options.stsEndpoint().isEmpty()) {
         throw new IllegalArgumentException(
@@ -40,9 +59,13 @@ public class S3Sessions {
     }
 
     return () -> {
-      Credentials credentials = cache.sessionCredentials(repositoryId, options);
-      return AwsSessionCredentials.create(
-          credentials.accessKeyId(), credentials.secretAccessKey(), credentials.sessionToken());
+      Credentials credentials = supplier.get();
+      return AwsSessionCredentials.builder()
+          .accessKeyId(credentials.accessKeyId())
+          .secretAccessKey(credentials.secretAccessKey())
+          .sessionToken(credentials.sessionToken())
+          .expirationTime(credentials.expiration())
+          .build();
     };
   }
 }

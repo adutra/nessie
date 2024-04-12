@@ -36,9 +36,7 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.objectstoragemock.ObjectStorageMock;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
 
 /** Microbenchmark to identify the resource footprint when using {@link S3ClientSupplier}. */
@@ -72,14 +70,7 @@ public class S3ClientResourceBench {
               .pathStyleAccess(true)
               .build();
 
-      S3Sessions sessions =
-          new S3Sessions("foo", null) {
-            @Override
-            AwsCredentialsProvider assumeRole(
-                S3BucketOptions options, SecretsProvider secretsProvider) {
-              return null;
-            }
-          };
+      S3Sessions sessions = new S3Sessions("foo", null);
 
       clientSupplier =
           new S3ClientSupplier(httpClient, s3config, s3options, secret -> "secret", sessions);

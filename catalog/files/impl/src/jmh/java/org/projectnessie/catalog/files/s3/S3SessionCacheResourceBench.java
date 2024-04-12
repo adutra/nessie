@@ -44,7 +44,7 @@ import org.projectnessie.objectstoragemock.ObjectStorageMock;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.regions.Region;
 
-/** Microbenchmark to identify the resource footprint of {@link CachingS3SessionsManager}. */
+/** Microbenchmark to identify the resource footprint of {@link S3SessionsManager}. */
 @Warmup(iterations = 3, time = 2000, timeUnit = MILLISECONDS)
 @Measurement(iterations = 3, time = 1000, timeUnit = MILLISECONDS)
 @Fork(1)
@@ -56,7 +56,7 @@ public class S3SessionCacheResourceBench {
   public static class BenchmarkParam {
     ObjectStorageMock.MockServer server;
 
-    CachingS3SessionsManager cachingS3SessionsManager;
+    S3SessionsManager s3SessionsManager;
     SdkHttpClient httpClient;
 
     @Param({"1", "100", "1000", "10000", "100000"})
@@ -79,8 +79,8 @@ public class S3SessionCacheResourceBench {
               .pathStyleAccess(true)
               .build();
 
-      cachingS3SessionsManager =
-          new CachingS3SessionsManager(
+      s3SessionsManager =
+          new S3SessionsManager(
               s3options,
               System::currentTimeMillis,
               httpClient,
@@ -124,7 +124,12 @@ public class S3SessionCacheResourceBench {
   }
 
   @Benchmark
-  public void getCredentials(BenchmarkParam param, Blackhole bh) {
-    bh.consume(param.cachingS3SessionsManager.sessionCredentials("repo", param.bucketOptions()));
+  public void getCredentialsForServer(BenchmarkParam param, Blackhole bh) {
+    bh.consume(param.s3SessionsManager.sessionCredentialsForServer("repo", param.bucketOptions()));
+  }
+
+  @Benchmark
+  public void getCredentialsForClient(BenchmarkParam param, Blackhole bh) {
+    bh.consume(param.s3SessionsManager.sessionCredentialsForClient("repo", param.bucketOptions()));
   }
 }
