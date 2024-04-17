@@ -74,15 +74,14 @@ public interface OAuth2AuthenticatorConfig {
    */
   static OAuth2AuthenticatorConfig fromConfigSupplier(Function<String, String> config) {
     Objects.requireNonNull(config, "config must not be null");
+    String clientId = config.apply(CONF_NESSIE_OAUTH2_CLIENT_ID);
+    String clientSecret = config.apply(CONF_NESSIE_OAUTH2_CLIENT_SECRET);
     OAuth2ClientConfig.Builder builder =
         OAuth2ClientConfig.builder()
-            .clientId(
-                Objects.requireNonNull(
-                    config.apply(CONF_NESSIE_OAUTH2_CLIENT_ID), "client ID must not be null"))
-            .clientSecret(
-                Objects.requireNonNull(
-                    config.apply(CONF_NESSIE_OAUTH2_CLIENT_SECRET),
-                    "client secret must not be null"));
+            // No need to validate client ID+secret here, those are validated in
+            // `OAuth2ClientConfig.check()`, which has a more human friendly validation.
+            .clientId(clientId != null ? clientId : "")
+            .clientSecret(clientSecret != null ? clientSecret : "");
     applyConfigOption(config, CONF_NESSIE_OAUTH2_ISSUER_URL, builder::issuerUrl, URI::create);
     applyConfigOption(
         config, CONF_NESSIE_OAUTH2_TOKEN_ENDPOINT, builder::tokenEndpoint, URI::create);
@@ -200,13 +199,13 @@ public interface OAuth2AuthenticatorConfig {
   String getClientId();
 
   /**
-   * The OAuth2 client secret. Must be set.
+   * The OAuth2 client secret. Must be set, if required by the IdP.
    *
    * <p>Once read by the Nessie client, the secret contents will be cleared from memory.
    *
    * @see NessieConfigConstants#CONF_NESSIE_OAUTH2_CLIENT_SECRET
    */
-  Secret getClientSecret();
+  Optional<Secret> getClientSecret();
 
   /**
    * The OAuth2 username. Only relevant for {@link GrantType#PASSWORD} grant type.
@@ -312,9 +311,13 @@ public interface OAuth2AuthenticatorConfig {
   }
 
   /**
-   * The port to use for the local web server that listens for the authorization code. Optional. If
-   * not set or set to zero, a random port from the dynamic client port range will be used. Only
-   * relevant when using the {@link GrantType#AUTHORIZATION_CODE} grant type.
+   * The port to use for the local web server that listens for the authorization code.
+   *
+   * <p>When running a client inside a container make sure to specify a port and forward the port to
+   * the container host.
+   *
+   * <p>If not set or set to zero, a random port from the dynamic client port range will be used.
+   * Only relevant when using the {@link GrantType#AUTHORIZATION_CODE} grant type.
    *
    * @see NessieConfigConstants#CONF_NESSIE_OAUTH2_AUTHORIZATION_CODE_FLOW_WEB_PORT
    */
@@ -366,10 +369,7 @@ public interface OAuth2AuthenticatorConfig {
    * shrink to zero threads if no activity is detected for {@link
    * #getBackgroundThreadIdleTimeout()}.
    */
-  @Value.Default
-  default ScheduledExecutorService getExecutor() {
-    return new OAuth2TokenRefreshExecutor(getBackgroundThreadIdleTimeout());
-  }
+  Optional<ScheduledExecutorService> getExecutor();
 
   static OAuth2AuthenticatorConfig.Builder builder() {
     return ImmutableOAuth2AuthenticatorConfig.builder();

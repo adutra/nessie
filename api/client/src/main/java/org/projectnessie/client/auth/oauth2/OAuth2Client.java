@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.projectnessie.client.http.HttpClient;
 import org.projectnessie.client.http.HttpClientException;
+import org.projectnessie.client.http.HttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,9 +77,12 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
         config.getPassword().map(s -> s.getBytesAndClear(StandardCharsets.UTF_8)).orElse(null);
     scope = config.getScope().orElse(null);
     httpClient = config.getHttpClient();
-    executor = config.getExecutor();
-    lastAccess = config.getClock().get();
-    currentTokensStage = started.thenApplyAsync((v) -> fetchNewTokens(), config.getExecutor());
+    executor =
+        config
+            .getExecutor()
+            .orElseGet(
+                () -> new OAuth2TokenRefreshExecutor(config.getBackgroundThreadIdleTimeout()));
+    currentTokensStage = started.thenApplyAsync((v) -> fetchNewTokens(), this.executor);
     currentTokensStage
         .whenComplete((tokens, error) -> log(error))
         .whenComplete((tokens, error) -> maybeScheduleTokensRenewal(tokens));
@@ -123,6 +127,7 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
 
   @Override
   public void start() {
+    lastAccess = config.getClock().get();
     started.complete(null);
   }
 
@@ -153,6 +158,9 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
   }
 
   private void wakeUp(Instant now) {
+    if (closing.get()) {
+      return;
+    }
     LOGGER.debug("Waking up...");
     Tokens currentTokens = getCurrentTokensIfAvailable();
     Duration delay = nextTokenRefresh(currentTokens, now, Duration.ZERO);
@@ -166,6 +174,9 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
   }
 
   private void maybeScheduleTokensRenewal(Tokens currentTokens) {
+    if (closing.get()) {
+      return;
+    }
     Instant now = config.getClock().get();
     if (Duration.between(lastAccess, now).compareTo(config.getPreemptiveTokenRefreshIdleTimeout())
         > 0) {
@@ -210,8 +221,7 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
 
   private void log(Throwable error) {
     if (error != null) {
-      boolean tokensStageCancelled = error instanceof CancellationException && closing.get();
-      if (tokensStageCancelled) {
+      if (closing.get()) {
         return;
       }
       if (error instanceof CompletionException) {
@@ -245,10 +255,14 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
       case AUTHORIZATION_CODE:
         try (AuthorizationCodeFlow flow = new AuthorizationCodeFlow(config)) {
           return flow.fetchNewTokens();
+        } finally {
+          lastAccess = config.getClock().get();
         }
       case DEVICE_CODE:
         try (DeviceCodeFlow flow = new DeviceCodeFlow(config)) {
           return flow.fetchNewTokens();
+        } finally {
+          lastAccess = config.getClock().get();
         }
       default:
         throw new IllegalStateException("Unsupported grant type: " + config.getGrantType());
@@ -292,11 +306,9 @@ class OAuth2Client implements OAuth2Authenticator, Closeable {
   }
 
   private <T> T invokeTokensEndpoint(Object request, Class<T> responseClass) {
-    return httpClient
-        .newRequest(config.getResolvedTokenEndpoint())
-        .authentication(config.getBasicAuthentication())
-        .postForm(request)
-        .readEntity(responseClass);
+    HttpRequest req = httpClient.newRequest(config.getResolvedTokenEndpoint());
+    config.getBasicAuthentication().ifPresent(req::authentication);
+    return req.postForm(request).readEntity(responseClass);
   }
 
   private boolean isAboutToExpire(Token token) {

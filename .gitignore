@@ -66,9 +66,6 @@ venv/
 __pycache__/
 .python-version
 
-# Site
-site/site
-
 #jEnv, see https://github.com/jenv/jenv
 .java-version
 
