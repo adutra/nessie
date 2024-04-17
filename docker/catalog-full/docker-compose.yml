@@ -39,10 +39,10 @@ services:
     environment:
       - nessie.version.store.type=IN_MEMORY # Ephemeral storage, data is lost during reset.
       # AuthN
-      - nessie.server.authentication.enabled=true
-      - quarkus.oidc.enabled=true
-      - quarkus.oidc.auth-server-url=http://keycloak:8080/realms/master
-      - quarkus.oidc.client-id=projectnessie
+      #- nessie.server.authentication.enabled=true
+      #- quarkus.oidc.enabled=true
+      #- quarkus.oidc.auth-server-url=http://keycloak:8080/realms/master
+      #- quarkus.oidc.client-id=projectnessie
       # Object store
       - nessie.catalog.service.s3.cloud=private
       - nessie.catalog.service.s3.region=us-east-1
@@ -59,28 +59,6 @@ services:
       # Telemetry
       - quarkus.otel.exporter.otlp.endpoint=http://jaeger:4317
 
-# Keycloak:
-#
-#
-# CONNECT TO http://127.0.0.1:19110/api/v2 USING "nessie.authentication.type"=OAUTH2 AND "nessie.authentication.oauth2.grant-type"=AUTHORIZATION_CODE AND "nessie.authentication.oauth2.client-id"="nessie" AND "nessie.authentication.oauth2.client-secret"=secret AND "nessie.authentication.oauth2.issuer-url"="http://127.0.0.1:8080/realms/master"
-#
-# CONNECT TO http://127.0.0.1:19110/api/v2 USING "nessie.authentication.type"=OAUTH2 AND "nessie.authentication.oauth2.grant-type"=DEVICE_CODE AND "nessie.authentication.oauth2.client-id"="nessie-anon" AND "nessie.authentication.oauth2.issuer-url"="http://127.0.0.1:8080/realms/master"
-#
-#
-# Keycloak tasks:
-#
-# * create client "nessie"
-#   * Enable the "Authentication flows":
-#     * "Implicit flow"
-#     * "OAuth 2.0 Device Authorization Grant"
-#   * Use `*` as the redirect URL (NOT `/*`)
-#   * Copy the "Client Secret"
-# * create client "nessie-anon"
-#   * Use `*` as the redirect URL (NOT `/*`)
-#   * Disable "Client authentication"
-# * Create user "nessie" with password "nessie"
-#
-
   # Jaeger
   jaeger:
     image: quay.io/jaegertracing/all-in-one:1.56.0
@@ -92,7 +70,7 @@ services:
 
   # MinIO
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-04-06T05-26-02Z
+    image: quay.io/minio/minio:RELEASE.2024-03-10T02-53-48Z
     ports:
       - "9000:9000"   # API
       - "9090:9090"   # Console
@@ -105,7 +83,7 @@ services:
 
   # Create MinIO bucket (dumb approach)
   minio-setup:
-    image: quay.io/minio/minio:RELEASE.2024-04-06T05-26-02Z
+    image: quay.io/minio/minio:RELEASE.2024-03-10T02-53-48Z
     entrypoint: /bin/bash
     command: [
       "-c",
@@ -119,4 +97,11 @@ services:
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      # Required if Nessie fails to validate the issuer claim;
+      # but the admin console won't be accessible from the host system
+      # at localhost:8080 anymore; you will need to add an entry to
+      # /etc/hosts:
+      # 127.0.0.1  keycloak
+      # Another option is to set QUARKUS_OIDC_TOKEN_ISSUER above
+      KC_HOSTNAME_URL: http://keycloak:8080
     command: start-dev --features=preview,token-exchange --hostname-admin-url http://127.0.0.1:8080/ --hostname-url http://127.0.0.1:8080/
