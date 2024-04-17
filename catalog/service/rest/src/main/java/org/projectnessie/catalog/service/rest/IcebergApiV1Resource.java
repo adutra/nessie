@@ -40,22 +40,10 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
-import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
-import org.projectnessie.catalog.files.adls.AdlsFileSystemOptions;
-import org.projectnessie.catalog.files.adls.AdlsOptions;
-import org.projectnessie.catalog.files.api.ObjectIO;
-import org.projectnessie.catalog.files.api.RequestSigner;
-import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
-import org.projectnessie.catalog.files.gcs.GcsOptions;
-import org.projectnessie.catalog.files.s3.S3BucketOptions;
-import org.projectnessie.catalog.files.s3.S3CredentialsResolver;
-import org.projectnessie.catalog.files.s3.S3Options;
-import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.formats.iceberg.metrics.IcebergMetricsReport;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTableResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTransactionRequest;
@@ -81,9 +69,6 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateNamespacePropertiesRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateNamespacePropertiesResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateTableRequest;
-import org.projectnessie.catalog.service.api.CatalogService;
-import org.projectnessie.catalog.service.common.config.CatalogConfig;
-import org.projectnessie.client.api.NessieApiV2;
 import org.projectnessie.error.BaseNessieClientServerException;
 import org.projectnessie.error.ContentKeyErrorDetails;
 import org.projectnessie.error.ErrorCode;
@@ -95,7 +80,6 @@ import org.projectnessie.model.Conflict;
 import org.projectnessie.model.Conflict.ConflictType;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.services.config.ExceptionConfig;
-import org.projectnessie.services.config.ServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,43 +100,7 @@ public class IcebergApiV1Resource extends IcebergApiV1ResourceBase {
   private static final String ENTITY_KIND_VIEW = "View";
   private static final String ENTITY_KIND_NAMESPACE = "Namespace";
 
-  private final ExceptionConfig exceptionConfig;
-
-  @SuppressWarnings("unused")
-  public IcebergApiV1Resource() {
-    this(null, null, null, null, null, null, null, null, null, null, null, null, Optional.empty());
-  }
-
-  @Inject
-  public IcebergApiV1Resource(
-      CatalogService catalogService,
-      ObjectIO objectIO,
-      RequestSigner signer,
-      NessieApiV2 nessieApi,
-      ServerConfig serverConfig,
-      CatalogConfig catalogConfig,
-      ExceptionConfig exceptionConfig,
-      S3Options<S3BucketOptions> s3Options,
-      GcsOptions<GcsBucketOptions> gcsOptions,
-      AdlsOptions<AdlsFileSystemOptions> adlsOptions,
-      SecretsProvider secretsProvider,
-      S3CredentialsResolver s3CredentialsResolver,
-      @TokenEndpointUri Optional<URI> tokenEndpoint) {
-    super(
-        catalogService,
-        objectIO,
-        signer,
-        nessieApi,
-        serverConfig,
-        catalogConfig,
-        s3Options,
-        gcsOptions,
-        adlsOptions,
-        secretsProvider,
-        s3CredentialsResolver,
-        tokenEndpoint);
-    this.exceptionConfig = exceptionConfig;
-  }
+  @Inject ExceptionConfig exceptionConfig;
 
   /** Exposes the Iceberg REST configuration for the Nessie default branch. */
   @GET

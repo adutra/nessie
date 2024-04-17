@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.service.rest;
 
 import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
@@ -32,15 +33,10 @@ import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
 
 abstract class AbstractCatalogResource {
-  final CatalogService catalogService;
-  final ObjectIO objectIO;
+  @Inject CatalogService catalogService;
+  @Inject ObjectIO objectIO;
 
   @Context ExternalBaseUri uriInfo;
-
-  AbstractCatalogResource(CatalogService catalogService, ObjectIO objectIO) {
-    this.catalogService = catalogService;
-    this.objectIO = objectIO;
-  }
 
   Uni<Response> snapshotBased(
       ContentKey key, SnapshotReqParams snapshotReqParams, Content.Type expectedType)

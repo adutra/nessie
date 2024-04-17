@@ -50,7 +50,6 @@ import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.api.sign.SigningRequest;
 import org.projectnessie.catalog.api.sign.SigningResponse;
 import org.projectnessie.catalog.api.types.CatalogCommit;
-import org.projectnessie.catalog.files.api.ObjectIO;
 import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
@@ -68,19 +67,7 @@ import org.projectnessie.model.Reference;
 @Path("catalog/v1")
 public class CatalogTransportResource extends AbstractCatalogResource {
 
-  private final RequestSigner signer;
-
-  @SuppressWarnings("unused")
-  public CatalogTransportResource() {
-    this(null, null, null);
-  }
-
-  @Inject
-  public CatalogTransportResource(
-      CatalogService catalogService, ObjectIO objectIO, RequestSigner signer) {
-    super(catalogService, objectIO);
-    this.signer = signer;
-  }
+  @Inject RequestSigner signer;
 
   @GET
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/snapshots")

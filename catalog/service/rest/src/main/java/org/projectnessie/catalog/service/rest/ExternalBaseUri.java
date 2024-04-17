@@ -15,10 +15,14 @@
  */
 package org.projectnessie.catalog.service.rest;
 
+import static java.lang.String.format;
+import static java.net.URLEncoder.encode;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.projectnessie.api.v2.params.ReferenceResolver.resolveReferencePathElement;
 import static org.projectnessie.model.Validation.REF_NAME_PATH_ELEMENT_REGEX;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +31,7 @@ import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
 
 public interface ExternalBaseUri {
+
   URI externalBaseURI();
 
   default URI coreRootURI() {
@@ -68,5 +73,29 @@ public interface ExternalBaseUri {
         () -> {
           throw new IllegalArgumentException("ref path must specify a branch");
         });
+  }
+
+  default Map<String, String> icebergConfigDefaults() {
+    return Map.of();
+  }
+
+  default Map<String, String> icebergConfigOverrides() {
+    return Map.of(
+        // Make sure that `nessie.core-base-uri` always returns a `/` terminated URI.
+        "nessie.core-base-uri", coreRootURI().toString(),
+        // Make sure that `nessie.catalog-base-uri` always returns a `/` terminated URI.
+        "nessie.catalog-base-uri", catalogBaseURI().toString(),
+        // Iceberg base URI exposed twice for Spark SQL extensions, which update the `uri` config
+        // when the branch is changed.
+        "nessie.iceberg-base-uri", icebergBaseURI().toString(),
+        "uri", icebergBaseURI().toString());
+  }
+
+  default URI icebergS3SignerUri(String prefix, ContentKey contentKey) {
+    return icebergBaseURI()
+        .resolve(
+            format(
+                "v1/%s/s3-sign/%s",
+                encode(prefix, UTF_8), encode(contentKey.toPathString(), UTF_8)));
   }
 }
