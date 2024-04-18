@@ -183,6 +183,24 @@ done
 packages_csv=$(printf ",%s" "${PACKAGES[@]}")
 packages_csv=${packages_csv:1}
 
+echo ""
+echo ""
+echo "Starting spark-sql using..."
+echo ""
+echo ""
+echo ""
+echo "spark-sql ${DEBUG_SPARK_SHELL[@]} \\"
+echo "  --packages \"${packages_csv}\" \\"
+echo "  ${SPARK_EXTENSIONS[@]} \\"
+echo "  ${AUTH_CONF[@]} \\"
+echo "  --conf spark.sql.catalogImplementation=in-memory \\"
+echo "  --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/iceberg/main/ \\"
+echo "  --conf spark.sql.catalog.nessie.type=rest \\"
+echo "  --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog"
+echo ""
+echo ""
+echo ""
+
 spark-sql "${DEBUG_SPARK_SHELL[@]}" \
   --packages "${packages_csv}" \
   "${SPARK_EXTENSIONS[@]}" \
