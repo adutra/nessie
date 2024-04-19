@@ -15,8 +15,10 @@
  */
 package org.apache.spark.sql.execution.datasources.v2;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.URLDecoder;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.iceberg.CachingCatalog;
@@ -93,21 +95,33 @@ public final class CatalogUtils {
   }
 
   static String refFromRestPrefix(String prefix) {
+    prefix = decodePrefix(prefix);
     int idx = prefix.indexOf("|");
     return idx == -1 ? prefix : prefix.substring(0, idx);
   }
 
   static Optional<String> warehouseFromRestPrefix(String prefix) {
+    prefix = decodePrefix(prefix);
     int idx = prefix.indexOf("|");
     return idx == -1 ? Optional.empty() : Optional.of(prefix.substring(idx + 1));
   }
 
   static ParsedReference referenceFromRestPrefix(String prefix) {
+    prefix = decodePrefix(prefix);
     String ref = refFromRestPrefix(prefix);
     int i = ref.indexOf("@");
     return i == -1
         ? ParsedReference.parsedReference(ref, null, null)
         : ParsedReference.parsedReference(ref.substring(0, i), ref.substring(i + 1), null);
+  }
+
+  private static String decodePrefix(String prefix) {
+    try {
+      prefix = URLDecoder.decode(prefix, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException(e);
+    }
+    return prefix;
   }
 
   static Map<String, String> propertiesFromCatalog(Catalog icebergCatalog) {
