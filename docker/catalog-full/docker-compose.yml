@@ -34,8 +34,8 @@ services:
       minio:
         # This should ideally be 'service_healthy', but that doesn't work on macOS
         condition: service_started
-      minio-setup:
-        condition: service_started
+      #minio-setup:
+      #  condition: service_started
       keycloak:
         # This should ideally be 'service_healthy', but that doesn't work on macOS
         condition: service_started
