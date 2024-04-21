@@ -17,7 +17,7 @@ jmh = "1.37"
 junit = "5.10.2"
 keycloak = "24.0.3"
 maven = "3.9.6"
-mavenResolver = "1.9.18"
+mavenResolver = "1.9.19"
 mockito="4.11.0"
 nessieClientVersion = "0.77.1" # Must be in sync with Nessie version in the Iceberg release.
 opentelemetry = "1.37.0"
@@ -25,10 +25,10 @@ opentelemetryAlpha = "1.31.0-alpha"
 opentracing = "0.33.0"
 picocli = "4.7.5"
 protobuf = "3.25.3"
-quarkusPlatform = "3.9.3"
-quarkusPlugin = "3.9.3"
+quarkusPlatform = "3.9.4"
+quarkusPlugin = "3.9.4"
 slf4j = "1.7.36"
-smallryeConfig = "2.13.3"
+smallryeConfig = "3.7.1"
 undertow = "2.2.28.Final"
 
 [bundles]
@@ -58,8 +58,8 @@ findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version = "3.0.2
 gatling-charts-highcharts = { module = "io.gatling.highcharts:gatling-charts-highcharts", version.ref = "gatling" }
 google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.38.0" }
 google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.21" }
-google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.15" }
-google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.36.1" }
+google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.16" }
+google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.37.0" }
 google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "googleJavaFormat" }
 grpc-bom = { module = "io.grpc:grpc-bom", version = "1.57.1" }
 guava = { module = "com.google.guava:guava", version = "33.1.0-jre" }
