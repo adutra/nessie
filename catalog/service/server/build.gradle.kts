@@ -97,7 +97,6 @@ dependencies {
   testFixturesApi("io.quarkus:quarkus-junit5")
   testFixturesApi("io.quarkus:quarkus-jacoco")
 
-  testFixturesApi(project(":nessie-catalog-service-server-tests"))
   testFixturesApi(project(":nessie-quarkus-tests"))
   testFixturesApi(project(":nessie-object-storage-mock"))
 
@@ -108,6 +107,7 @@ dependencies {
   testFixturesApi(project(":nessie-minio-testcontainer"))
   testFixturesApi(project(":nessie-object-storage-mock"))
   testFixturesApi(project(":nessie-client"))
+  testFixturesApi(project(":nessie-catalog-format-iceberg"))
   testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
 
   testFixturesApi(platform("org.apache.iceberg:iceberg-bom:$versionIceberg"))
