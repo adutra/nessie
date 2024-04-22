@@ -13,26 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.server.config;
+package org.projectnessie.catalog.service.config;
 
-import io.smallrye.config.WithName;
-import java.util.Map;
-import org.projectnessie.catalog.service.config.WarehouseConfig;
+import org.projectnessie.nessie.immutables.NessieImmutable;
 
-public interface QuarkusWarehouseConfig extends WarehouseConfig {
-  @Override
-  @WithName("name")
-  String name();
-
-  @Override
-  @WithName("iceberg-config-defaults")
-  Map<String, String> icebergConfigDefaults();
-
-  @Override
-  @WithName("iceberg-config-overrides")
-  Map<String, String> icebergConfigOverrides();
-
-  @Override
-  @WithName("location")
-  String location();
+@NessieImmutable
+public interface CatalogServerConfig {
+  /**
+   * Returns {@code true} if server stack trace should be sent to the client in case of error.
+   *
+   * @return {@code true} if the server should send the stack trace to the client.
+   */
+  boolean sendStacktraceToClient();
 }

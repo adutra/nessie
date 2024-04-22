@@ -28,7 +28,6 @@ import static org.projectnessie.catalog.model.id.NessieIdHasher.nessieIdHasher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +57,6 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergTransform;
 import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.locations.BaseLocation;
 import org.projectnessie.catalog.model.schema.NessieField;
 import org.projectnessie.catalog.model.schema.NessieFieldTransform;
 import org.projectnessie.catalog.model.schema.NessieNullOrder;
@@ -211,11 +209,6 @@ public class TestNessieModelIceberg {
     NessieTable table =
         NessieTable.builder()
             .createdTimestamp(Instant.now())
-            .baseLocation(
-                BaseLocation.baseLocation(
-                    NessieId.randomNessieId(),
-                    "some-location",
-                    URI.create("s3://somebucket/some/path")))
             .icebergUuid(icebergTableMetadata.tableUuid())
             .nessieContentId(UUID.randomUUID().toString())
             .tableFormat(TableFormat.ICEBERG)

@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.formats.iceberg.rest;
+package org.projectnessie.catalog.model.ops;
 
-import static org.projectnessie.model.Content.Type.ICEBERG_TABLE;
-import static org.projectnessie.model.Content.Type.ICEBERG_VIEW;
-
-import org.projectnessie.catalog.model.ops.CatalogOperation;
-import org.projectnessie.catalog.model.ops.CatalogOperationTypeResolver;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.projectnessie.model.Content;
 
-public class IcebergCatalogOperationTypeResolver implements CatalogOperationTypeResolver {
-  @Override
-  public Class<? extends CatalogOperation> forContentType(Content.Type type) {
-    if (type == ICEBERG_TABLE || type == ICEBERG_VIEW) {
-      return IcebergCatalogOperation.class;
-    }
-    return null;
-  }
+/**
+ * Represents a pluggable component that supports certain {@link CatalogOperation} subclasses for
+ * specific {@link Content.Type}s.
+ */
+public interface CatalogOperationTypeResolver {
+  /**
+   * Returns the java object class representing {@link CatalogOperation}s for the given content
+   * type, or {@code null} if this resolver does not support the content type.
+   */
+  @Nullable
+  Class<? extends CatalogOperation> forContentType(@Nonnull Content.Type type);
 }

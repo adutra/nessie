@@ -28,7 +28,7 @@ dependencies {
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 
   implementation(project(":nessie-catalog-format-iceberg"))
-  implementation(project(":nessie-catalog-schema-model"))
+  implementation(project(":nessie-catalog-model"))
   implementation(project(":nessie-model"))
 
   implementation(libs.guava)

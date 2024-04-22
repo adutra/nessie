@@ -51,7 +51,7 @@ dependencies {
   implementation(project(":nessie-versioned-storage-common"))
   implementation(project(":nessie-catalog-files-api"))
   implementation(project(":nessie-catalog-files-impl"))
-  implementation(project(":nessie-catalog-schema-model"))
+  implementation(project(":nessie-catalog-model"))
   implementation(project(":nessie-catalog-service-common"))
   implementation(project(":nessie-catalog-service-impl"))
   implementation(project(":nessie-catalog-service-rest"))

@@ -38,8 +38,8 @@ import org.projectnessie.catalog.files.s3.S3CredentialsResolver;
 import org.projectnessie.catalog.files.s3.S3Options;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
-import org.projectnessie.catalog.service.common.config.CatalogConfig;
-import org.projectnessie.catalog.service.common.config.WarehouseConfig;
+import org.projectnessie.catalog.service.config.CatalogConfig;
+import org.projectnessie.catalog.service.config.WarehouseConfig;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.services.config.ServerConfig;
 

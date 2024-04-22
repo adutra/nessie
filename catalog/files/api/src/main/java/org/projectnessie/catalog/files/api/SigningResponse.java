@@ -13,26 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.catalog.service.server.config;
+package org.projectnessie.catalog.files.api;
 
-import io.smallrye.config.WithName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.net.URI;
+import java.util.List;
 import java.util.Map;
-import org.projectnessie.catalog.service.config.WarehouseConfig;
+import org.projectnessie.nessie.immutables.NessieImmutable;
 
-public interface QuarkusWarehouseConfig extends WarehouseConfig {
-  @Override
-  @WithName("name")
-  String name();
+@NessieImmutable
+@JsonSerialize(as = ImmutableSigningResponse.class)
+@JsonDeserialize(as = ImmutableSigningResponse.class)
+public interface SigningResponse {
+  URI uri();
 
-  @Override
-  @WithName("iceberg-config-defaults")
-  Map<String, String> icebergConfigDefaults();
-
-  @Override
-  @WithName("iceberg-config-overrides")
-  Map<String, String> icebergConfigOverrides();
-
-  @Override
-  @WithName("location")
-  String location();
+  Map<String, List<String>> headers();
 }

@@ -19,7 +19,7 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithName;
 import java.util.Map;
 import java.util.Optional;
-import org.projectnessie.catalog.service.common.config.CatalogConfig;
+import org.projectnessie.catalog.service.config.CatalogConfig;
 
 @ConfigMapping(prefix = "nessie.catalog")
 public interface QuarkusCatalogConfig extends CatalogConfig {

@@ -18,8 +18,6 @@ package org.projectnessie.catalog.service.impl;
 import static java.util.Objects.requireNonNull;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergTableSnapshotToNessie;
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.icebergViewSnapshotToNessie;
-import static org.projectnessie.catalog.model.id.NessieId.emptyNessieId;
-import static org.projectnessie.catalog.model.locations.BaseLocation.baseLocation;
 import static org.projectnessie.catalog.service.impl.Util.nessieIdToObjId;
 import static org.projectnessie.catalog.service.impl.Util.objIdToNessieId;
 import static org.projectnessie.nessie.tasks.api.TaskState.successState;
@@ -247,8 +245,7 @@ final class ImportSnapshotWorker {
               .createdTimestamp(Instant.ofEpochMilli(tableMetadata.lastUpdatedMs()))
               .tableFormat(TableFormat.ICEBERG)
               .icebergUuid(tableMetadata.tableUuid())
-              .nessieContentId(content.getId())
-              .baseLocation(baseLocation(emptyNessieId(), "dummy", URI.create("dummy://dummy")));
+              .nessieContentId(content.getId());
 
       table = tableBuilder.build();
 

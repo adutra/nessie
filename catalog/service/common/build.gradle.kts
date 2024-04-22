@@ -23,6 +23,8 @@ extra["maven.name"] = "Nessie - Catalog - Service Common"
 
 dependencies {
   implementation(project(":nessie-model"))
+  implementation(project(":nessie-catalog-files-api"))
+  implementation(project(":nessie-catalog-model"))
 
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
@@ -32,6 +34,11 @@ dependencies {
 
   implementation(platform(libs.jackson.bom))
   implementation("com.fasterxml.jackson.core:jackson-annotations")
+
+  implementation(platform(libs.jackson.bom))
+  implementation("com.fasterxml.jackson.core:jackson-databind")
+  implementation("com.fasterxml.jackson.core:jackson-annotations")
+  runtimeOnly("com.fasterxml.jackson.datatype:jackson-datatype-guava")
 
   // javax/jakarta
   compileOnly(libs.jakarta.ws.rs.api)

@@ -30,9 +30,7 @@ import static org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadat
 import static org.projectnessie.catalog.formats.iceberg.meta.IcebergViewHistoryEntry.icebergViewHistoryEntry;
 import static org.projectnessie.catalog.formats.iceberg.nessie.IcebergConstants.RESERVED_PROPERTIES;
 import static org.projectnessie.catalog.formats.iceberg.nessie.ReuseOrCreate.reuseOrCreate;
-import static org.projectnessie.catalog.model.id.NessieId.emptyNessieId;
 import static org.projectnessie.catalog.model.id.NessieId.transientNessieId;
-import static org.projectnessie.catalog.model.locations.BaseLocation.baseLocation;
 import static org.projectnessie.catalog.model.schema.types.NessieType.DEFAULT_TIME_PRECISION;
 import static org.projectnessie.catalog.model.snapshot.NessieViewRepresentation.NessieViewSQLRepresentation.nessieViewSQLRepresentation;
 import static org.projectnessie.catalog.model.snapshot.TableFormat.ICEBERG;
@@ -41,7 +39,6 @@ import static org.projectnessie.model.Content.Type.ICEBERG_VIEW;
 import static org.projectnessie.model.Content.Type.NAMESPACE;
 
 import com.google.common.base.Preconditions;
-import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -495,12 +492,8 @@ public class NessieModelIceberg {
       icebergFields = new HashMap<>();
     }
 
-    Map<Integer, NessieSchema> icebergSchemaIdToSchema = new HashMap<>();
-
     for (IcebergSchema schema : iceberg.schemas()) {
       NessieSchema nessieSchema = icebergSchemaToNessieSchema(schema, icebergFields);
-
-      icebergSchemaIdToSchema.put(schema.schemaId(), nessieSchema);
 
       snapshot.addSchemas(nessieSchema);
       if (schema.schemaId() == currentSchemaId) {
@@ -630,8 +623,7 @@ public class NessieModelIceberg {
               Integer schemaId = currentSnapshot.schemaId();
               if (schemaId != null) {
                 // TODO this overwrites the "current schema ID" with the schema ID of the current
-                // snapshot.
-                //  Is this okay??
+                //  snapshot. Is this okay??
                 NessieSchema currentSchema = icebergSchemaIdToSchema.get(schemaId);
                 if (currentSchema != null) {
                   snapshot.currentSchemaId(currentSchema.id());
@@ -813,8 +805,6 @@ public class NessieModelIceberg {
             .tableFormat(ICEBERG)
             .icebergUuid(icebergUuid)
             .nessieContentId(randomUUID().toString()) // Not used / redefined after commit
-            // TODO: baselocation
-            .baseLocation(baseLocation(emptyNessieId(), "dummy", URI.create("dummy://dummy")))
             .createdTimestamp(now)
             .build();
     return NessieTableSnapshot.builder()
@@ -992,8 +982,6 @@ public class NessieModelIceberg {
             .location(nessie.icebergLocation())
             .properties(properties)
             .lastUpdatedMs(nessie.lastUpdatedTimestamp().toEpochMilli());
-
-    entity.baseLocation();
 
     switch (spec) {
       case V1:
