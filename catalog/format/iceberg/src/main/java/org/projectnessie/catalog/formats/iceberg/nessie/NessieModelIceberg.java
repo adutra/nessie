@@ -121,23 +121,19 @@ import org.projectnessie.catalog.model.statistics.NessieStatisticsFile;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.IcebergTable;
 import org.projectnessie.model.IcebergView;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class NessieModelIceberg {
-  private static final Logger LOGGER = LoggerFactory.getLogger(NessieModelIceberg.class);
-
   private NessieModelIceberg() {}
 
   public static IcebergSortOrder nessieSortDefinitionToIceberg(
-      NessieSortDefinition sortDefinition) {
+      NessieSortDefinition sortDefinition, Function<UUID, NessieField> fieldById) {
     List<IcebergSortField> fields =
         sortDefinition.columns().stream()
             .map(
                 f ->
                     IcebergSortField.sortField(
                         nessieTransformToIceberg(f.transformSpec()).toString(),
-                        f.sourceField().icebergId(),
+                        fieldById.apply(f.sourceFieldId()).icebergId(),
                         f.direction(),
                         f.nullOrder()))
             .collect(Collectors.toList());
@@ -159,7 +155,7 @@ public class NessieModelIceberg {
                       f.sourceId(),
                       sortOrder.orderId());
                   return NessieSortField.builder()
-                      .sourceField(sourceField)
+                      .sourceFieldId(sourceField.id())
                       .nullOrder(f.nullOrder())
                       .direction(f.direction())
                       .transformSpec(transform)
@@ -172,7 +168,7 @@ public class NessieModelIceberg {
   }
 
   public static IcebergPartitionSpec nessiePartitionDefinitionToIceberg(
-      NessiePartitionDefinition partitionDefinition) {
+      NessiePartitionDefinition partitionDefinition, Function<UUID, NessieField> fieldById) {
     List<IcebergPartitionField> fields =
         partitionDefinition.fields().stream()
             .map(
@@ -180,7 +176,7 @@ public class NessieModelIceberg {
                     partitionField(
                         f.name(),
                         nessieTransformToIceberg(f.transformSpec()).toString(),
-                        f.sourceField().icebergId(),
+                        fieldById.apply(f.sourceFieldId()).icebergId(),
                         f.icebergId()))
             .collect(Collectors.toList());
     return IcebergPartitionSpec.partitionSpec(partitionDefinition.icebergId(), fields);
@@ -217,7 +213,7 @@ public class NessieModelIceberg {
                   NessiePartitionField partitionField =
                       NessiePartitionField.nessiePartitionField(
                           id,
-                          sourceField,
+                          sourceField.id(),
                           p.name(),
                           transform.transformedType(sourceField.type()),
                           transform,
@@ -969,7 +965,8 @@ public class NessieModelIceberg {
     int defaultSpecId = INITIAL_SPEC_ID;
     for (NessiePartitionDefinition partitionDefinition : nessie.partitionDefinitions()) {
       // TODO add test(s) for this
-      IcebergPartitionSpec iceberg = nessiePartitionDefinitionToIceberg(partitionDefinition);
+      IcebergPartitionSpec iceberg =
+          nessiePartitionDefinitionToIceberg(partitionDefinition, nessie.allFieldsById()::get);
       metadata.addPartitionSpecs(iceberg);
       if (partitionDefinition.id().equals(nessie.currentPartitionDefinitionId())) {
         defaultSpecId = partitionDefinition.icebergId();
@@ -983,7 +980,8 @@ public class NessieModelIceberg {
     int defaultSortOrderId = INITIAL_SORT_ORDER_ID;
     for (NessieSortDefinition sortDefinition : nessie.sortDefinitions()) {
       // TODO add test(s) for this
-      IcebergSortOrder iceberg = nessieSortDefinitionToIceberg(sortDefinition);
+      IcebergSortOrder iceberg =
+          nessieSortDefinitionToIceberg(sortDefinition, nessie.allFieldsById()::get);
       metadata.addSortOrders(iceberg);
       if (sortDefinition.id().equals(nessie.currentSortDefinitionId())) {
         defaultSortOrderId = sortDefinition.icebergSortOrderId();
@@ -1291,9 +1289,12 @@ public class NessieModelIceberg {
 
   private static ReuseOrCreate<IcebergPartitionSpec> reuseOrCreateNewSpecId(
       IcebergPartitionSpec newSpec, NessieTableSnapshot snapshot) {
+    Map<UUID, NessieField> allFields = snapshot.allFieldsById();
     Iterator<IcebergPartitionSpec> specs =
         snapshot.partitionDefinitions().stream()
-            .map(NessieModelIceberg::nessiePartitionDefinitionToIceberg)
+            .map(
+                partDef ->
+                    NessieModelIceberg.nessiePartitionDefinitionToIceberg(partDef, allFields::get))
             .iterator();
 
     // if the spec already exists, use the same ID. otherwise, use 1 more than the highest ID.
@@ -1374,9 +1375,12 @@ public class NessieModelIceberg {
 
   private static ReuseOrCreate<IcebergSortOrder> reuseOrCreateNewSortOrderId(
       IcebergSortOrder newOrder, NessieTableSnapshot snapshot) {
+    Map<UUID, NessieField> allFields = snapshot.allFieldsById();
     Iterator<IcebergSortOrder> orders =
         snapshot.sortDefinitions().stream()
-            .map(NessieModelIceberg::nessieSortDefinitionToIceberg)
+            .map(
+                sortDef ->
+                    NessieModelIceberg.nessieSortDefinitionToIceberg(sortDef, allFields::get))
             .iterator();
 
     if (newOrder.isUnsorted()) {

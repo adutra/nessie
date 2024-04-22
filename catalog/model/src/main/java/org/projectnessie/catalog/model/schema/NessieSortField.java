@@ -18,6 +18,7 @@ package org.projectnessie.catalog.model.schema;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.UUID;
 import org.projectnessie.catalog.model.id.Hashable;
 import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.catalog.model.schema.types.NessieTypeSpec;
@@ -28,7 +29,7 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 @JsonDeserialize(as = ImmutableNessieSortField.class)
 public interface NessieSortField extends Hashable {
 
-  NessieField sourceField();
+  UUID sourceFieldId();
 
   NessieTypeSpec type();
 
@@ -43,7 +44,7 @@ public interface NessieSortField extends Hashable {
   @Override
   default void hash(NessieIdHasher idHasher) {
     idHasher
-        .hash(sourceField().id())
+        .hash(sourceFieldId())
         .hash(type())
         .hash(transformSpec())
         .hash(nullOrder().name())
@@ -60,7 +61,7 @@ public interface NessieSortField extends Hashable {
     Builder from(NessieSortField instance);
 
     @CanIgnoreReturnValue
-    Builder sourceField(NessieField sourceField);
+    Builder sourceFieldId(UUID sourceFieldId);
 
     @CanIgnoreReturnValue
     Builder type(NessieTypeSpec type);

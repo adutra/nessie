@@ -73,4 +73,15 @@ public interface NessieSchema {
     return struct().fields().stream()
         .collect(Collectors.toMap(NessieField::name, Function.identity()));
   }
+
+  @Value.Lazy
+  @JsonIgnore
+  default Map<UUID, NessieField> fieldsById() {
+    return struct().fields().stream()
+        .collect(Collectors.toMap(NessieField::id, Function.identity()));
+  }
+
+  default NessieField fieldById(UUID fieldId) {
+    return fieldsById().get(fieldId);
+  }
 }

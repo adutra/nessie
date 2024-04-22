@@ -33,7 +33,7 @@ public interface NessiePartitionField extends Hashable {
 
   UUID id();
 
-  NessieField sourceField();
+  UUID sourceFieldId();
 
   String name();
 
@@ -58,13 +58,13 @@ public interface NessiePartitionField extends Hashable {
 
   static NessiePartitionField nessiePartitionField(
       UUID id,
-      NessieField sourceField,
+      UUID sourceFieldId,
       String name,
       NessieTypeSpec type,
       NessieFieldTransform transformSpec,
       int icebergFieldId) {
     return ImmutableNessiePartitionField.of(
-        id, sourceField, name, type, transformSpec, icebergFieldId);
+        id, sourceFieldId, name, type, transformSpec, icebergFieldId);
   }
 
   static Builder builder() {
@@ -80,7 +80,7 @@ public interface NessiePartitionField extends Hashable {
     Builder id(UUID id);
 
     @CanIgnoreReturnValue
-    Builder sourceField(NessieField sourceField);
+    Builder sourceFieldId(UUID sourceFieldId);
 
     @CanIgnoreReturnValue
     Builder name(String name);

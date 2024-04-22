@@ -117,15 +117,7 @@ public class TestNessieSchema {
     return Stream.of(
         arguments(
             "{\n"
-                + "  \"sourceField\" : {\n"
-                + "    \"id\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
-                + "    \"icebergId\" : -1,\n"
-                + "    \"name\" : \"foo\",\n"
-                + "    \"type\" : {\n"
-                + "      \"type\" : \"int\"\n"
-                + "    },\n"
-                + "    \"nullable\" : true\n"
-                + "  },\n"
+                + "  \"sourceFieldId\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
                 + "  \"type\" : {\n"
                 + "    \"type\" : \"int\"\n"
                 + "  },\n"
@@ -138,27 +130,13 @@ public class TestNessieSchema {
                 .nullOrder(NessieNullOrder.NULLS_FIRST)
                 .type(NessieType.intType())
                 .transformSpec(NessieFieldTransform.bucket(42))
-                .sourceField(
-                    NessieField.builder()
-                        .id(id)
-                        .name("foo")
-                        .type(NessieType.intType())
-                        .nullable(true)
-                        .build())
+                .sourceFieldId(id)
                 .build(),
             NessieSortField.class),
         //
         arguments(
             "{\n"
-                + "  \"sourceField\" : {\n"
-                + "    \"id\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
-                + "    \"icebergId\" : -1,\n"
-                + "    \"name\" : \"foo\",\n"
-                + "    \"type\" : {\n"
-                + "      \"type\" : \"int\"\n"
-                + "    },\n"
-                + "    \"nullable\" : true\n"
-                + "  },\n"
+                + "  \"sourceFieldId\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
                 + "  \"type\" : {\n"
                 + "    \"type\" : \"int\"\n"
                 + "  },\n"
@@ -171,27 +149,13 @@ public class TestNessieSchema {
                 .nullOrder(NessieNullOrder.NULLS_LAST)
                 .type(NessieType.intType())
                 .transformSpec(NessieFieldTransform.bucket(42))
-                .sourceField(
-                    NessieField.builder()
-                        .id(id)
-                        .name("foo")
-                        .type(NessieType.intType())
-                        .nullable(true)
-                        .build())
+                .sourceFieldId(id)
                 .build(),
             NessieSortField.class),
         //
         arguments(
             "{\n"
-                + "  \"sourceField\" : {\n"
-                + "    \"id\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
-                + "    \"icebergId\" : -1,\n"
-                + "    \"name\" : \"foo\",\n"
-                + "    \"type\" : {\n"
-                + "      \"type\" : \"int\"\n"
-                + "    },\n"
-                + "    \"nullable\" : true\n"
-                + "  },\n"
+                + "  \"sourceFieldId\" : \"8c4f7079-5905-4604-9333-e928d21613df\",\n"
                 + "  \"type\" : {\n"
                 + "    \"type\" : \"int\"\n"
                 + "  },\n"
@@ -205,13 +169,7 @@ public class TestNessieSchema {
                 .nullOrder(ImmutableNessieNullOrder.of("nulls-random", "nulls-random"))
                 .type(NessieType.intType())
                 .transformSpec(NessieFieldTransform.bucket(42))
-                .sourceField(
-                    NessieField.builder()
-                        .id(id)
-                        .name("foo")
-                        .type(NessieType.intType())
-                        .nullable(true)
-                        .build())
+                .sourceFieldId(id)
                 .build(),
             NessieSortField.class)
         //

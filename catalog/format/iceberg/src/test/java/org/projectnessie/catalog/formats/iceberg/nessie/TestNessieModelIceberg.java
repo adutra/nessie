@@ -162,7 +162,8 @@ public class TestNessieModelIceberg {
         .isEqualTo(nessiePartitionDefinition);
 
     IcebergPartitionSpec icebergPartitionSpecConv =
-        NessieModelIceberg.nessiePartitionDefinitionToIceberg(nessiePartitionDefinition);
+        NessieModelIceberg.nessiePartitionDefinitionToIceberg(
+            nessiePartitionDefinition, nessieSchema.fieldsById()::get);
     soft.assertThat(icebergPartitionSpecConv).isEqualTo(icebergPartitionSpec);
 
     NessiePartitionDefinition nessiePartitionDefinitionAgain =
@@ -191,7 +192,8 @@ public class TestNessieModelIceberg {
         .isEqualTo(nessieSortDefinition);
 
     IcebergSortOrder icebergSortOrderConv =
-        NessieModelIceberg.nessieSortDefinitionToIceberg(nessieSortDefinition);
+        NessieModelIceberg.nessieSortDefinitionToIceberg(
+            nessieSortDefinition, nessieSchema.fieldsById()::get);
     soft.assertThat(icebergSortOrderConv).isEqualTo(icebergSortOrder);
 
     NessieSortDefinition nessieSortDefinitionAgain =
