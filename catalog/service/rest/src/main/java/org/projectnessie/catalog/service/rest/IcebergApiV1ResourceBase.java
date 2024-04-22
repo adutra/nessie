@@ -88,7 +88,6 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergViewMetadata;
 import org.projectnessie.catalog.formats.iceberg.metrics.IcebergMetricsReport;
 import org.projectnessie.catalog.formats.iceberg.nessie.IcebergTableMetadataUpdateState;
-import org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCatalogOperation;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTableResponse;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCommitTransactionRequest;
@@ -118,7 +117,6 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateTableRequest;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.service.api.CatalogCommit;
 import org.projectnessie.catalog.service.api.CatalogService;
-import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotReqParams;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
 import org.projectnessie.catalog.service.config.CatalogConfig;
@@ -405,8 +403,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
               .snapshot();
 
       IcebergTableMetadata stagedTableMetadata =
-          nessieTableSnapshotToIceberg(
-              snapshot, Optional.empty(), NessieModelIceberg.IcebergSnapshotTweak.NOOP, map -> {});
+          nessieTableSnapshotToIceberg(snapshot, Optional.empty(), map -> {});
 
       return Uni.createFrom()
           .item(
@@ -476,10 +473,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
       TableRef ctr = catalogTableRef.get();
 
       SnapshotReqParams reqParams =
-          SnapshotReqParams.forSnapshotHttpReq(ctr.reference(), "iceberg_imported", null);
-
-      CatalogService.CatalogUriResolver catalogUriResolver =
-          new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
+          SnapshotReqParams.forSnapshotHttpReq(ctr.reference(), "iceberg", null);
 
       ContentResponse contentResponse = fetchIcebergTable(ctr);
       // It's technically a new table for Nessie, so need to clear the content-ID.
@@ -775,11 +769,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
             })
         .forEach(commit::addOperations);
 
-    SnapshotReqParams reqParams =
-        SnapshotReqParams.forSnapshotHttpReq(ref, "iceberg_imported", null);
+    SnapshotReqParams reqParams = SnapshotReqParams.forSnapshotHttpReq(ref, "iceberg", null);
 
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
+    CatalogService.CatalogUriResolver catalogUriResolver = new CatalogUriResolverImpl(uriInfo);
 
     // Although we don't return anything, need to make sure that the commit operation starts and all
     // results are consumed.
@@ -857,7 +849,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     return snapshotResponse(
             key,
-            SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg_imported", null),
+            SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg", null),
             ICEBERG_VIEW)
         .map(snap -> loadViewResultFromSnapshotResponse(snap, IcebergLoadViewResponse.builder()));
   }
@@ -868,7 +860,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
     return snapshotResponse(
             key,
-            SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg_imported", null),
+            SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg", null),
             ICEBERG_TABLE)
         .map(
             snap ->
@@ -955,10 +947,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     CatalogCommit commit = CatalogCommit.builder().addOperations(op).build();
 
     SnapshotReqParams reqParams =
-        SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg_imported", null);
+        SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg", null);
 
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
+    CatalogService.CatalogUriResolver catalogUriResolver = new CatalogUriResolverImpl(uriInfo);
 
     return Uni.createFrom()
         .completionStage(
@@ -993,10 +984,9 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     CatalogCommit commit = CatalogCommit.builder().addOperations(op).build();
 
     SnapshotReqParams reqParams =
-        SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg_imported", null);
+        SnapshotReqParams.forSnapshotHttpReq(tableRef.reference(), "iceberg", null);
 
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
+    CatalogService.CatalogUriResolver catalogUriResolver = new CatalogUriResolverImpl(uriInfo);
 
     return Uni.createFrom()
         .completionStage(
@@ -1198,8 +1188,7 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
 
   private String snapshotMetadataLocation(SnapshotResponse snap) {
     // TODO the resolved metadataLocation is wrong !!
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo, SnapshotFormat.ICEBERG_TABLE_METADATA_IMPORTED);
+    CatalogService.CatalogUriResolver catalogUriResolver = new CatalogUriResolverImpl(uriInfo);
     URI metadataLocation =
         catalogUriResolver.icebergSnapshot(
             snap.effectiveReference(), snap.contentKey(), snap.nessieSnapshot());

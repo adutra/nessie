@@ -24,7 +24,5 @@ public class CatalogObjTypeBundle implements ObjTypeBundle {
   public void register(Consumer<ObjType> registrar) {
     registrar.accept(EntityObj.OBJ_TYPE);
     registrar.accept(EntitySnapshotObj.OBJ_TYPE);
-    registrar.accept(ManifestGroupObj.OBJ_TYPE);
-    registrar.accept(ManifestObj.OBJ_TYPE);
   }
 }

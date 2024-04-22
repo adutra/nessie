@@ -34,12 +34,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.StreamingOutput;
-import java.io.InputStream;
-import java.net.URI;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -50,11 +45,8 @@ import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.files.api.RequestSigner;
 import org.projectnessie.catalog.files.api.SigningRequest;
 import org.projectnessie.catalog.files.api.SigningResponse;
-import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
-import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.service.api.CatalogCommit;
 import org.projectnessie.catalog.service.api.CatalogService;
-import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotReqParams;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
 import org.projectnessie.error.NessieConflictException;
@@ -65,7 +57,7 @@ import org.projectnessie.model.Reference;
 @RequestScoped
 @Consumes(MediaType.APPLICATION_JSON)
 @Path("catalog/v1")
-public class CatalogTransportResource extends AbstractCatalogResource {
+public class NessieCatalogResource extends AbstractCatalogResource {
 
   @Inject RequestSigner signer;
 
@@ -81,8 +73,7 @@ public class CatalogTransportResource extends AbstractCatalogResource {
       throws NessieNotFoundException {
     SnapshotReqParams reqParams = forSnapshotHttpReq(parseRefPathString(ref), format, specVersion);
 
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
+    CatalogService.CatalogUriResolver catalogUriResolver = new CatalogUriResolverImpl(uriInfo);
 
     AtomicReference<Reference> effectiveReference = new AtomicReference<>();
 
@@ -127,105 +118,6 @@ public class CatalogTransportResource extends AbstractCatalogResource {
         key, forSnapshotHttpReq(parseRefPathString(ref), format, specVersion), ICEBERG_TABLE);
   }
 
-  @GET
-  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-list/{key}")
-  @Produces(MediaType.APPLICATION_OCTET_STREAM)
-  @Blocking
-  public Uni<Response> manifestList(
-      @PathParam("ref") String ref,
-      @PathParam("key") ContentKey key,
-      @QueryParam("format") String format,
-      @QueryParam("specVersion") String specVersion)
-      throws NessieNotFoundException {
-    return snapshotBased(
-        key,
-        SnapshotReqParams.forManifestListHttpReq(parseRefPathString(ref), format, specVersion),
-        ICEBERG_TABLE);
-  }
-
-  @GET
-  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/manifest-file/{key}")
-  @Produces(MediaType.APPLICATION_OCTET_STREAM)
-  @Blocking
-  public Uni<Response> manifestFile(
-      @PathParam("ref") String ref,
-      @PathParam("key") ContentKey key,
-      @QueryParam("format") String format,
-      @QueryParam("specVersion") String specVersion,
-      @QueryParam("manifest-file") String manifestFile)
-      throws NessieNotFoundException {
-    return snapshotBased(
-        key,
-        SnapshotReqParams.forManifestFileHttpReq(
-            parseRefPathString(ref), format, specVersion, manifestFile),
-        ICEBERG_TABLE);
-  }
-
-  @GET
-  @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/data-file/{key}")
-  @Produces(MediaType.APPLICATION_OCTET_STREAM)
-  @Blocking
-  public Uni<Response> dataFile(
-      @PathParam("ref") String ref,
-      @PathParam("key") ContentKey key,
-      @QueryParam("type") String fileType,
-      @QueryParam("token") String fileToken,
-      @QueryParam("file") String dataFile)
-      throws NessieNotFoundException {
-    return snapshotResponse(
-            key,
-            SnapshotReqParams.forDataFile(parseRefPathString(ref), SnapshotFormat.NESSIE_SNAPSHOT),
-            ICEBERG_TABLE)
-        .map(
-            snapshotResponse -> {
-              NessieTableSnapshot tableSnapshot =
-                  snapshotResponse
-                      .entityObject()
-                      .map(NessieTableSnapshot.class::cast)
-                      .orElseThrow();
-              // TODO will need table-snapshot later for AuthZ
-
-              // TODO need the effective Nessie reference incl commit-ID here, add as a HTTP
-              //  response header?
-
-              String dataFileName = Paths.get(dataFile).getFileName().toString();
-
-              NessieDataFileFormat fileFormat;
-              if (fileType != null) {
-                fileFormat = NessieDataFileFormat.valueOf(fileType.toUpperCase(Locale.ROOT));
-              } else {
-                fileFormat = NessieDataFileFormat.forFileName(dataFile);
-              }
-              String contentType =
-                  fileFormat != null ? fileFormat.contentType() : "application/octet-stream";
-
-              // TODO need to validate that 'dataFile' belongs to the table -> AuthZ !!
-              //  Need some token, that's signed using the Nessie reference, content-key,
-              //  signed using a private key, with it's public key published "somewhere".
-              //  These key-pairs need IDs, so we can have multiple key-pairs.
-              //  In other words: need a way to prove that 'dataFile' belongs to the table,
-              //  then we can rely on table AuthZ.
-              //  Since the dataFile-token itself only verifies that 'dataFile' belongs
-              //  to some table, it is not a "private thing" and can be shared w/ others.
-              //  AuthN+table-level-AuthZ is still required to access the file.
-              //  Technically:
-              //     var hash = hash ( snapshot-id , file-path )
-              //     var signature = sign ( hash , key-pair )
-              //     var token = signature + key-pair-name
-              StreamingOutput producer =
-                  outputStream -> {
-                    try (InputStream in = objectIO.readObject(URI.create(dataFile))) {
-                      in.transferTo(outputStream);
-                    }
-                  };
-
-              return Response.ok(producer)
-                  .header("Content-Disposition", "attachment; filename=\"" + dataFileName + "\"")
-                  .header("Content-Type", contentType)
-                  .build();
-            });
-  }
-
   @POST
   @Path("trees/{ref:" + REF_NAME_PATH_ELEMENT_REGEX + "}/commit")
   @Blocking
@@ -241,8 +133,7 @@ public class CatalogTransportResource extends AbstractCatalogResource {
 
     SnapshotReqParams reqParams = forSnapshotHttpReq(reference, format, specVersion);
 
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo, reqParams.snapshotFormat());
+    CatalogService.CatalogUriResolver catalogUriResolver = new CatalogUriResolverImpl(uriInfo);
 
     return Uni.createFrom()
         .completionStage(catalogService.commit(reference, commit, reqParams, catalogUriResolver))

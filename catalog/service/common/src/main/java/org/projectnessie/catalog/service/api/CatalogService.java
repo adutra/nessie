@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,10 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.projectnessie.api.v2.params.ParsedReference;
-import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
-import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.error.NessieConflictException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.Content;
@@ -71,16 +68,5 @@ public interface CatalogService {
   interface CatalogUriResolver {
     URI icebergSnapshot(
         Reference effectiveReference, ContentKey key, NessieEntitySnapshot<?> snapshot);
-
-    URI icebergManifestList(
-        Reference effectiveReference, ContentKey key, NessieTableSnapshot snapshot);
-
-    URI icebergManifestFile(Reference effectiveReference, ContentKey key, NessieId manifestFileId);
-
-    URI dataFile(
-        Reference effectiveReference,
-        ContentKey key,
-        NessieDataFileFormat fileFormat,
-        String dataFile);
   }
 }

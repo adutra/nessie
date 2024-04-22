@@ -16,8 +16,6 @@
 package org.projectnessie.catalog.service.server.tests;
 
 import static java.lang.String.format;
-import static java.net.URLEncoder.encode;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.InstanceOfAssertFactories.optional;
@@ -37,10 +35,8 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.avro.file.SeekableByteArrayInput;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -50,7 +46,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.projectnessie.catalog.formats.iceberg.fixtures.IcebergGenerateFixtures;
-import org.projectnessie.catalog.formats.iceberg.manifest.IcebergManifestListReader;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSnapshot;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
@@ -179,7 +174,7 @@ public abstract class AbstractNessieCoreTests {
 
   @ParameterizedTest
   @ValueSource(ints = {1, 2})
-  public void tableMetadataWithoutManifests(int specVersion) throws Exception {
+  public void tableMetadata(int specVersion) throws Exception {
     var tableMetadataLocation = generateSimpleMetadata(objectWriter(), specVersion);
 
     var tableName = "tableMetadataWithoutManifests" + specVersion;
@@ -208,64 +203,9 @@ public abstract class AbstractNessieCoreTests {
         .containsExactly(null, emptyList());
   }
 
-  @Test
-  public void checkTableMetadataManifestListManifestFiles() throws Exception {
-    var tableMetadataLocation = generateMetadataWithManifestList(basePath(), objectWriter());
-
-    var tableName = "checkTableMetadataManifestListManifestFiles";
-
-    var committed =
-        api.commitMultipleOperations()
-            .commitMeta(fromMessage("a table named " + tableName))
-            .operation(
-                Operation.Put.of(
-                    ContentKey.of(tableName), IcebergTable.of(tableMetadataLocation, 1, 0, 0, 0)))
-            .branch(api.getDefaultBranch())
-            .commitWithResponse();
-
-    var snapshotUri = baseUri.resolve("trees/main/snapshot/" + tableName + "?format=iceberg");
-
-    var tableMetadata = httpRequestString(snapshotUri);
-    IcebergTableMetadata icebergTableMetadata =
-        IcebergJson.objectMapper().readValue(tableMetadata, IcebergTableMetadata.class);
-    var manifestListUriFromManifest =
-        new URI(
-            Objects.requireNonNull(
-                icebergTableMetadata.currentSnapshot().orElseThrow().manifestList()));
-    var manifestListUri =
-        baseUri.resolve(
-            "trees/"
-                + encode(committed.getTargetBranch().toPathString(), UTF_8)
-                + "/manifest-list/"
-                + encode(tableName, UTF_8)
-                + "?x=.avro");
-
-    soft.assertThat(manifestListUriFromManifest).isEqualTo(manifestListUri);
-
-    var manifestList = httpRequestBytes(manifestListUri);
-
-    try (var listEntryReader =
-        IcebergManifestListReader.builder()
-            .build()
-            .entryReader(new SeekableByteArrayInput(manifestList))) {
-      while (listEntryReader.hasNext()) {
-        listEntryReader.next();
-        // just read it, no assertions here
-      }
-    }
-  }
-
   private static String httpRequestString(URI uri) throws Exception {
     return httpRequest(uri)
         .map(Buffer::toString)
-        .toCompletionStage()
-        .toCompletableFuture()
-        .get(10, SECONDS);
-  }
-
-  private static byte[] httpRequestBytes(URI uri) throws Exception {
-    return httpRequest(uri)
-        .map(Buffer::getBytes)
         .toCompletionStage()
         .toCompletableFuture()
         .get(10, SECONDS);

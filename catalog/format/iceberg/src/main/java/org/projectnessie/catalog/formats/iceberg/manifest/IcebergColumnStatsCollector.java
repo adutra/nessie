@@ -28,8 +28,6 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.catalog.model.manifest.BooleanArray;
-import org.projectnessie.catalog.model.manifest.NessieFieldsSummary;
-import org.projectnessie.catalog.model.manifest.NessieFileManifestGroupEntry;
 
 public class IcebergColumnStatsCollector {
   private final IcebergPartitionSpec partitionSpec;
@@ -108,51 +106,6 @@ public class IcebergColumnStatsCollector {
       default:
         throw new IllegalArgumentException("Unknown manifest-entry status " + entry.status());
     }
-  }
-
-  public void addToNessieFileManifestGroupEntryBuilder(
-      NessieFileManifestGroupEntry.Builder groupBuilder) {
-
-    int length = summary.length;
-    int[] fieldIds = new int[length];
-    BooleanArray containsNan = new BooleanArray(length);
-    BooleanArray containsNull = new BooleanArray(length);
-    long[] nanValueCount = new long[length];
-    long[] nullValueCount = new long[length];
-    byte[][] upperBound = new byte[length][];
-    byte[][] lowerBound = new byte[length][];
-    long[] valueCount = new long[length];
-
-    for (int i = 0; i < summary.length; i++) {
-      summary[i].intoNessieFieldSummaries(
-          i,
-          fieldIds,
-          containsNan,
-          containsNull,
-          nanValueCount,
-          nullValueCount,
-          upperBound,
-          lowerBound,
-          valueCount);
-    }
-    groupBuilder
-        .partitions(
-            NessieFieldsSummary.builder()
-                .fieldIds(fieldIds)
-                .containsNan(containsNan.nullIfAllElementsNull())
-                .containsNull(containsNull.nullIfAllElementsNull())
-                .nanValueCount(nanValueCount)
-                .nullValueCount(nullValueCount)
-                .upperBound(upperBound)
-                .lowerBound(lowerBound)
-                .valueCount(valueCount)
-                .build())
-        .addedDataFilesCount(addedDataFilesCount)
-        .addedRowsCount(addedRowsCount)
-        .deletedDataFilesCount(deletedDataFilesCount)
-        .deletedRowsCount(deletedRowsCount)
-        .existingDataFilesCount(existingDataFilesCount)
-        .existingRowsCount(existingRowsCount);
   }
 
   public void addToManifestFileBuilder(IcebergManifestFile.Builder manifestFile) {

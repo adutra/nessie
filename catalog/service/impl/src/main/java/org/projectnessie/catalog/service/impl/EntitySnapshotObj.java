@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import jakarta.annotation.Nullable;
 import org.immutables.value.Value;
-import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
 import org.projectnessie.model.Content;
 import org.projectnessie.nessie.immutables.NessieImmutable;
@@ -50,20 +49,12 @@ public interface EntitySnapshotObj extends TaskObj {
   @Nullable
   Content content();
 
-  /**
-   * Snapshot value, does not include a {@link NessieFileManifestGroup}, which is referenced by
-   * {@link #manifestGroup()}.
-   */
   @Nullable
   NessieEntitySnapshot<?> snapshot();
 
   /** ID of the entity-object. */
   @Nullable
   ObjId entity();
-
-  /** ID of the manifest-group (Iceberg manifest-list). */
-  @Nullable
-  ObjId manifestGroup();
 
   ObjType OBJ_TYPE =
       dynamicCaching(
@@ -85,9 +76,6 @@ public interface EntitySnapshotObj extends TaskObj {
 
     @CanIgnoreReturnValue
     Builder entity(ObjId entity);
-
-    @CanIgnoreReturnValue
-    Builder manifestGroup(ObjId manifestGroup);
 
     @CanIgnoreReturnValue
     Builder content(Content content);

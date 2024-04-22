@@ -17,11 +17,9 @@ package org.projectnessie.catalog.service.impl;
 
 import static java.util.concurrent.CompletableFuture.completedStage;
 import static org.projectnessie.catalog.service.impl.EntitySnapshotTaskRequest.entitySnapshotTaskRequest;
-import static org.projectnessie.catalog.service.impl.ManifestGroupTaskRequest.manifestGroupTaskRequest;
 import static org.projectnessie.catalog.service.impl.Util.nessieIdToObjId;
 
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import org.projectnessie.catalog.files.api.ObjectIO;
@@ -32,7 +30,6 @@ import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.IcebergTable;
 import org.projectnessie.model.IcebergView;
-import org.projectnessie.nessie.tasks.api.Tasks;
 import org.projectnessie.nessie.tasks.api.TasksService;
 import org.projectnessie.versioned.storage.common.persist.ObjId;
 import org.projectnessie.versioned.storage.common.persist.Persist;
@@ -79,12 +76,7 @@ public class IcebergStuff {
             snapshotObj -> {
               NessieEntitySnapshot<?> entitySnapshot = snapshotObj.snapshot();
               if (entitySnapshot instanceof NessieTableSnapshot) {
-                NessieTableSnapshot tableSnapshot = (NessieTableSnapshot) entitySnapshot;
-                if (format.includesFileManifestGroup()
-                    && tableSnapshot.fileManifestGroup() == null) {
-                  return (CompletionStage<S>) retrieveManifestList(snapshotObj);
-                }
-                return completedStage((S) mapToTableSnapshot(snapshotObj, null));
+                return completedStage((S) mapToTableSnapshot(snapshotObj));
               }
               if (entitySnapshot instanceof NessieViewSnapshot) {
                 return completedStage((S) mapToViewSnapshot(snapshotObj));
@@ -99,35 +91,15 @@ public class IcebergStuff {
     EntitySnapshotTaskRequest snapshotTaskRequest =
         entitySnapshotTaskRequest(
             nessieIdToObjId(snapshot.id()), content, snapshot, persist, objectIO, executor);
-    SnapshotFormat format =
-        snapshot instanceof NessieTableSnapshot
-            ? SnapshotFormat.ICEBERG_MANIFEST_LIST
-            : SnapshotFormat.ICEBERG_TABLE_METADATA;
-    return triggerIcebergSnapshot(format, snapshotTaskRequest);
-  }
-
-  private CompletionStage<NessieTableSnapshot> retrieveManifestList(EntitySnapshotObj snapshotObj) {
-    Tasks tasks = tasksService.forPersist(persist);
-    ManifestGroupTaskRequest manifestGroupTaskRequest =
-        manifestGroupTaskRequest(
-            snapshotObj.manifestGroup(), snapshotObj, persist, objectIO, executor, tasks);
-    // TODO Handle hash-collision - when manifest-group refers to a different(!) manifest-list
-    return tasks
-        .submit(manifestGroupTaskRequest)
-        .thenApply(mg -> mapToTableSnapshot(snapshotObj, mg));
+    return triggerIcebergSnapshot(SnapshotFormat.ICEBERG_TABLE_METADATA, snapshotTaskRequest);
   }
 
   /** Fetch requested metadata from the database, the snapshot already exists. */
-  NessieTableSnapshot mapToTableSnapshot(
-      @Nonnull EntitySnapshotObj snapshotObj, @Nullable ManifestGroupObj manifestGroupObj) {
+  NessieTableSnapshot mapToTableSnapshot(@Nonnull EntitySnapshotObj snapshotObj) {
     LOGGER.debug("Fetching table snapshot from database for snapshot ID {}", snapshotObj.id());
 
     NessieTableSnapshot tableSnapshot = (NessieTableSnapshot) snapshotObj.snapshot();
     NessieTableSnapshot.Builder snapshotBuilder = NessieTableSnapshot.builder().from(tableSnapshot);
-
-    if (manifestGroupObj != null) {
-      snapshotBuilder.fileManifestGroup(manifestGroupObj.manifestGroup());
-    }
 
     NessieTableSnapshot snapshot;
     snapshot = snapshotBuilder.build();

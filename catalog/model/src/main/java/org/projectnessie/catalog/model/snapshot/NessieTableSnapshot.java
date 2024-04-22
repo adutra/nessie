@@ -34,7 +34,6 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.manifest.NessieFileManifestGroup;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
 import org.projectnessie.catalog.model.schema.NessieSortDefinition;
 import org.projectnessie.catalog.model.statistics.NessiePartitionStatisticsFile;
@@ -170,15 +169,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   List<String> icebergManifestFileLocations();
 
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  @Nullable
-  @jakarta.annotation.Nullable
-  // TODO Store manifest-list externally, in a way that we can update the manifest-list w/o touching
-  //  the persisted snapshot.
-  // TODO Can we derive the ID of the manifest list from the ID of the snapshot?
-  // TODO Find a way to put multiple NessieListManifestEntry in a database row.
-  NessieFileManifestGroup fileManifestGroup();
-
   // TODO Iceberg external name mapping (see org.apache.iceberg.mapping.NameMappingParser +
   //  org.apache.iceberg.TableProperties.DEFAULT_NAME_MAPPING)
 
@@ -301,9 +291,6 @@ public interface NessieTableSnapshot extends NessieEntitySnapshot<NessieTable> {
 
     @CanIgnoreReturnValue
     Builder addAllIcebergManifestFileLocations(Iterable<String> elements);
-
-    @CanIgnoreReturnValue
-    Builder fileManifestGroup(NessieFileManifestGroup fileManifestGroup);
 
     @CanIgnoreReturnValue
     Builder addStatisticsFile(NessieStatisticsFile element);

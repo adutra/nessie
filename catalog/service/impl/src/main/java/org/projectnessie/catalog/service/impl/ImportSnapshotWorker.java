@@ -162,19 +162,11 @@ final class ImportSnapshotWorker {
               });
     }
 
-    ObjId manifestGroupId =
-        snapshot.fileManifestGroup() == null
-            ? objIdHasher("NessieManifestGroup")
-                .hash(snapshot.icebergManifestListLocation())
-                .generate()
-            : null;
-
     return EntitySnapshotObj.builder()
         .id(nessieIdToObjId(snapshotId))
         .entity(entityObjId)
         .snapshot(snapshot)
         .content(content)
-        .manifestGroup(manifestGroupId)
         .taskState(successState());
   }
 

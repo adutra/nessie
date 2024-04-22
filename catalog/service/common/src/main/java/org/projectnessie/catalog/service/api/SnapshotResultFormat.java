@@ -18,13 +18,7 @@ package org.projectnessie.catalog.service.api;
 public enum SnapshotResultFormat {
   /** Snapshot as an Iceberg table-metadata. */
   ICEBERG,
-  /** Snapshot as an Iceberg table-metadata, without replacements. */
-  ICEBERG_IMPORTED,
-  /** Snapshot in Delta Lake format. */
-  DELTA_LAKE,
-  /** Snapshot in native Nessie Catalog format, including manifests. */
+  /** Snapshot in native Nessie Catalog format. */
   NESSIE,
-  /** Snapshot in native Nessie Catalog format, without manifests. */
-  NESSIE_NO_MANIFEST,
   ;
 }

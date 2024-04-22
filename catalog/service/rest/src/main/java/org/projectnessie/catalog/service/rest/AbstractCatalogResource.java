@@ -48,8 +48,7 @@ abstract class AbstractCatalogResource {
   Uni<SnapshotResponse> snapshotResponse(
       ContentKey key, SnapshotReqParams snapshotReqParams, Content.Type expectedType)
       throws NessieNotFoundException {
-    CatalogService.CatalogUriResolver catalogUriResolver =
-        new CatalogUriResolverImpl(uriInfo, snapshotReqParams.snapshotFormat());
+    CatalogService.CatalogUriResolver catalogUriResolver = new CatalogUriResolverImpl(uriInfo);
 
     return Uni.createFrom()
         .completionStage(

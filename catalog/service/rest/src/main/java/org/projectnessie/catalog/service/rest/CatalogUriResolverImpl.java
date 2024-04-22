@@ -19,85 +19,26 @@ import static java.net.URLEncoder.encode;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.net.URI;
-import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.manifest.NessieDataFileFormat;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
-import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.service.api.CatalogService;
-import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
 
 class CatalogUriResolverImpl implements CatalogService.CatalogUriResolver {
   private final URI baseUri;
-  private final SnapshotFormat snapshotFormat;
 
-  CatalogUriResolverImpl(ExternalBaseUri requestUri, SnapshotFormat snapshotFormat) {
-    this.snapshotFormat = snapshotFormat;
+  CatalogUriResolverImpl(ExternalBaseUri requestUri) {
     this.baseUri = requestUri.catalogBaseURI();
   }
 
   @Override
   public URI icebergSnapshot(
       Reference effectiveReference, ContentKey key, NessieEntitySnapshot<?> snapshot) {
-    String format = snapshotFormat.asImported() ? "iceberg_imported" : "iceberg";
     return baseUri.resolve(
         "trees/"
             + encode(effectiveReference.toPathString(), UTF_8)
             + "/snapshot/"
             + encode(key.toPathString(), UTF_8)
-            + "?format="
-            + format);
-  }
-
-  @Override
-  public URI icebergManifestList(
-      Reference effectiveReference, ContentKey key, NessieTableSnapshot snapshot) {
-    return snapshotFormat.asImported()
-        ? URI.create(snapshot.icebergManifestListLocation())
-        : baseUri.resolve(
-            "trees/"
-                + encode(effectiveReference.toPathString(), UTF_8)
-                + "/manifest-list/"
-                + encode(key.toPathString(), UTF_8)
-                + "?x=.avro");
-  }
-
-  @Override
-  public URI icebergManifestFile(
-      Reference effectiveReference, ContentKey key, NessieId manifestFileId) {
-    return baseUri.resolve(
-        "trees/"
-            + encode(effectiveReference.toPathString(), UTF_8)
-            + "/manifest-file/"
-            + encode(key.toPathString(), UTF_8)
-            + "?manifest-file="
-            + encode(manifestFileId.idAsBase64(), UTF_8)
-            + ".avro");
-  }
-
-  @Override
-  public URI dataFile(
-      Reference effectiveReference,
-      ContentKey key,
-      NessieDataFileFormat fileFormat,
-      String dataFile) {
-    // TODO generate dataFile token
-    String fileToken = "tokenToVerifyThatTheDataFileBelongsToTheTable";
-    String fileFormatParam =
-        dataFile.endsWith(fileFormat.fileExtension())
-            ? ""
-            : "&format=" + encode(fileFormat.name(), UTF_8);
-    return baseUri.resolve(
-        "trees/"
-            + encode(effectiveReference.toPathString(), UTF_8)
-            + "/data-file/"
-            + encode(key.toPathString(), UTF_8)
-            + "?token="
-            + encode(fileToken, UTF_8)
-            // Keep 'file' parameter at the end
-            + "&file="
-            + encode(dataFile, UTF_8)
-            + fileFormatParam);
+            + "?format=iceberg");
   }
 }
