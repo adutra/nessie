@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
   id("nessie-conventions-client")
   id("nessie-jacoco")
   alias(libs.plugins.annotations.stripper)
-  id("com.github.johnrengelman.shadow")
-  alias(libs.plugins.jmh)
 }
 
 description = "Nessie - Catalog - Iceberg table format"
@@ -62,15 +58,11 @@ dependencies {
   compileOnly(libs.errorprone.annotations)
   compileOnly(libs.microprofile.openapi)
 
-  jmhImplementation(project(":nessie-catalog-format-iceberg-fixturegen"))
-  jmhImplementation(project(":nessie-catalog-service-impl"))
-  jmhImplementation(project(":nessie-tasks-api"))
-  jmhImplementation(project(":nessie-versioned-storage-common"))
-  jmhImplementation(project(":nessie-versioned-storage-common-serialize"))
-
   testFixturesApi(platform(libs.junit.bom))
   testFixturesApi(libs.bundles.junit.testing)
   testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
+
+  testFixturesImplementation(libs.guava)
 
   testFixturesImplementation(platform(libs.jackson.bom))
   testFixturesImplementation("com.fasterxml.jackson.core:jackson-annotations")
@@ -103,11 +95,3 @@ val generateAvroSchemas by
   }
 
 sourceSets.named("main") { resources { srcDir(generateAvroSchemas) } }
-
-jmh { jmhVersion.set(libs.versions.jmh.get()) }
-
-tasks.named<ShadowJar>("jmhJar").configure {
-  outputs.cacheIf { false } // do not cache uber/shaded jars
-  exclude("META-INF/jandex.idx")
-  mergeServiceFiles()
-}

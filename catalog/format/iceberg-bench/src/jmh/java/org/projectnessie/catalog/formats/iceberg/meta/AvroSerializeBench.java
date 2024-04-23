@@ -482,7 +482,6 @@ public class AvroSerializeBench {
         .withFormat(FileFormat.valueOf(dataFile.fileFormat().name()))
         .withFileSizeInBytes(dataFile.fileSizeInBytes())
         .withRecordCount(dataFile.recordCount())
-        .withEqualityFieldIds(dataFile.equalityIds())
         .withPartition(partitionData)
         .withPath(dataFile.filePath())
         .withMetrics(
@@ -520,7 +519,7 @@ public class AvroSerializeBench {
         file.partitions().stream()
             .map(AvroSerializeBench::toPartitionFieldSummary)
             .collect(Collectors.toList()),
-        ByteBuffer.wrap(file.keyMetadata()));
+        file.keyMetadata() != null ? ByteBuffer.wrap(file.keyMetadata()) : null);
   }
 
   static ManifestFile.PartitionFieldSummary toPartitionFieldSummary(
