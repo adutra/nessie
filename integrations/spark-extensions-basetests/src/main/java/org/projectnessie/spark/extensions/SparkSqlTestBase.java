@@ -196,14 +196,12 @@ public abstract class SparkSqlTestBase {
     if (api != null) {
       Branch defaultBranch = api.getDefaultBranch();
       for (Reference ref : api.getAllReferences().get().getReferences()) {
-        if (ref instanceof Branch && !ref.getName().equals(defaultBranch.getName())) {
-          api.deleteBranch().branchName(ref.getName()).hash(ref.getHash()).delete();
-        }
-        if (ref instanceof Tag) {
-          api.deleteTag().tagName(ref.getName()).hash(ref.getHash()).delete();
+        if (ref instanceof Tag
+            || (ref instanceof Branch && !ref.getName().equals(defaultBranch.getName()))) {
+          api.deleteReference().reference(ref).delete();
         }
       }
-      api.assignBranch().assignTo(mainBeforeTest).branch(defaultBranch).assign();
+      api.assignReference().assignTo(mainBeforeTest).reference(defaultBranch).assign();
       api.close();
       api = null;
     }
@@ -228,7 +226,7 @@ public abstract class SparkSqlTestBase {
   @FormatMethod
   protected static List<Object[]> sql(String query, Object... args) {
     List<Row> rows = spark.sql(format(query, args)).collectAsList();
-    if (rows.size() < 1) {
+    if (rows.isEmpty()) {
       return ImmutableList.of();
     }
 
@@ -332,8 +330,7 @@ public abstract class SparkSqlTestBase {
     Operations ops =
         content != null
             ? ImmutableOperations.builder()
-                .addOperations(
-                    Put.of(key, IcebergTable.of("foo", 42, 42, 42, 42, content.getId()), content))
+                .addOperations(Put.of(key, IcebergTable.of("foo", 42, 42, 42, 42, content.getId())))
                 .commitMeta(cm1)
                 .build()
             : ImmutableOperations.builder()
@@ -355,8 +352,7 @@ public abstract class SparkSqlTestBase {
 
     Operations ops2 =
         ImmutableOperations.builder()
-            .addOperations(
-                Put.of(key, IcebergTable.of("bar", 42, 42, 42, 42, content.getId()), content))
+            .addOperations(Put.of(key, IcebergTable.of("bar", 42, 42, 42, 42, content.getId())))
             .commitMeta(cm2)
             .build();
 
@@ -372,8 +368,7 @@ public abstract class SparkSqlTestBase {
 
     Operations ops3 =
         ImmutableOperations.builder()
-            .addOperations(
-                Put.of(key, IcebergTable.of("baz", 42, 42, 42, 42, content.getId()), content))
+            .addOperations(Put.of(key, IcebergTable.of("baz", 42, 42, 42, 42, content.getId())))
             .commitMeta(cm3)
             .build();
 
