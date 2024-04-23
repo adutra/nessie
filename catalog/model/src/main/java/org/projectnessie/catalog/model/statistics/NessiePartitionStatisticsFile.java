@@ -17,7 +17,6 @@ package org.projectnessie.catalog.model.statistics;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -26,11 +25,9 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 public interface NessiePartitionStatisticsFile {
 
   static NessiePartitionStatisticsFile partitionStatisticsFile(
-      NessieId id, String statisticsPath, long fileSizeInBytes) {
-    return ImmutableNessiePartitionStatisticsFile.of(id, statisticsPath, fileSizeInBytes);
+      String statisticsPath, long fileSizeInBytes) {
+    return ImmutableNessiePartitionStatisticsFile.of(statisticsPath, fileSizeInBytes);
   }
-
-  NessieId id();
 
   String statisticsPath();
 

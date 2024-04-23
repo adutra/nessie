@@ -18,7 +18,6 @@ package org.projectnessie.catalog.model.statistics;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
-import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.nessie.immutables.NessieImmutable;
 
 @NessieImmutable
@@ -27,16 +26,13 @@ import org.projectnessie.nessie.immutables.NessieImmutable;
 public interface NessieStatisticsFile {
 
   static NessieStatisticsFile statisticsFile(
-      NessieId id,
       String statisticsPath,
       long fileSizeInBytes,
       long fileFooterSizeInBytes,
       List<NessieIcebergBlobMetadata> blobMetadata) {
     return ImmutableNessieStatisticsFile.of(
-        id, statisticsPath, fileSizeInBytes, fileFooterSizeInBytes, blobMetadata);
+        statisticsPath, fileSizeInBytes, fileFooterSizeInBytes, blobMetadata);
   }
-
-  NessieId id();
 
   String statisticsPath();
 

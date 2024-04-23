@@ -34,6 +34,8 @@ import static org.projectnessie.catalog.model.id.NessieId.transientNessieId;
 import static org.projectnessie.catalog.model.schema.types.NessieType.DEFAULT_TIME_PRECISION;
 import static org.projectnessie.catalog.model.snapshot.NessieViewRepresentation.NessieViewSQLRepresentation.nessieViewSQLRepresentation;
 import static org.projectnessie.catalog.model.snapshot.TableFormat.ICEBERG;
+import static org.projectnessie.catalog.model.statistics.NessiePartitionStatisticsFile.partitionStatisticsFile;
+import static org.projectnessie.catalog.model.statistics.NessieStatisticsFile.statisticsFile;
 import static org.projectnessie.model.Content.Type.ICEBERG_TABLE;
 import static org.projectnessie.model.Content.Type.ICEBERG_VIEW;
 import static org.projectnessie.model.Content.Type.NAMESPACE;
@@ -91,7 +93,6 @@ import org.projectnessie.catalog.formats.iceberg.types.IcebergType;
 import org.projectnessie.catalog.model.NessieTable;
 import org.projectnessie.catalog.model.NessieView;
 import org.projectnessie.catalog.model.id.NessieId;
-import org.projectnessie.catalog.model.id.NessieIdHasher;
 import org.projectnessie.catalog.model.schema.NessieField;
 import org.projectnessie.catalog.model.schema.NessieFieldTransform;
 import org.projectnessie.catalog.model.schema.NessiePartitionDefinition;
@@ -631,14 +632,14 @@ public class NessieModelIceberg {
 
     for (IcebergStatisticsFile statisticsFile : iceberg.statistics()) {
       if (statisticsFile.snapshotId() == iceberg.currentSnapshotId()) {
-        snapshot.addStatisticsFile(icebergStatisticsFileToNessie(snapshotId, statisticsFile));
+        snapshot.addStatisticsFile(icebergStatisticsFileToNessie(statisticsFile));
       }
     }
 
     for (IcebergPartitionStatisticsFile partitionStatistic : iceberg.partitionStatistics()) {
       if (partitionStatistic.snapshotId() == iceberg.currentSnapshotId()) {
         snapshot.addPartitionStatisticsFile(
-            icebergPartitionStatisticsFileToNessie(snapshotId, partitionStatistic));
+            icebergPartitionStatisticsFileToNessie(partitionStatistic));
       }
     }
 
@@ -655,12 +656,8 @@ public class NessieModelIceberg {
   }
 
   public static NessieStatisticsFile icebergStatisticsFileToNessie(
-      NessieId snapshotId, IcebergStatisticsFile icebergStatisticsFile) {
-    return NessieStatisticsFile.statisticsFile(
-        NessieIdHasher.nessieIdHasher("NessieStatisticsFile")
-            .hash(snapshotId)
-            .hash(icebergStatisticsFile.statisticsPath())
-            .generate(),
+      IcebergStatisticsFile icebergStatisticsFile) {
+    return statisticsFile(
         icebergStatisticsFile.statisticsPath(),
         icebergStatisticsFile.fileSizeInBytes(),
         icebergStatisticsFile.fileFooterSizeInBytes(),
@@ -676,12 +673,8 @@ public class NessieModelIceberg {
   }
 
   public static NessiePartitionStatisticsFile icebergPartitionStatisticsFileToNessie(
-      NessieId snapshotId, IcebergPartitionStatisticsFile icebergPartitionStatisticsFile) {
-    return NessiePartitionStatisticsFile.partitionStatisticsFile(
-        NessieIdHasher.nessieIdHasher("NessiePartitionStatisticsFile")
-            .hash(snapshotId)
-            .hash(icebergPartitionStatisticsFile.statisticsPath())
-            .generate(),
+      IcebergPartitionStatisticsFile icebergPartitionStatisticsFile) {
+    return partitionStatisticsFile(
         icebergPartitionStatisticsFile.statisticsPath(),
         icebergPartitionStatisticsFile.fileSizeInBytes());
   }
