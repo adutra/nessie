@@ -18,7 +18,7 @@ package org.projectnessie.catalog.model.id;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.nio.ByteBuffer;
-import java.util.UUID;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -30,115 +30,73 @@ import java.util.concurrent.ThreadLocalRandom;
 public interface NessieId extends Hashable {
 
   static NessieId randomNessieId() {
-    byte[] id = new byte[32];
     ThreadLocalRandom rand = ThreadLocalRandom.current();
-    for (int i = 0; i < id.length; i++) {
-      id[i] = (byte) rand.nextInt();
-    }
-    // TODO add specialized NessieId implementations
-    return NessieIdGeneric.nessieIdFromBytes(id);
-  }
-
-  static NessieId nessieIdFromUUID(UUID id) {
-    // TODO add specialized NessieId implementations
-    return NessieIdGeneric.nessieIdFromUUID(id);
-  }
-
-  static NessieId nessieIdFromString(String id) {
-    // TODO add specialized NessieId implementations
-    return NessieIdGeneric.nessieIdFromString(id);
-  }
-
-  static NessieId nessieIdFromStringBase64(String id) {
-    // TODO add specialized NessieId implementations
-    return NessieIdGeneric.nessieIdFromStringBase64(id);
+    long l0 = rand.nextLong();
+    long l1 = rand.nextLong();
+    long l2 = rand.nextLong();
+    long l3 = rand.nextLong();
+    return NessieId256.nessieIdFromLongs(l0, l1, l2, l3);
   }
 
   static NessieId nessieIdFromBytes(byte[] bytes) {
-    // TODO add specialized NessieId implementations
-    // TODO safeguard: bytes.clone() or the like
-    return NessieIdGeneric.nessieIdFromBytes(bytes);
+    int l = bytes.length;
+    if (l == 0) {
+      return emptyNessieId();
+    }
+    if (l == 32) {
+      ByteBuffer buf = ByteBuffer.wrap(bytes);
+      long l0 = buf.getLong();
+      long l1 = buf.getLong();
+      long l2 = buf.getLong();
+      long l3 = buf.getLong();
+      return nessieIdFromLongs(l0, l1, l2, l3);
+    }
+    return NessieIdGeneric.nessieIdFromBytes(Arrays.copyOf(bytes, bytes.length));
   }
 
   static NessieId emptyNessieId() {
-    // TODO add specialized NessieId implementations
-    return NessieIdGeneric.emptyNessieId();
+    return NessieIdEmpty.INSTANCE;
   }
 
-  /** Constructs a new ID instance starting with the value of this ID plus the given UUID. */
-  NessieId compositeWithUUID(UUID id);
+  static NessieId nessieIdFromByteAccessor(int size, ByteAccessor byteAt) {
+    switch (size) {
+      case 0:
+        return emptyNessieId();
+      case 32:
+        return NessieId256.nessieIdFromByteAccessor(byteAt);
+      default:
+        return NessieIdGeneric.nessieIdFromByteAccessor(size, byteAt);
+    }
+  }
 
-  /**
-   * Extracts the last 16 bytes as a {@link UUID}, assuming this ID instance was created via {@link
-   * #compositeWithUUID(UUID)}.
-   */
-  UUID uuidFromComposite();
+  static NessieId nessieIdFromLongs(long l0, long l1, long l2, long l3) {
+    return NessieId256.nessieIdFromLongs(l0, l1, l2, l3);
+  }
+
+  static NessieId transientNessieId() {
+    return NessieIdTransient.nessieIdTransient();
+  }
+
+  /** Size in bytes. */
+  int size();
+
+  byte byteAt(int index);
+
+  long longAt(int index);
 
   ByteBuffer id();
 
   String idAsString();
 
-  String idAsBase64();
-
   byte[] idAsBytes();
-
-  /**
-   * Builds the string representation, assuming this instance was created via {@link
-   * #compositeWithUUID(UUID)}.
-   */
-  String idAsStringWithUUID();
 
   @Override
   default void hash(NessieIdHasher idHasher) {
     idHasher.hash(id());
   }
 
-  static NessieId transientNessieId() {
-    return NessieIdTransient.INSTANCE;
-  }
-
-  /**
-   * A form of {@link NessieId} that does not contain any data and cannot be compared of serialized.
-   * This {@link NessieId} implementation should be used only in transient objects.
-   */
-  final class NessieIdTransient implements NessieId {
-    private static final NessieId INSTANCE = new NessieIdTransient();
-
-    private NessieIdTransient() {}
-
-    @Override
-    public NessieId compositeWithUUID(UUID id) {
-      throw new UnsupportedOperationException("Transient ID");
-    }
-
-    @Override
-    public UUID uuidFromComposite() {
-      throw new UnsupportedOperationException("Transient ID");
-    }
-
-    @Override
-    public ByteBuffer id() {
-      throw new UnsupportedOperationException("Transient ID");
-    }
-
-    @Override
-    public String idAsString() {
-      throw new UnsupportedOperationException("Transient ID");
-    }
-
-    @Override
-    public String idAsBase64() {
-      throw new UnsupportedOperationException("Transient ID");
-    }
-
-    @Override
-    public byte[] idAsBytes() {
-      throw new UnsupportedOperationException("Transient ID");
-    }
-
-    @Override
-    public String idAsStringWithUUID() {
-      throw new UnsupportedOperationException("Transient ID");
-    }
+  @FunctionalInterface
+  interface ByteAccessor {
+    byte get(int index);
   }
 }

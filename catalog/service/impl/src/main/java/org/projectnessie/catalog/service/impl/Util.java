@@ -15,8 +15,14 @@
  */
 package org.projectnessie.catalog.service.impl;
 
+import static org.projectnessie.catalog.model.id.NessieId.emptyNessieId;
+import static org.projectnessie.catalog.model.id.NessieId.nessieIdFromByteAccessor;
+import static org.projectnessie.catalog.model.id.NessieId.nessieIdFromLongs;
 import static org.projectnessie.nessie.tasks.api.TaskState.failureState;
 import static org.projectnessie.nessie.tasks.api.TaskState.retryableErrorState;
+import static org.projectnessie.versioned.storage.common.persist.ObjId.objIdFromByteAccessor;
+import static org.projectnessie.versioned.storage.common.persist.ObjId.objIdFromLongs;
+import static org.projectnessie.versioned.storage.common.persist.ObjId.zeroLengthObjId;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -29,11 +35,25 @@ final class Util {
   private Util() {}
 
   static ObjId nessieIdToObjId(NessieId id) {
-    return ObjId.objIdFromByteArray(id.idAsBytes());
+    switch (id.size()) {
+      case 32:
+        return objIdFromLongs(id.longAt(0), id.longAt(1), id.longAt(2), id.longAt(3));
+      case 0:
+        return zeroLengthObjId();
+      default:
+        return objIdFromByteAccessor(id.size(), id::byteAt);
+    }
   }
 
   static NessieId objIdToNessieId(ObjId id) {
-    return NessieId.nessieIdFromBytes(id.asByteArray());
+    switch (id.size()) {
+      case 32:
+        return nessieIdFromLongs(id.longAt(0), id.longAt(1), id.longAt(2), id.longAt(3));
+      case 0:
+        return emptyNessieId();
+      default:
+        return nessieIdFromByteAccessor(id.size(), id::byteAt);
+    }
   }
 
   static TaskState throwableAsErrorTaskState(Throwable throwable) {
