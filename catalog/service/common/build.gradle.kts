@@ -26,6 +26,8 @@ dependencies {
   implementation(project(":nessie-catalog-files-api"))
   implementation(project(":nessie-catalog-model"))
 
+  compileOnly(project(":nessie-doc-generator-annotations"))
+
   compileOnly(project(":nessie-immutables"))
   annotationProcessor(project(":nessie-immutables", configuration = "processor"))
 

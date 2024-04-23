@@ -66,7 +66,7 @@ dependencies {
   testFixturesApi(nessieProject("nessie-object-storage-mock"))
   testFixturesApi(libs.nessie.runner.common)
 
-  nessieQuarkusServer(nessieProject("nessie-catalog-service-server", "quarkusRunner"))
+  nessieQuarkusServer(nessieProject("nessie-quarkus", "quarkusRunner"))
 }
 
 forceJavaVersionForTests(sparkScala.runtimeJavaVersion)

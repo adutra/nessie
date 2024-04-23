@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.gax.retrying.RetrySettings;
 import com.google.auth.Credentials;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.AccessToken;
@@ -32,7 +33,9 @@ import com.google.cloud.storage.StorageOptions;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Date;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 
@@ -58,11 +61,31 @@ public final class GcsClients {
     bucketOptions.quotaProjectId().ifPresent(builder::setQuotaProjectId);
     bucketOptions.host().map(URI::toString).ifPresent(builder::setHost);
     bucketOptions.clientLibToken().ifPresent(builder::setClientLibToken);
-    bucketOptions.buildRetrySettings().ifPresent(builder::setRetrySettings);
+    builder.setRetrySettings(buildRetrySettings(bucketOptions));
     // TODO ??
     // bucketOptions.buildStorageRetryStrategy().ifPresent(builder::setStorageRetryStrategy);
 
     return builder.build().getService();
+  }
+
+  static RetrySettings buildRetrySettings(GcsBucketOptions bucketOptions) {
+    Function<Duration, org.threeten.bp.Duration> duration =
+        d -> org.threeten.bp.Duration.ofMillis(d.toMillis());
+
+    RetrySettings.Builder retry = RetrySettings.newBuilder();
+    bucketOptions.maxAttempts().ifPresent(retry::setMaxAttempts);
+    bucketOptions.logicalTimeout().map(duration).ifPresent(retry::setLogicalTimeout);
+    bucketOptions.totalTimeout().map(duration).ifPresent(retry::setTotalTimeout);
+
+    bucketOptions.initialRetryDelay().map(duration).ifPresent(retry::setInitialRetryDelay);
+    bucketOptions.maxRetryDelay().map(duration).ifPresent(retry::setMaxRetryDelay);
+    bucketOptions.retryDelayMultiplier().ifPresent(retry::setRetryDelayMultiplier);
+
+    bucketOptions.initialRpcTimeout().map(duration).ifPresent(retry::setInitialRpcTimeout);
+    bucketOptions.maxRpcTimeout().map(duration).ifPresent(retry::setMaxRpcTimeout);
+    bucketOptions.rpcTimeoutMultiplier().ifPresent(retry::setRpcTimeoutMultiplier);
+
+    return retry.build();
   }
 
   public static HttpTransportFactory buildSharedHttpTransportFactory() {

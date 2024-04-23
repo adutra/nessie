@@ -17,9 +17,11 @@ package org.projectnessie.catalog.files.gcs;
 
 import java.util.Map;
 import java.util.Optional;
+import org.projectnessie.nessie.docgen.annotations.ConfigDocs.ConfigPropertyName;
 
 public interface GcsOptions<PER_BUCKET extends GcsBucketOptions> extends GcsBucketOptions {
 
+  @ConfigPropertyName("bucket-name")
   Map<String, PER_BUCKET> buckets();
 
   default GcsBucketOptions effectiveOptionsForBucket(Optional<String> bucketName) {

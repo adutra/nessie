@@ -15,11 +15,6 @@
  */
 package org.projectnessie.catalog.files.adls;
 
-import com.azure.core.http.policy.ExponentialBackoffOptions;
-import com.azure.core.http.policy.FixedDelayOptions;
-import com.azure.core.http.policy.RetryOptions;
-import com.azure.storage.common.policy.RequestRetryOptions;
-import com.azure.storage.common.policy.RetryPolicyType;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -55,63 +50,5 @@ public interface AdlsFileSystemOptions {
     NONE,
     EXPONENTIAL_BACKOFF,
     FIXED_DELAY,
-  }
-
-  // Both RetryOptions + RequestRetryOptions look redundant, but neither type inherits the other -
-  // so :shrug:
-
-  default Optional<RetryOptions> buildRetryOptions() {
-    return retryPolicy()
-        .flatMap(
-            strategy -> {
-              switch (strategy) {
-                case NONE:
-                  return Optional.empty();
-                case EXPONENTIAL_BACKOFF:
-                  ExponentialBackoffOptions exponentialBackoffOptions =
-                      new ExponentialBackoffOptions();
-                  retryDelay().ifPresent(exponentialBackoffOptions::setBaseDelay);
-                  maxRetryDelay().ifPresent(exponentialBackoffOptions::setMaxDelay);
-                  maxRetries().ifPresent(exponentialBackoffOptions::setMaxRetries);
-                  return Optional.of(new RetryOptions(exponentialBackoffOptions));
-                case FIXED_DELAY:
-                  FixedDelayOptions fixedDelayOptions =
-                      new FixedDelayOptions(maxRetries().orElseThrow(), retryDelay().orElseThrow());
-                  return Optional.of(new RetryOptions(fixedDelayOptions));
-                default:
-                  throw new IllegalArgumentException("Invalid retry strategy: " + strategy);
-              }
-            });
-  }
-
-  default Optional<RequestRetryOptions> buildRequestRetryOptions() {
-    return retryPolicy()
-        .flatMap(
-            strategy -> {
-              switch (strategy) {
-                case NONE:
-                  return Optional.empty();
-                case EXPONENTIAL_BACKOFF:
-                  return Optional.of(
-                      new RequestRetryOptions(
-                          RetryPolicyType.EXPONENTIAL,
-                          maxRetries().orElse(null),
-                          tryTimeout().orElse(null),
-                          retryDelay().orElse(null),
-                          maxRetryDelay().orElse(null),
-                          null));
-                case FIXED_DELAY:
-                  return Optional.of(
-                      new RequestRetryOptions(
-                          RetryPolicyType.FIXED,
-                          maxRetries().orElse(null),
-                          tryTimeout().orElse(null),
-                          retryDelay().orElse(null),
-                          maxRetryDelay().orElse(null),
-                          null));
-                default:
-                  throw new IllegalArgumentException("Invalid retry strategy: " + strategy);
-              }
-            });
   }
 }

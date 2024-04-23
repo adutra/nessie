@@ -18,12 +18,18 @@ package org.projectnessie.catalog.files.adls;
 import static org.projectnessie.catalog.files.adls.AdlsLocation.adlsLocation;
 
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.policy.ExponentialBackoffOptions;
+import com.azure.core.http.policy.FixedDelayOptions;
+import com.azure.core.http.policy.RetryOptions;
 import com.azure.core.util.ConfigurationBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClientBuilder;
 import java.net.URI;
+import java.util.Optional;
 import org.projectnessie.catalog.files.secrets.SecretsProvider;
 
 public final class AdlsClientSupplier {
@@ -90,10 +96,77 @@ public final class AdlsClientSupplier {
               + "'");
     }
 
-    fileSystemOptions.buildRetryOptions().ifPresent(clientBuilder::retryOptions);
-    fileSystemOptions.buildRequestRetryOptions().ifPresent(clientBuilder::retryOptions);
+    buildRetryOptions(fileSystemOptions).ifPresent(clientBuilder::retryOptions);
+    buildRequestRetryOptions(fileSystemOptions).ifPresent(clientBuilder::retryOptions);
     location.container().ifPresent(clientBuilder::fileSystemName);
 
     return clientBuilder.buildClient();
+  }
+
+  // Both RetryOptions + RequestRetryOptions look redundant, but neither type inherits the other -
+  // so :shrug:
+
+  static Optional<RetryOptions> buildRetryOptions(AdlsFileSystemOptions fileSystemOptions) {
+    return fileSystemOptions
+        .retryPolicy()
+        .flatMap(
+            strategy -> {
+              switch (strategy) {
+                case NONE:
+                  return Optional.empty();
+                case EXPONENTIAL_BACKOFF:
+                  ExponentialBackoffOptions exponentialBackoffOptions =
+                      new ExponentialBackoffOptions();
+                  fileSystemOptions.retryDelay().ifPresent(exponentialBackoffOptions::setBaseDelay);
+                  fileSystemOptions
+                      .maxRetryDelay()
+                      .ifPresent(exponentialBackoffOptions::setMaxDelay);
+                  fileSystemOptions
+                      .maxRetries()
+                      .ifPresent(exponentialBackoffOptions::setMaxRetries);
+                  return Optional.of(new RetryOptions(exponentialBackoffOptions));
+                case FIXED_DELAY:
+                  FixedDelayOptions fixedDelayOptions =
+                      new FixedDelayOptions(
+                          fileSystemOptions.maxRetries().orElseThrow(),
+                          fileSystemOptions.retryDelay().orElseThrow());
+                  return Optional.of(new RetryOptions(fixedDelayOptions));
+                default:
+                  throw new IllegalArgumentException("Invalid retry strategy: " + strategy);
+              }
+            });
+  }
+
+  static Optional<RequestRetryOptions> buildRequestRetryOptions(
+      AdlsFileSystemOptions fileSystemOptions) {
+    return fileSystemOptions
+        .retryPolicy()
+        .flatMap(
+            strategy -> {
+              switch (strategy) {
+                case NONE:
+                  return Optional.empty();
+                case EXPONENTIAL_BACKOFF:
+                  return Optional.of(
+                      new RequestRetryOptions(
+                          RetryPolicyType.EXPONENTIAL,
+                          fileSystemOptions.maxRetries().orElse(null),
+                          fileSystemOptions.tryTimeout().orElse(null),
+                          fileSystemOptions.retryDelay().orElse(null),
+                          fileSystemOptions.maxRetryDelay().orElse(null),
+                          null));
+                case FIXED_DELAY:
+                  return Optional.of(
+                      new RequestRetryOptions(
+                          RetryPolicyType.FIXED,
+                          fileSystemOptions.maxRetries().orElse(null),
+                          fileSystemOptions.tryTimeout().orElse(null),
+                          fileSystemOptions.retryDelay().orElse(null),
+                          fileSystemOptions.maxRetryDelay().orElse(null),
+                          null));
+                default:
+                  throw new IllegalArgumentException("Invalid retry strategy: " + strategy);
+              }
+            });
   }
 }

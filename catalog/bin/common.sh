@@ -71,8 +71,8 @@ if [[ -z "$NO_PUBLISH_TO_MAVEN_LOCAL" ]]; then
   ./gradlew "${GRADLE_OPTS[@]}" publishToMavenLocal
 fi
 
-echo "Building combined Nessie Catalog server..."
-./gradlew "${GRADLE_OPTS[@]}" :nessie-quarkus:quarkusBuild :nessie-catalog-service-server:quarkusBuild
+echo "Building Nessie server..."
+./gradlew "${GRADLE_OPTS[@]}" :nessie-quarkus:quarkusBuild
 
 if [[ -n "$DEBUG" ]]; then
   export QUARKUS_LOG_MIN_LEVEL="DEBUG"
@@ -102,5 +102,5 @@ if [[ -z "$NO_NESSIE_START" ]]; then
   echo "Waiting for Nessie Catalog server to start..."
   curl --silent --show-error --fail \
     --connect-timeout 5 --retry 5 --retry-connrefused --retry-delay 0 --retry-max-time 10 \
-    http://localhost:19110/q/health/ready > /dev/null 2>&1
+    http://localhost:19120/q/health/ready > /dev/null 2>&1
 fi

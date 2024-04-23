@@ -281,7 +281,6 @@ jobs:
             -x :nessie-quarkus:intTest \
             -x :nessie-quarkus-cli:intTest \
             -x :nessie-events-quarkus:intTest \
-            -x :nessie-catalog-service-server:intTest \
             $(cat ../persist-prjs.txt) \
             $(cat ../storage-prjs.txt) \
             $(cat ../spark-prjs.txt) \
@@ -437,13 +436,6 @@ jobs:
           ./gradlew :nessie-events-quarkus:intTest --scan || \
             ./gradlew :nessie-events-quarkus:intTest --scan || \
             ./gradlew :nessie-events-quarkus:intTest --scan
-
-      - name: Gradle / intTest Quarkus Catalog
-        run:
-          # 2 Retries - to mitigate https://github.com/gradle/gradle/issues/25751
-          ./gradlew :nessie-catalog-service-server:intTest --scan || \
-            ./gradlew :nessie-catalog-service-server:intTest --scan || \
-            ./gradlew :nessie-catalog-service-server:intTest --scan
 
       - name: Dump quarkus.log
         if: ${{ failure() }}

@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 import org.projectnessie.catalog.files.adls.AdlsProgrammaticOptions.AdlsPerFileSystemOptions;
+import org.projectnessie.nessie.docgen.annotations.ConfigDocs.ConfigPropertyName;
 
 public interface AdlsOptions<PER_FILE_SYSTEM extends AdlsFileSystemOptions>
     extends AdlsFileSystemOptions {
@@ -31,6 +32,7 @@ public interface AdlsOptions<PER_FILE_SYSTEM extends AdlsFileSystemOptions>
 
   OptionalLong writeBlockSize();
 
+  @ConfigPropertyName("filesystem-name")
   Map<String, PER_FILE_SYSTEM> fileSystems();
 
   default AdlsFileSystemOptions effectiveOptionsForFileSystem(Optional<String> filesystemName) {

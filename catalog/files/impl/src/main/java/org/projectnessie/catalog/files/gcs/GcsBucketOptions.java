@@ -15,14 +15,12 @@
  */
 package org.projectnessie.catalog.files.gcs;
 
-import com.google.api.gax.retrying.RetrySettings;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
-import java.util.function.Function;
 
 public interface GcsBucketOptions {
 
@@ -95,25 +93,5 @@ public interface GcsBucketOptions {
     USER,
     SERVICE_ACCOUNT,
     ACCESS_TOKEN,
-  }
-
-  default Optional<RetrySettings> buildRetrySettings() {
-    Function<Duration, org.threeten.bp.Duration> duration =
-        d -> org.threeten.bp.Duration.ofMillis(d.toMillis());
-
-    RetrySettings.Builder retry = RetrySettings.newBuilder();
-    maxAttempts().ifPresent(retry::setMaxAttempts);
-    logicalTimeout().map(duration).ifPresent(retry::setLogicalTimeout);
-    totalTimeout().map(duration).ifPresent(retry::setTotalTimeout);
-
-    initialRetryDelay().map(duration).ifPresent(retry::setInitialRetryDelay);
-    maxRetryDelay().map(duration).ifPresent(retry::setMaxRetryDelay);
-    retryDelayMultiplier().ifPresent(retry::setRetryDelayMultiplier);
-
-    initialRpcTimeout().map(duration).ifPresent(retry::setInitialRpcTimeout);
-    maxRpcTimeout().map(duration).ifPresent(retry::setMaxRpcTimeout);
-    rpcTimeoutMultiplier().ifPresent(retry::setRpcTimeoutMultiplier);
-
-    return Optional.of(retry.build());
   }
 }

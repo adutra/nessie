@@ -16,6 +16,7 @@
 package org.projectnessie.catalog.service.config;
 
 import java.util.Map;
+import org.projectnessie.nessie.docgen.annotations.ConfigDocs.ConfigPropertyName;
 
 public interface WarehouseConfig {
 
@@ -26,12 +27,14 @@ public interface WarehouseConfig {
    * Iceberg config defaults specific to this warehouse. They override any defaults specified in
    * {@link CatalogConfig#icebergConfigDefaults()}.
    */
+  @ConfigPropertyName("iceberg-property")
   Map<String, String> icebergConfigDefaults();
 
   /**
    * Iceberg config overrides specific to this warehouse. They override any overrides specified in
    * {@link CatalogConfig#icebergConfigOverrides()}.
    */
+  @ConfigPropertyName("iceberg-property")
   Map<String, String> icebergConfigOverrides();
 
   /** Location of the warehouse. Used to determine the base location of a table. */

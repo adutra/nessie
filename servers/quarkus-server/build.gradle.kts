@@ -25,6 +25,8 @@ plugins {
 
 extra["maven.name"] = "Nessie - Quarkus Server"
 
+description = "Nessie Catalog Server with Nessie Core (Quarkus)"
+
 val quarkusRunner by
   configurations.creating {
     description = "Used to reference the generated runner-jar (either fast-jar or uber-jar)"
@@ -33,8 +35,11 @@ val quarkusRunner by
 val openapiSource by
   configurations.creating { description = "Used to reference OpenAPI spec files" }
 
+val versionIceberg = libs.versions.iceberg.get()
+
 dependencies {
-  implementation(project(":nessie-model"))
+  implementation(project(":nessie-client"))
+  implementation(project(":nessie-combined-cs"))
   implementation(project(":nessie-services"))
   implementation(project(":nessie-services-config"))
   implementation(project(":nessie-quarkus-auth"))
@@ -42,7 +47,17 @@ dependencies {
   implementation(project(":nessie-events-quarkus"))
   implementation(project(":nessie-rest-common"))
   implementation(project(":nessie-rest-services"))
+  implementation(project(":nessie-tasks-api"))
+  implementation(project(":nessie-tasks-service-async"))
+  implementation(project(":nessie-tasks-service-impl"))
   implementation(project(":nessie-versioned-spi"))
+  implementation(project(":nessie-versioned-storage-common"))
+  implementation(project(":nessie-catalog-files-api"))
+  implementation(project(":nessie-catalog-files-impl"))
+  implementation(project(":nessie-catalog-model"))
+  implementation(project(":nessie-catalog-service-common"))
+  implementation(project(":nessie-catalog-service-impl"))
+  implementation(project(":nessie-catalog-service-rest"))
   implementation(libs.nessie.ui)
 
   implementation(enforcedPlatform(libs.quarkus.bom))
@@ -52,8 +67,15 @@ dependencies {
   implementation("io.quarkus:quarkus-reactive-routes")
   implementation("io.quarkus:quarkus-core-deployment")
   implementation("io.quarkus:quarkus-hibernate-validator")
+  implementation("io.quarkus:quarkus-smallrye-context-propagation")
   implementation("io.quarkus:quarkus-smallrye-health")
   implementation("io.quarkus:quarkus-smallrye-openapi")
+  implementation("io.quarkus:quarkus-hibernate-validator")
+  implementation("io.quarkus:quarkus-elytron-security-properties-file")
+  implementation("io.quarkus:quarkus-security")
+  implementation("io.quarkus:quarkus-oidc")
+  implementation("io.quarkus:quarkus-micrometer")
+  implementation("io.quarkus:quarkus-core-deployment")
   implementation("io.quarkus:quarkus-elytron-security-properties-file")
   implementation("io.quarkus:quarkus-oidc")
   implementation("io.quarkus:quarkus-micrometer")
@@ -64,6 +86,24 @@ dependencies {
 
   implementation(platform(libs.cel.bom))
   implementation("org.projectnessie.cel:cel-standalone")
+
+  implementation(platform(libs.awssdk.bom))
+  implementation("software.amazon.awssdk:s3")
+  implementation("software.amazon.awssdk:sts")
+  implementation("software.amazon.awssdk:apache-client") {
+    exclude("commons-logging", "commons-logging")
+  }
+
+  implementation(platform(libs.google.cloud.storage.bom))
+  implementation("com.google.cloud:google-cloud-storage")
+
+  implementation(platform(libs.azuresdk.bom))
+  implementation("com.azure:azure-storage-file-datalake")
+  implementation("com.azure:azure-identity")
+
+  implementation(libs.guava)
+
+  compileOnly(libs.microprofile.openapi)
 
   if (project.hasProperty("k8s")) {
     /*
@@ -110,8 +150,33 @@ dependencies {
   testFixturesImplementation(libs.awaitility)
   testFixturesApi(libs.jakarta.validation.api)
 
+  testFixturesApi(platform(libs.testcontainers.bom))
+  testFixturesApi("org.testcontainers:testcontainers")
+  testFixturesApi(project(":nessie-keycloak-testcontainer"))
+  testFixturesApi(project(":nessie-gcs-testcontainer"))
+  testFixturesApi(project(":nessie-minio-testcontainer"))
+  testFixturesApi(project(":nessie-object-storage-mock"))
+  testFixturesApi(project(":nessie-catalog-format-iceberg"))
+  testFixturesApi(project(":nessie-catalog-format-iceberg-fixturegen"))
+
+  testFixturesApi(platform("org.apache.iceberg:iceberg-bom:$versionIceberg"))
+  testFixturesApi("org.apache.iceberg:iceberg-core")
+  testFixturesApi("org.apache.iceberg:iceberg-bundled-guava")
+  testFixturesApi("org.apache.iceberg:iceberg-aws")
+  testFixturesApi("org.apache.iceberg:iceberg-gcp")
+  testFixturesApi("org.apache.iceberg:iceberg-azure")
+  testFixturesApi("org.apache.iceberg:iceberg-api:$versionIceberg:tests")
+  testFixturesApi("org.apache.iceberg:iceberg-core:$versionIceberg:tests")
+  testFixturesApi(libs.hadoop.common) { hadoopExcludes() }
+
+  testFixturesCompileOnly(libs.microprofile.openapi)
+
   intTestImplementation("io.quarkus:quarkus-test-keycloak-server")
   intTestImplementation(project(":nessie-keycloak-testcontainer"))
+
+  intTestImplementation(platform(libs.awssdk.bom))
+  intTestImplementation("software.amazon.awssdk:s3")
+  intTestImplementation("software.amazon.awssdk:sts")
 }
 
 val pullOpenApiSpec by tasks.registering(Sync::class)
@@ -205,4 +270,19 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 // Issue w/ testcontainers/podman in GH workflows :(
 if (Os.isFamily(Os.FAMILY_MAC) && System.getenv("CI") != null) {
   tasks.named<Test>("intTest").configure { this.enabled = false }
+}
+
+fun ModuleDependency.hadoopExcludes() {
+  exclude("ch.qos.reload4j", "reload4j")
+  exclude("com.sun.jersey")
+  exclude("commons-cli", "commons-cli")
+  exclude("jakarta.activation", "jakarta.activation-api")
+  exclude("javax.servlet", "javax.servlet-api")
+  exclude("javax.servlet.jsp", "jsp-api")
+  exclude("javax.ws.rs", "javax.ws.rs-api")
+  exclude("log4j", "log4j")
+  exclude("org.slf4j", "slf4j-log4j12")
+  exclude("org.slf4j", "slf4j-reload4j")
+  exclude("org.eclipse.jetty")
+  exclude("org.apache.zookeeper")
 }

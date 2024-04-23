@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import org.projectnessie.nessie.docgen.annotations.ConfigDocs.ConfigPropertyName;
 
 public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketOptions {
 
@@ -128,6 +129,7 @@ public interface S3Options<PER_BUCKET extends S3BucketOptions> extends S3BucketO
    * Per-bucket configurations. The effective value for a bucket is taken from the per-bucket
    * setting. If no per-bucket setting is present, uses the values from {@link S3Options}.
    */
+  @ConfigPropertyName("bucket-name")
   Map<String, PER_BUCKET> buckets();
 
   default S3BucketOptions effectiveOptionsForBucket(Optional<String> bucketName) {

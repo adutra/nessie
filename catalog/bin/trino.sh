@@ -137,7 +137,7 @@ ${TRINO_DEBUG_OPTS}
 EOF
 
 
-TRINO_CATALOG_URI="http://${CONTAINER_HOST}:19110/iceberg/main"
+TRINO_CATALOG_URI="http://${CONTAINER_HOST}:19120/iceberg/main"
 
 cat <<EOF > "$TRINO_TEMP_DIR/catalog/iceberg.properties"
 connector.name=iceberg

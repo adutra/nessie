@@ -8,7 +8,7 @@ services:
   ##
   ## 1. Generate the Nessie Catalog image, run:
   ##
-  ##      tools/dockerbuild/build-push-images.sh --gradle-project :nessie-catalog-service-server  --project-dir catalog/service/server --local localhost/projectnessie/nessie-catalog
+  ##      tools/dockerbuild/build-push-images.sh --gradle-project :nessie-quarkus  --project-dir servers/quarkus-server --local localhost/projectnessie/nessie
   ##
   ## 2. Start the pods:
   ##
@@ -24,9 +24,9 @@ services:
   ##      INSERT INTO nessie.testing.city VALUES (1, 'a', 1, 'comment');
   ##
   nessie:
-    image: localhost/projectnessie/nessie-catalog:latest
+    image: localhost/projectnessie/nessie:latest
     ports:
-      - "19110:19110"
+      - "19120:19120"
     depends_on:
       jaeger:
         # This should ideally be 'service_healthy', but that doesn't work on macOS
@@ -63,7 +63,7 @@ services:
       - quarkus.otel.exporter.otlp.endpoint=http://jaeger:4317
     #healthcheck:
     #  # Bummer - there's no `curl` in the container on macOS/ARM
-    #  test: curl -qf http://localhost:19110/ || exit 1
+    #  test: curl -qf http://localhost:19120/ || exit 1
 
   # Jaeger
   jaeger:

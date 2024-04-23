@@ -169,7 +169,7 @@ if [[ -n "$DEBUG" ]]; then
   FLINK_TSKM_DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5008"
 fi
 
-FLINK_CATALOG_URI="http://${CONTAINER_HOST}:19110/iceberg/main"
+FLINK_CATALOG_URI="http://${CONTAINER_HOST}:19120/iceberg/main"
 FLINK_CATALOG_IMPL=org.apache.iceberg.rest.RESTCatalog
 
 if [[ -z "$VERBOSE" ]]; then

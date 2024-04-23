@@ -96,7 +96,6 @@ dependencies {
     api(project(":nessie-catalog-service-common"))
     api(project(":nessie-catalog-service-rest"))
     api(project(":nessie-catalog-service-impl"))
-    api(project(":nessie-catalog-service-server"))
 
     if (!isIncludedInNesQuEIT()) {
       api(project(":nessie-spark-antlr-runtime"))

@@ -53,6 +53,26 @@ Related Quarkus settings:
 !!! info
     A complete set of configuration options for Quarkus can be found on [quarkus.io](https://quarkus.io/guides/all-config)
 
+### Catalog Settings
+
+{% include './generated-docs/smallrye-nessie_catalog.md' %}
+
+#### Catalog S3 settings
+
+{% include './generated-docs/smallrye-nessie_catalog_service_s3.md' %}
+
+#### Catalog GCS settings
+
+{% include './generated-docs/smallrye-nessie_catalog_service_gcs.md' %}
+
+#### Catalog ADLS settings
+
+{% include './generated-docs/smallrye-nessie_catalog_service_adls.md' %}
+
+#### Catalog advanced settings
+
+{% include './generated-docs/smallrye-nessie_catalog_service.md' %}
+
 ### Version Store Settings
 
 {% include './generated-docs/smallrye-nessie_version_store.md' %}

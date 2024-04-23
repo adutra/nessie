@@ -87,7 +87,7 @@ would automatically be migrated to the Nessie Catalog.
      --packages org.apache.iceberg:iceberg-spark-runtime-3.5_2.13:1.5.0,org.apache.iceberg:iceberg-aws-bundle:1.5.0 \
      --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog \
      --conf spark.sql.catalog.nessie.type=rest \
-     --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/iceberg/
+     --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19120/iceberg/
    ```
    Then run these SQL statements:
    ```sql
@@ -103,10 +103,6 @@ would automatically be migrated to the Nessie Catalog.
 1. In a terminal
    ```bash
    ./gradlew :nessie-quarkus:quarkusBuild && java -jar servers/quarkus-server/build/quarkus-app/quarkus-run.jar
-   ```
-1. In a second terminal
-   ```bash
-   ./gradlew :nessie-catalog-service-server:quarkusBuild && java -jar catalog/service/server/build/quarkus-app/quarkus-run.jar
    ```
 1. Without SQL extensions - but **with Iceberg REST**.
    This approach integrates with Nessie Catalog. It redirects table metadata to the Nessie Catalog.
@@ -129,7 +125,7 @@ would automatically be migrated to the Nessie Catalog.
 
    spark-sql \
      --packages "${packages}" \
-     --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19110/iceberg/main \
+     --conf spark.sql.catalog.nessie.uri=http://127.0.0.1:19120/iceberg/main \
      --conf spark.sql.catalog.nessie.type=rest \
      --conf spark.sql.catalog.nessie.warehouse=/tmp/nessie-catalog-demo \
      --conf spark.sql.catalog.nessie=org.apache.iceberg.spark.SparkCatalog
@@ -158,8 +154,8 @@ would automatically be migrated to the Nessie Catalog.
    ```
    1. In a terminal:
    ```bash
-   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
-   curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   curl 'http://127.0.0.1:19120/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl 'http://127.0.0.1:19120/catalog/v1/trees/main/snapshot/testing.city' | jq
    ```
    1. In Spark-SQL:
    ```sql
@@ -167,8 +163,8 @@ would automatically be migrated to the Nessie Catalog.
    ```
    1. In a terminal:
    ```bash
-   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
-   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   curl --compressed 'http://127.0.0.1:19120/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl --compressed 'http://127.0.0.1:19120/catalog/v1/trees/main/snapshot/testing.city' | jq
    ```
    1. In Spark-SQL:
    ```sql
@@ -180,8 +176,8 @@ would automatically be migrated to the Nessie Catalog.
    ```
    1. In a terminal:
    ```bash
-   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
-   curl --compressed 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city' | jq
+   curl --compressed 'http://127.0.0.1:19120/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' | jq
+   curl --compressed 'http://127.0.0.1:19120/catalog/v1/trees/main/snapshot/testing.city' | jq
    ```
 1. **USING LOCAL JARS**
    1. Run `./gradlew publishToMavenLocal`
@@ -209,14 +205,14 @@ would automatically be migrated to the Nessie Catalog.
     * TODO: S3 deletes are not supported yet.
 1. Inspect an Iceberg manifest list:
    ```
-   wget --content-disposition 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-list/testing.city'
+   wget --content-disposition 'http://127.0.0.1:19120/catalog/v1/trees/main/manifest-list/testing.city'
    java -jar avro-tools-1.11.3.jar getschema #USE_DOWNLOADED_FILE_NAME
    java -jar avro-tools-1.11.3.jar getmeta #USE_DOWNLOADED_FILE_NAME
    java -jar avro-tools-1.11.3.jar tojson #USE_DOWNLOADED_FILE_NAME
    ```
 1. Inspect an Iceberg manifest file:
    ```
-   wget --content-disposition 'http://127.0.0.1:19110/catalog/v1/trees/main/manifest-file/testing.city?manifest-file=<BASE_64_NESSIE_ID_OF_THE_MANIFEST_FILE>'
+   wget --content-disposition 'http://127.0.0.1:19120/catalog/v1/trees/main/manifest-file/testing.city?manifest-file=<BASE_64_NESSIE_ID_OF_THE_MANIFEST_FILE>'
    java -jar avro-tools-1.11.3.jar getschema #USE_DOWNLOADED_FILE_NAME
    java -jar avro-tools-1.11.3.jar getmeta #USE_DOWNLOADED_FILE_NAME
    java -jar avro-tools-1.11.3.jar tojson #USE_DOWNLOADED_FILE_NAME
@@ -228,7 +224,7 @@ would automatically be migrated to the Nessie Catalog.
       # Some safety net
       tar cf backup.tar .
       # Replace the table-metadata JSON
-      curl 'http://127.0.0.1:19110/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' > 00002-*.json
+      curl 'http://127.0.0.1:19120/catalog/v1/trees/main/snapshot/testing.city?format=iceberg' > 00002-*.json
       # Delete the .crc file
       rm .00002-*
       ```
