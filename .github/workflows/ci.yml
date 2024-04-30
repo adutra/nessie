@@ -63,7 +63,7 @@ jobs:
       matrix:
         java-version: ['17']
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle
@@ -81,14 +81,13 @@ jobs:
           java-version: ${{ matrix.java-version }}
 
       - name: Gradle / Compile
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: |
-            spotlessCheck
-            compileAll
-            -x :nessie-quarkus:compileAll
-            -x :nessie-quarkus-cli:compileAll
-            -x :nessie-events-quarkus:compileAll
+        run: |
+          ./gradlew \
+            spotlessCheck \
+            compileAll \
+            -x :nessie-quarkus:compileAll \
+            -x :nessie-quarkus-cli:compileAll \
+            -x :nessie-events-quarkus:compileAll \
             --scan
 
       - name: Gradle / Compile Quarkus
@@ -99,26 +98,18 @@ jobs:
             ./gradlew :nessie-quarkus:compileAll :nessie-quarkus-cli:compileAll :nessie-events-quarkus:compileAll --scan
 
       - name: Gradle / Checkstyle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: checkstyle --scan
+        run: ./gradlew checkstyle --scan
 
       - name: Gradle / Assemble
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: assemble --scan
+        run: ./gradlew assemble --scan
 
       - name: Gradle / Publish to Maven local
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: publishToMavenLocal --scan
+        run: ./gradlew publishToMavenLocal --scan
 
       # This is a rather quick one and uses the output of 'publishToMavenLocal', which uses the
       # outputs of 'assemble'
       - name: Gradle / build tools integration tests
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: buildToolsIntegrationTest
+        run: ./gradlew buildToolsIntegrationTest
 
       - name: Save partial Gradle build cache
         uses: ./.github/actions/ci-incr-build-cache-save
@@ -136,7 +127,7 @@ jobs:
       matrix:
         java-version: ['17']
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle
@@ -150,16 +141,7 @@ jobs:
           java-version: ${{ matrix.java-version }}
 
       - name: Gradle / test
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: |
-            test
-            :nessie-client:check 
-            -x :nessie-client:intTest 
-            -x :nessie-quarkus:test
-            -x :nessie-quarkus-cli:test
-            -x :nessie-events-quarkus:test
-            --scan
+        run: ./gradlew test :nessie-client:check -x :nessie-client:intTest -x :nessie-quarkus:test -x :nessie-quarkus-cli:test -x :nessie-events-quarkus:test --scan
 
       - name: Capture Test Reports
         uses: actions/upload-artifact@v4
@@ -187,7 +169,7 @@ jobs:
       matrix:
         java-version: ['17']
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle
@@ -252,7 +234,7 @@ jobs:
     env:
       SPARK_LOCAL_IP: localhost
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle
@@ -312,7 +294,7 @@ jobs:
       matrix:
         java-version: ['17']
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle
@@ -361,7 +343,7 @@ jobs:
     env:
       SPARK_LOCAL_IP: localhost
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle
@@ -403,7 +385,7 @@ jobs:
       matrix:
         java-version: ['17']
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle
@@ -591,7 +573,7 @@ jobs:
       matrix:
         java-version: ['17']
     steps:
-      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Setup runner
         uses: ./.github/actions/setup-runner
       - name: Setup Java, Gradle

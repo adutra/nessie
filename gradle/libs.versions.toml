@@ -3,8 +3,8 @@
 [versions]
 antlr4 = "4.13.1"
 bouncycastle = "1.70"
-checkstyle = "10.15.0"
-errorprone = "2.26.1"
+checkstyle = "10.16.0"
+errorprone = "2.27.0"
 errorproneSlf4j = "0.1.23"
 gatling = "3.10.5"
 googleJavaFormat = "1.22.0"
@@ -17,7 +17,7 @@ jmh = "1.37"
 junit = "5.10.2"
 keycloak = "24.0.3"
 maven = "3.9.6"
-mavenResolver = "1.9.19"
+mavenResolver = "1.9.20"
 mockito="4.11.0"
 nessieClientVersion = "0.77.1" # Must be in sync with Nessie version in the Iceberg release.
 opentelemetry = "1.37.0"
@@ -25,10 +25,10 @@ opentelemetryAlpha = "1.31.0-alpha"
 opentracing = "0.33.0"
 picocli = "4.7.5"
 protobuf = "3.25.3"
-quarkusPlatform = "3.9.4"
-quarkusPlugin = "3.9.4"
+quarkusPlatform = "3.10.0"
+quarkusPlugin = "3.10.0"
 slf4j = "1.7.36"
-smallryeConfig = "3.7.1"
+smallryeConfig = "3.8.1"
 undertow = "2.2.28.Final"
 
 [bundles]
@@ -42,8 +42,8 @@ antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "ant
 assertj-core = { module = "org.assertj:assertj-core", version = "3.25.3" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.1" }
-awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.25.35" }
-azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.22" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.25.40" }
+azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.23" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
 bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
 cassandra-driver-bom = { module = "com.datastax.oss:java-driver-bom", version = "4.17.0" }
@@ -56,7 +56,7 @@ errorprone-core = { module = "com.google.errorprone:error_prone_core", version.r
 errorprone-slf4j = { module = "jp.skypencil.errorprone.slf4j:errorprone-slf4j", version.ref = "errorproneSlf4j" }
 findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version = "3.0.2" }
 gatling-charts-highcharts = { module = "io.gatling.highcharts:gatling-charts-highcharts", version.ref = "gatling" }
-google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.38.0" }
+google-cloud-bigtable-bom = { module = "com.google.cloud:google-cloud-bigtable-bom", version = "2.39.0" }
 google-cloud-gcs-connector = { module = "com.google.cloud.bigdataoss:gcs-connector", version = "hadoop3-2.2.21" }
 google-cloud-nio = { module = "com.google.cloud:google-cloud-nio", version = "0.127.16" }
 google-cloud-storage-bom = { module = "com.google.cloud:google-cloud-storage-bom", version = "2.37.0" }
@@ -148,7 +148,7 @@ spark-sql-v34-v213 = { module = "org.apache.spark:spark-sql_2_13", version = { s
 spark-sql-v35-v212 = { module = "org.apache.spark:spark-sql_2_12", version = { strictly = "[3.5, 3.6[", prefer = "3.5.1"}}
 spark-sql-v35-v213 = { module = "org.apache.spark:spark-sql_2_13", version = { strictly = "[3.5, 3.6[", prefer = "3.5.1"}}
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version = "1.19.7" }
-testcontainers-keycloak = { module = "com.github.dasniko:testcontainers-keycloak", version = "3.3.0" }
+testcontainers-keycloak = { module = "com.github.dasniko:testcontainers-keycloak", version = "3.3.1" }
 threeten-extra = { module = "org.threeten:threeten-extra", version = "1.8.0" }
 undertow-core = { module = "io.undertow:undertow-core", version.ref = "undertow" }
 undertow-servlet = { module = "io.undertow:undertow-servlet", version.ref = "undertow" }

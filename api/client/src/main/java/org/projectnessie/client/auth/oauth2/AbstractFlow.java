@@ -15,7 +15,10 @@
  */
 package org.projectnessie.client.auth.oauth2;
 
+import static org.projectnessie.client.auth.oauth2.OAuth2ClientUtils.tokenExpirationTime;
+
 import java.net.URI;
+import java.time.Instant;
 import org.projectnessie.client.http.HttpRequest;
 import org.projectnessie.client.http.HttpResponse;
 
@@ -51,11 +54,12 @@ abstract class AbstractFlow implements Flow {
     this.config = config;
   }
 
-  <REQ extends TokensRequestBase, RESP extends TokensResponseBase> RESP invokeTokenEndpoint(
+  <REQ extends TokensRequestBase, RESP extends TokensResponseBase> Tokens invokeTokenEndpoint(
       TokensRequestBase.Builder<REQ> request, Class<? extends RESP> responseClass) {
     config.getScope().ifPresent(request::scope);
     maybeAddClientId(request);
-    return invokeEndpoint(config.getResolvedTokenEndpoint(), request.build(), responseClass);
+    return invokeEndpoint(config.getResolvedTokenEndpoint(), request.build(), responseClass)
+        .asTokens(config.getClock());
   }
 
   DeviceCodeResponse invokeDeviceAuthEndpoint() {
@@ -78,5 +82,12 @@ abstract class AbstractFlow implements Flow {
     config.getBasicAuthentication().ifPresent(req::authentication);
     HttpResponse response = req.postForm(request);
     return response.readEntity(responseClass);
+  }
+
+  protected boolean isAboutToExpire(Token token) {
+    Instant now = config.getClock().get();
+    Instant expirationTime =
+        tokenExpirationTime(now, token, config.getDefaultRefreshTokenLifespan());
+    return expirationTime.isBefore(now.plus(config.getRefreshSafetyWindow()));
   }
 }

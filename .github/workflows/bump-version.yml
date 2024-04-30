@@ -53,7 +53,7 @@ jobs:
 
     ### BEGIN runner setup
     - name: Checkout
-      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       with:
         ref: ${{ env.BUMP_ON_BRANCH }}
     - name: Setup Java, Gradle
@@ -63,7 +63,7 @@ jobs:
     - name: Get previous version information
       run: echo "PREVIOUS_VERSION=$(cat version.txt)" >> ${GITHUB_ENV}
 
-    - name: Bump to version
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
       env:
         # Same as for ci.yml
@@ -72,7 +72,9 @@ jobs:
         GRADLE_BUILD_ACTION_CACHE_KEY_JOB_INSTANCE: ci
       with:
         cache-read-only: true
-        arguments: :bumpVersion --bumpType ${{ env.BUMP_TYPE }}
+
+    - name: Bump to version
+      run: ./gradlew :bumpVersion --bumpType ${{ env.BUMP_TYPE }}
 
     - name: Get bumped version information
       run: |
