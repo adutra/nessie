@@ -24,6 +24,7 @@ nav:
       - iceberg/spark.md
       - iceberg/flink.md
       - iceberg/hive.md
+      - iceberg/trino.md
       - iceberg/views.md
     - Spark:
       - guides/spark-s3.md
@@ -46,6 +47,7 @@ nav:
     - Unreleased (nightly): '!include build/versions/nightly/mkdocs.yml'
 # Do NOT change, move or remove the following line!!
 # RELEASE_PLACEHOLDER_MARKER
+    - Nessie 0.81.0: '!include build/versions/0.81.0/mkdocs.yml'
     - Nessie 0.80.0: '!include build/versions/0.80.0/mkdocs.yml'
     - Nessie 0.79.0: '!include build/versions/0.79.0/mkdocs.yml'
   - Downloads: downloads/index.md
