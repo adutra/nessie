@@ -32,5 +32,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.withType<ScalaCompile>().configureEach {
-  options.release = if (this.name == "compileScala") 8 else 11
+  val version = if (this.name == "compileScala") 8 else 11
+  options.release = version
+  scalaCompileOptions.additionalParameters.add("-release:$version")
 }

@@ -25,7 +25,7 @@ import org.apache.spark.unsafe.types.UTF8String
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 case class ShowLogExec(
     output: Seq[Attribute],

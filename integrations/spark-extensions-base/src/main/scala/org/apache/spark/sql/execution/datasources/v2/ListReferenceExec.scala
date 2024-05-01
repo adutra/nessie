@@ -19,7 +19,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.connector.catalog.CatalogPlugin
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 case class ListReferenceExec(
     output: Seq[Attribute],
