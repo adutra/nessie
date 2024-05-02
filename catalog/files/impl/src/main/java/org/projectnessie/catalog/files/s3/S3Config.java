@@ -23,20 +23,33 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface S3Config {
+  /** Override the default maximum number of pooled connections. */
   OptionalInt maxHttpConnections();
 
+  /** Override the default connection read timeout. */
   Optional<Duration> readTimeout();
 
+  /** Override the default TCP connect timeout. */
   Optional<Duration> connectTimeout();
 
+  /**
+   * Override default connection acquisition timeout. This is the time a request will wait for a
+   * connection from the pool.
+   */
   Optional<Duration> connectionAcquisitionTimeout();
 
+  /** Override default max idle time of a pooled connection. */
   Optional<Duration> connectionMaxIdleTime();
 
+  /** Override default time-time of a pooled connection. */
   Optional<Duration> connectionTimeToLive();
 
+  /** Override default behavior whether to expect an HTTP/100-Continue. */
   Optional<Boolean> expectContinueEnabled();
 
+  /**
+   * Interval after which a request is retried when S3 response with some "retry later" response.
+   */
   Optional<Duration> retryAfter();
 
   static Builder builder() {

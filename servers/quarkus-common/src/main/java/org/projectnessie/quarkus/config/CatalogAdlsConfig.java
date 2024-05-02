@@ -25,87 +25,91 @@ import java.util.OptionalLong;
 import org.projectnessie.catalog.files.adls.AdlsConfig;
 import org.projectnessie.catalog.files.adls.AdlsOptions;
 
+/**
+ * Configuration for ADLS Gen2 object stores.
+ *
+ * <p>Contains the default settings to be applied to all "file systems" (think: buckets). Specific
+ * settings for each file system can be specified via the {@code file-systems} map.
+ *
+ * <p>All settings are optional. The defaults of these settings are defined by the ADLS client
+ * supplied by Microsoft. See <a
+ * href="https://learn.microsoft.com/en-us/azure/developer/java/sdk/">Azure SDK for Java
+ * documentation</a>
+ */
 @ConfigMapping(prefix = "nessie.catalog.service.adls")
 public interface CatalogAdlsConfig extends AdlsConfig, AdlsOptions<CatalogAdlsFileSystemOptions> {
-  @WithName("max-http-connections")
+  /**
+   * Override the default maximum number of HTTP connections that Nessie can use against all ADLS
+   * Gen2 object stores.
+   */
   @Override
   OptionalInt maxHttpConnections();
 
-  @WithName("connect-timeout")
+  /**
+   * Override the default TCP connect timeout for HTTP connections against ADLS Gen2 object stores.
+   */
   @Override
   Optional<Duration> connectTimeout();
 
-  @WithName("connection-idle-timeout")
+  /** Override the default idle timeout for HTTP connections. */
   @Override
   Optional<Duration> connectionIdleTimeout();
 
-  @WithName("write-timeout")
+  /** Override the default write timeout for HTTP connections. */
   @Override
   Optional<Duration> writeTimeout();
 
-  @WithName("read-timeout")
+  /** Override the default read timeout for HTTP connections. */
   @Override
   Optional<Duration> readTimeout();
 
-  @WithName("response-timeout")
+  /** Override the default response timeout for HTTP connections. */
   @Override
   Optional<Duration> responseTimeout();
 
+  /** Custom settings for the ADLS Java client. */
   @WithName("configuration")
   @Override
   Map<String, String> configurationOptions();
 
-  @WithName("write-block-size")
   @Override
   OptionalLong writeBlockSize();
 
-  @WithName("read-block-size")
   @Override
   OptionalInt readBlockSize();
 
   // file-system options
 
-  @WithName("account-name-ref")
   @Override
   Optional<String> accountNameRef();
 
-  @WithName("account-key-ref")
   @Override
   Optional<String> accountKeyRef();
 
-  @WithName("sas-token-ref")
   @Override
   Optional<String> sasTokenRef();
 
-  @WithName("endpoint")
   @Override
   Optional<String> endpoint();
 
-  @WithName("external-endpoint")
   @Override
   Optional<String> externalEndpoint();
 
-  @WithName("retry-policy")
   @Override
   Optional<AdlsRetryStrategy> retryPolicy();
 
-  @WithName("max-retries")
   @Override
   Optional<Integer> maxRetries();
 
-  @WithName("try-timeout")
   @Override
   Optional<Duration> tryTimeout();
 
-  @WithName("retry-delay")
   @Override
   Optional<Duration> retryDelay();
 
-  @WithName("max-retry-delyy")
   @Override
   Optional<Duration> maxRetryDelay();
 
-  @WithName("file-systems")
   @Override
   Map<String, CatalogAdlsFileSystemOptions> fileSystems();
 }

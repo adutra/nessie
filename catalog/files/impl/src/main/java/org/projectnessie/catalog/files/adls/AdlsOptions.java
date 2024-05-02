@@ -28,10 +28,13 @@ public interface AdlsOptions<PER_FILE_SYSTEM extends AdlsFileSystemOptions>
   /** For configuration options, see {@link com.azure.core.util.Configuration}. */
   Map<String, String> configurationOptions();
 
+  /** Override the default read block size used when writing to ADLS. */
   OptionalInt readBlockSize();
 
+  /** Override the default write block size used when writing to ADLS. */
   OptionalLong writeBlockSize();
 
+  /** ADLS file-system specific options, per file system name. */
   @ConfigPropertyName("filesystem-name")
   Map<String, PER_FILE_SYSTEM> fileSystems();
 

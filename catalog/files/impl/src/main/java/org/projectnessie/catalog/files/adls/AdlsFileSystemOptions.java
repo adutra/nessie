@@ -23,14 +23,25 @@ public interface AdlsFileSystemOptions {
   /** Fully-qualified account name, e.g. {@code "myaccount.dfs.core.windows.net"}. */
   Optional<String> accountNameRef();
 
+  /** Account key to access the ADLS file system. */
   Optional<String> accountKeyRef();
 
+  /**
+   * SAS token <em>reference</em> to access the ADLS file system, the actual secret value is defined
+   * as secrets via {@code nessie.catalog.secrets.}<em>{@code secret-ref}</em>.
+   */
   Optional<String> sasTokenRef();
 
+  /**
+   * Define a custom HTTP endpoint. In case clients need to use a different URI, use the {@code
+   * .external-endpoint} setting.
+   */
   Optional<String> endpoint();
 
+  /** Define a custom HTTP endpoint, this value is used by clients. */
   Optional<String> externalEndpoint();
 
+  /** Configure the retry strategy. */
   Optional<AdlsRetryStrategy> retryPolicy();
 
   /** Mandatory, if any {@link AdlsRetryStrategy} is configured. */

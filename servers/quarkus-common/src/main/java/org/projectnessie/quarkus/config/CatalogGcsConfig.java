@@ -16,7 +16,6 @@
 package org.projectnessie.quarkus.config;
 
 import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithName;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,47 +25,48 @@ import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import org.projectnessie.catalog.files.gcs.GcsConfig;
 import org.projectnessie.catalog.files.gcs.GcsOptions;
+import org.projectnessie.nessie.docgen.annotations.ConfigDocs.ConfigPropertyName;
 
+/**
+ * Configuration for Google Cloud Storage (GCS) object stores.
+ *
+ * <p>Contains the default settings to be applied to all buckets. Specific settings for each bucket
+ * can be specified via the {@code buckets} map.
+ *
+ * <p>All settings are optional. The defaults of these settings are defined by the Google Java SDK
+ * client.
+ */
 @ConfigMapping(prefix = "nessie.catalog.service.gcs")
 public interface CatalogGcsConfig extends GcsConfig, GcsOptions<CatalogGcsBucketConfig> {
 
-  @WithName("buckets")
   @Override
+  @ConfigPropertyName("bucket-name")
   Map<String, CatalogGcsBucketConfig> buckets();
 
-  @WithName("host")
   @Override
   Optional<URI> host();
 
-  @WithName("external-host")
   @Override
   Optional<URI> externalHost();
 
-  @WithName("project-id")
   @Override
   Optional<String> projectId();
 
-  @WithName("quota-project-id")
   @Override
   Optional<String> quotaProjectId();
 
-  @WithName("client-lib-token")
   @Override
   Optional<String> clientLibToken();
 
-  @WithName("auth-type")
   @Override
   Optional<GcsAuthType> authType();
 
-  @WithName("auth-credentials-json-ref")
   @Override
   Optional<String> authCredentialsJsonRef();
 
-  @WithName("oauth2-token-ref")
   @Override
   Optional<String> oauth2TokenRef();
 
-  @WithName("oauth2-token-expires-at")
   @Override
   Optional<Instant> oauth2TokenExpiresAt();
 

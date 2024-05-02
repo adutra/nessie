@@ -15,7 +15,6 @@
  */
 package org.projectnessie.quarkus.config;
 
-import io.smallrye.config.WithName;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,39 +25,39 @@ import org.projectnessie.catalog.files.gcs.GcsBucketOptions;
 
 public interface CatalogGcsBucketConfig extends GcsBucketOptions {
 
-  @WithName("host")
   @Override
   Optional<URI> host();
 
-  @WithName("external-host")
   @Override
   Optional<URI> externalHost();
 
-  @WithName("project-id")
+  @Override
+  Optional<String> userProject();
+
+  @Override
+  Optional<Duration> readTimeout();
+
+  @Override
+  Optional<Duration> connectTimeout();
+
   @Override
   Optional<String> projectId();
 
-  @WithName("quota-project-id")
   @Override
   Optional<String> quotaProjectId();
 
-  @WithName("client-lib-token")
   @Override
   Optional<String> clientLibToken();
 
-  @WithName("auth-type")
   @Override
   Optional<GcsAuthType> authType();
 
-  @WithName("auth-credentials-json-ref")
   @Override
   Optional<String> authCredentialsJsonRef();
 
-  @WithName("oauth2-token-ref")
   @Override
   Optional<String> oauth2TokenRef();
 
-  @WithName("oauth2-token-expires-at")
   @Override
   Optional<Instant> oauth2TokenExpiresAt();
 
@@ -103,13 +102,4 @@ public interface CatalogGcsBucketConfig extends GcsBucketOptions {
 
   @Override
   Optional<String> decryptionKeyRef();
-
-  @Override
-  Optional<String> userProject();
-
-  @Override
-  Optional<Duration> readTimeout();
-
-  @Override
-  Optional<Duration> connectTimeout();
 }

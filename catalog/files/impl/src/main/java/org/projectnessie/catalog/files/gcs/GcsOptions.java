@@ -21,6 +21,10 @@ import org.projectnessie.nessie.docgen.annotations.ConfigDocs.ConfigPropertyName
 
 public interface GcsOptions<PER_BUCKET extends GcsBucketOptions> extends GcsBucketOptions {
 
+  /**
+   * Per-bucket configurations. The effective value for a bucket is taken from the per-bucket
+   * setting. If no per-bucket setting is present, uses the values from {@link GcsOptions}.
+   */
   @ConfigPropertyName("bucket-name")
   Map<String, PER_BUCKET> buckets();
 

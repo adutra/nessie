@@ -25,51 +25,39 @@ import org.projectnessie.catalog.files.s3.S3ClientAuthenticationMode;
 
 public interface CatalogS3BucketConfig extends S3BucketOptions {
 
-  @WithName("endpoint")
   @Override
   Optional<URI> endpoint();
 
-  @WithName("external-endpoint")
   @Override
   Optional<URI> externalEndpoint();
 
-  @WithName("path-style-access")
   @Override
   Optional<Boolean> pathStyleAccess();
 
-  @WithName("cloud")
   @Override
   Optional<Cloud> cloud();
 
-  @WithName("region")
   @Override
   Optional<String> region();
 
-  @WithName("project-id")
   @Override
   Optional<String> projectId();
 
-  @WithName("access-key-id-ref")
   @Override
   Optional<String> accessKeyIdRef();
 
-  @WithName("secret-access-key-ref")
   @Override
   Optional<String> secretAccessKeyRef();
 
-  @WithName("access-point")
   @Override
   Optional<String> accessPoint();
 
-  @WithName("allow-cross-region-access-point")
   @Override
   Optional<Boolean> allowCrossRegionAccessPoint();
 
-  @WithName("sts.endpoint")
   @Override
   Optional<URI> stsEndpoint();
 
-  @WithName("assumed-role")
   @Override
   Optional<String> roleArn();
 
@@ -77,11 +65,9 @@ public interface CatalogS3BucketConfig extends S3BucketOptions {
   @Override
   Optional<String> iamPolicy();
 
-  @WithName("role-session-name")
   @Override
   Optional<String> roleSessionName();
 
-  @WithName("external-id")
   @Override
   Optional<String> externalId();
 
@@ -89,7 +75,6 @@ public interface CatalogS3BucketConfig extends S3BucketOptions {
   @Override
   Optional<S3ClientAuthenticationMode> clientAuthenticationMode();
 
-  @WithName("client-session-duration")
   @Override
   Optional<Duration> clientSessionDuration();
 }

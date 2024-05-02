@@ -24,40 +24,82 @@ import java.util.OptionalInt;
 
 public interface GcsBucketOptions {
 
+  /**
+   * The default endpoint override to use. The endpoint is almost always used for testing purposes.
+   *
+   * <p>If the endpoint URIs for the Nessie server and clients differ, this one defines the endpoint
+   * used for the Nessie server.
+   */
   Optional<URI> host();
 
+  /**
+   * When using a {@linkplain #host() specific endpoint} and the endpoint URIs for the Nessie server
+   * differ, you can specify the URI passed down to clients using this setting. Otherwise clients
+   * will receive the value from the {@link #host()} setting.
+   */
   Optional<URI> externalHost();
 
+  /** Optionally specify the user project (Google term). */
+  Optional<String> userProject();
+
+  /** Override the default read timeout. */
+  Optional<Duration> readTimeout();
+
+  /** Override the default connection timeout. */
+  Optional<Duration> connectTimeout();
+
+  /** The Google project ID. */
   Optional<String> projectId();
 
+  /** The Google quota project ID. */
   Optional<String> quotaProjectId();
 
+  /** The Google client lib token. */
   Optional<String> clientLibToken();
 
+  /** The authentication type to use. */
   Optional<GcsAuthType> authType();
 
+  /**
+   * Reference to the credentials-JSON. This value is the name of the credential to use, the actual
+   * credential is defined via secrets.
+   */
   Optional<String> authCredentialsJsonRef();
 
+  /**
+   * Reference to the OAuth2 token. This value is the name of the credential to use, the actual
+   * credential is defined via secrets.
+   */
   Optional<String> oauth2TokenRef();
 
+  /** Timestamp when the OAuth2 token referenced via {@code oauth2-token-ref} expires. */
   Optional<Instant> oauth2TokenExpiresAt();
 
+  /** Override the default maximum number of attempts. */
   OptionalInt maxAttempts();
 
+  /** Override the default logical request timeout. */
   Optional<Duration> logicalTimeout();
 
+  /** Override the default total timeout. */
   Optional<Duration> totalTimeout();
 
+  /** Override the default initial retry delay. */
   Optional<Duration> initialRetryDelay();
 
+  /** Override the default maximum retry delay. */
   Optional<Duration> maxRetryDelay();
 
+  /** Override the default retry delay multiplier. */
   OptionalDouble retryDelayMultiplier();
 
+  /** Override the default initial RPC timeout. */
   Optional<Duration> initialRpcTimeout();
 
+  /** Override the default maximum RPC timeout. */
   Optional<Duration> maxRpcTimeout();
 
+  /** Override the default RPC timeout multiplier. */
   OptionalDouble rpcTimeoutMultiplier();
 
   /** The read chunk size in bytes. */
@@ -66,6 +108,7 @@ public interface GcsBucketOptions {
   /** The write chunk size in bytes. */
   OptionalInt writeChunkSize();
 
+  /** The delete batch size. */
   OptionalInt deleteBatchSize();
 
   /**
@@ -81,12 +124,6 @@ public interface GcsBucketOptions {
    * @implNote This is currently unsupported.
    */
   Optional<String> decryptionKeyRef();
-
-  Optional<String> userProject();
-
-  Optional<Duration> readTimeout();
-
-  Optional<Duration> connectTimeout();
 
   enum GcsAuthType {
     NONE,

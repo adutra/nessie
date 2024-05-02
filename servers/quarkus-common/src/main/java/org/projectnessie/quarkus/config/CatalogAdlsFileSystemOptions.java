@@ -15,49 +15,38 @@
  */
 package org.projectnessie.quarkus.config;
 
-import io.smallrye.config.WithName;
 import java.time.Duration;
 import java.util.Optional;
 import org.projectnessie.catalog.files.adls.AdlsFileSystemOptions;
 
 public interface CatalogAdlsFileSystemOptions extends AdlsFileSystemOptions {
-  @WithName("account-name-ref")
   @Override
   Optional<String> accountNameRef();
 
-  @WithName("account-key-ref")
   @Override
   Optional<String> accountKeyRef();
 
-  @WithName("sas-token-ref")
   @Override
   Optional<String> sasTokenRef();
 
-  @WithName("endpoint")
   @Override
   Optional<String> endpoint();
 
-  @WithName("external-endpoint")
   @Override
   Optional<String> externalEndpoint();
 
-  @WithName("retry-policy")
   @Override
   Optional<AdlsRetryStrategy> retryPolicy();
 
-  @WithName("max-retries")
   @Override
   Optional<Integer> maxRetries();
 
-  @WithName("try-timeout")
   @Override
   Optional<Duration> tryTimeout();
 
-  @WithName("retry-delay")
   @Override
   Optional<Duration> retryDelay();
 
-  @WithName("max-retry-delyy")
   @Override
   Optional<Duration> maxRetryDelay();
 }

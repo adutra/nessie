@@ -27,7 +27,17 @@ import org.projectnessie.catalog.files.s3.Cloud;
 import org.projectnessie.catalog.files.s3.S3ClientAuthenticationMode;
 import org.projectnessie.catalog.files.s3.S3Config;
 import org.projectnessie.catalog.files.s3.S3Options;
+import org.projectnessie.nessie.docgen.annotations.ConfigDocs.ConfigPropertyName;
 
+/**
+ * Configuration for S3 compatible object stores.
+ *
+ * <p>Contains the default settings to be applied to all buckets. Specific settings for each bucket
+ * can be specified via the {@code buckets} map.
+ *
+ * <p>All settings are optional. The defaults of these settings are defined by the AWSSDK Java
+ * client.
+ */
 @ConfigMapping(prefix = "nessie.catalog.service.s3")
 public interface CatalogS3Config extends S3Config, S3Options<CatalogS3BucketConfig> {
   @WithName("throttled-retry-after")
@@ -63,43 +73,33 @@ public interface CatalogS3Config extends S3Config, S3Options<CatalogS3BucketConf
   @Override
   OptionalInt maxHttpConnections();
 
-  @WithName("endpoint")
   @Override
   Optional<URI> endpoint();
 
-  @WithName("external-endpoint")
   @Override
   Optional<URI> externalEndpoint();
 
-  @WithName("path-style-access")
   @Override
   Optional<Boolean> pathStyleAccess();
 
-  @WithName("cloud")
   @Override
   Optional<Cloud> cloud();
 
-  @WithName("region")
   @Override
   Optional<String> region();
 
-  @WithName("project-id")
   @Override
   Optional<String> projectId();
 
-  @WithName("access-key-id-ref")
   @Override
   Optional<String> accessKeyIdRef();
 
-  @WithName("secret-access-key-ref")
   @Override
   Optional<String> secretAccessKeyRef();
 
-  @WithName("access-point")
   @Override
   Optional<String> accessPoint();
 
-  @WithName("allow-cross-region-access-point")
   @Override
   Optional<Boolean> allowCrossRegionAccessPoint();
 
@@ -127,11 +127,9 @@ public interface CatalogS3Config extends S3Config, S3Options<CatalogS3BucketConf
   @Override
   Optional<String> iamPolicy();
 
-  @WithName("role-session-name")
   @Override
   Optional<String> roleSessionName();
 
-  @WithName("external-id")
   @Override
   Optional<String> externalId();
 
@@ -139,11 +137,11 @@ public interface CatalogS3Config extends S3Config, S3Options<CatalogS3BucketConf
   @Override
   Optional<S3ClientAuthenticationMode> clientAuthenticationMode();
 
-  @WithName("client-session-duration")
   @Override
   Optional<Duration> clientSessionDuration();
 
   @WithName("buckets")
+  @ConfigPropertyName("bucket-name")
   @Override
   Map<String, CatalogS3BucketConfig> buckets();
 }
