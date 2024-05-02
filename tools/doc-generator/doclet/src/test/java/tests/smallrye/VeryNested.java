@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Dremio
+ * Copyright (C) 2024 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.quarkus.config;
+package tests.smallrye;
 
-import io.quarkus.runtime.annotations.StaticInitSafe;
 import io.smallrye.config.ConfigMapping;
-import java.util.Optional;
 
-/**
- * When setting {@code nessie.version.store.type=DYNAMODB} which enables DynamoDB as the version
- * store used by the Nessie server, the following configurations are applicable.
- */
-@StaticInitSafe
-@ConfigMapping(prefix = "nessie.version.store.persist.dynamodb")
-public interface QuarkusDynamoDBConfig {
-  /** Prefix for tables, default is no prefix. */
-  Optional<String> tablePrefix();
+@ConfigMapping(prefix = "very.nested")
+public interface VeryNested extends NestedA, NestedB {
+  /** Very nested. */
+  int veryNested();
 }

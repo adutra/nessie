@@ -15,36 +15,7 @@
  */
 package tests.smallrye;
 
-import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithDefault;
-import io.smallrye.config.WithName;
-import java.time.Duration;
-
-/**
- * The docs for {@code my.prefix}.
- *
- * <ul>
- *   <li>Some
- *   <li>unordered
- *   <li>list
- * </ul>
- *
- * Some more text.
- *
- * <ol>
- *   <li>one
- *   <li>two
- *   <li>three
- * </ol>
- */
-@ConfigMapping(prefix = "my.prefix")
-public interface MappedA extends IntOne {
-  @WithName("some-weird-name")
-  @WithDefault("some-default")
-  String configOptionFoo();
-
-  @Override
-  Duration someDuration();
-
-  OtherMapped nested();
+public interface NestedA11 {
+  /** A11. */
+  int nestedA11();
 }
