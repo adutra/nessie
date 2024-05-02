@@ -15,7 +15,7 @@
  */
 package org.projectnessie.catalog.formats.iceberg.rest;
 
-import static com.google.common.base.Preconditions.checkState;
+import static java.lang.String.format;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -84,13 +84,20 @@ public interface IcebergUpdateRequirement {
             + " not supported for views");
   }
 
+  static void checkState(boolean condition, ContentKey key, String pattern, Object... args) {
+    if (!condition) {
+      throw new RuntimeException(new UpdateRequirementFailedException(key, format(pattern, args)));
+    }
+  }
+
   interface AssertUUID extends IcebergUpdateRequirement {
     String uuid();
 
-    default void check(NessieEntitySnapshot<?> snapshot) {
+    default void check(ContentKey key, NessieEntitySnapshot<?> snapshot) {
       String tableUuid = snapshot.entity().icebergUuid();
       checkState(
           uuid().equals(tableUuid),
+          key,
           "Requirement failed: UUID does not match: expected %s != %s",
           tableUuid,
           uuid());
@@ -106,7 +113,7 @@ public interface IcebergUpdateRequirement {
     @Override
     default void checkForTable(
         NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
-      check(snapshot);
+      check(contentKey, snapshot);
     }
   }
 
@@ -119,7 +126,7 @@ public interface IcebergUpdateRequirement {
     @Override
     default void checkForView(
         NessieViewSnapshot snapshot, boolean viewExists, ContentKey contentKey) {
-      check(snapshot);
+      check(contentKey, snapshot);
     }
   }
 
@@ -145,7 +152,8 @@ public interface IcebergUpdateRequirement {
     }
 
     default void check(boolean exists, String entityType, ContentKey contentKey) {
-      checkState(!exists, "Requirement failed: %s already exists: %s", entityType, contentKey);
+      checkState(
+          !exists, contentKey, "Requirement failed: %s already exists: %s", entityType, contentKey);
     }
   }
 
@@ -168,6 +176,7 @@ public interface IcebergUpdateRequirement {
       if (id != null) {
         checkState(
             Objects.equals(id, snapshot.icebergSnapshotId()),
+            contentKey,
             "Requirement failed: snapshot id changed: expected %s != %s",
             id,
             snapshotId());
@@ -188,6 +197,7 @@ public interface IcebergUpdateRequirement {
       Integer id = snapshot.icebergLastColumnId();
       checkState(
           lastAssignedFieldId() == id,
+          contentKey,
           "Requirement failed: last assigned field id changed: expected %s != %s",
           id,
           lastAssignedFieldId());
@@ -204,19 +214,20 @@ public interface IcebergUpdateRequirement {
     @Override
     default void checkForTable(
         NessieTableSnapshot snapshot, boolean tableExists, ContentKey contentKey) {
-      check(snapshot);
+      check(contentKey, snapshot);
     }
 
     @Override
     default void checkForView(
         NessieViewSnapshot snapshot, boolean viewExists, ContentKey contentKey) {
-      check(snapshot);
+      check(contentKey, snapshot);
     }
 
-    default void check(NessieEntitySnapshot<?> snapshot) {
+    default void check(ContentKey key, NessieEntitySnapshot<?> snapshot) {
       int id = snapshot.currentSchemaObject().map(NessieSchema::icebergId).orElse(-1);
       checkState(
           currentSchemaId() == id,
+          key,
           "Requirement failed: current schema changed: expected %s != %s",
           id,
           currentSchemaId());
@@ -236,6 +247,7 @@ public interface IcebergUpdateRequirement {
       Integer id = snapshot.icebergLastPartitionId();
       checkState(
           lastAssignedPartitionId() == id,
+          contentKey,
           "Requirement failed: last assigned partition id changed: expected %s != %s",
           id,
           lastAssignedPartitionId());
@@ -259,6 +271,7 @@ public interface IcebergUpdateRequirement {
               .orElse(-1);
       checkState(
           defaultSpecId() == id,
+          contentKey,
           "Requirement failed: default partition spec changed: expected %s != %s",
           id,
           defaultSpecId());
@@ -282,6 +295,7 @@ public interface IcebergUpdateRequirement {
               .orElse(-1);
       checkState(
           defaultSortOrderId() == id,
+          contentKey,
           "Requirement failed: default sort order id changed: expected %s != %s",
           id,
           defaultSortOrderId());

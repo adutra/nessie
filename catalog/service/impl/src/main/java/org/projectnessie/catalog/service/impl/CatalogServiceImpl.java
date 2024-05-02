@@ -27,6 +27,8 @@ import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceber
 import static org.projectnessie.catalog.formats.iceberg.nessie.NessieModelIceberg.typeToEntityName;
 import static org.projectnessie.catalog.service.api.NessieSnapshotResponse.nessieSnapshotResponse;
 import static org.projectnessie.catalog.service.impl.Util.objIdToNessieId;
+import static org.projectnessie.error.ReferenceConflicts.referenceConflicts;
+import static org.projectnessie.model.Conflict.conflict;
 import static org.projectnessie.model.Content.Type.ICEBERG_TABLE;
 import static org.projectnessie.versioned.storage.common.persist.ObjIdHasher.objIdHasher;
 
@@ -57,13 +59,13 @@ import org.projectnessie.catalog.formats.iceberg.meta.IcebergViewMetadata;
 import org.projectnessie.catalog.formats.iceberg.nessie.IcebergTableMetadataUpdateState;
 import org.projectnessie.catalog.formats.iceberg.nessie.IcebergViewMetadataUpdateState;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergCatalogOperation;
-import org.projectnessie.catalog.formats.iceberg.rest.IcebergConflictException;
 import org.projectnessie.catalog.model.id.NessieId;
 import org.projectnessie.catalog.model.ops.CatalogOperation;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
 import org.projectnessie.catalog.model.snapshot.NessieTableSnapshot;
 import org.projectnessie.catalog.model.snapshot.NessieViewSnapshot;
 import org.projectnessie.catalog.service.api.CatalogCommit;
+import org.projectnessie.catalog.service.api.CatalogEntityAlreadyExistsException;
 import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotFormat;
 import org.projectnessie.catalog.service.api.SnapshotReqParams;
@@ -71,13 +73,16 @@ import org.projectnessie.catalog.service.api.SnapshotResponse;
 import org.projectnessie.client.api.CommitMultipleOperationsBuilder;
 import org.projectnessie.client.api.GetContentBuilder;
 import org.projectnessie.client.api.NessieApiV2;
+import org.projectnessie.error.BaseNessieClientServerException;
 import org.projectnessie.error.ErrorCode;
 import org.projectnessie.error.ImmutableNessieError;
 import org.projectnessie.error.NessieContentNotFoundException;
 import org.projectnessie.error.NessieNotFoundException;
+import org.projectnessie.error.NessieReferenceConflictException;
 import org.projectnessie.model.Branch;
 import org.projectnessie.model.CommitMeta;
 import org.projectnessie.model.CommitResponse;
+import org.projectnessie.model.Conflict;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.ContentResponse;
@@ -338,7 +343,7 @@ public class CatalogServiceImpl implements CatalogService {
       CatalogCommit commit,
       SnapshotReqParams reqParams,
       CatalogUriResolver catalogUriResolver)
-      throws NessieNotFoundException {
+      throws BaseNessieClientServerException {
 
     GetContentBuilder contentRequest =
         nessieApi
@@ -443,7 +448,7 @@ public class CatalogServiceImpl implements CatalogService {
       Content content,
       MultiTableUpdate multiTableUpdate,
       CompletionStage<MultiTableUpdate> commitBuilderStage)
-      throws NessieContentNotFoundException {
+      throws NessieContentNotFoundException, NessieReferenceConflictException {
     // TODO serialize the changes as well, so that we can retrieve those later for content-aware
     //  merges and automatic conflict resolution.
 
@@ -451,33 +456,20 @@ public class CatalogServiceImpl implements CatalogService {
 
     if (icebergOp.hasAssertCreate()) {
       if (content != null) {
-        // Produces different messages depending on the target type - just to get the tests passing
-        // :facepalm:
-        boolean tableTarget = content.getType().equals(ICEBERG_TABLE);
-        String prefix = tableTarget ? "Requirement failed: " : "";
-        String type = typeToEntityName(content.getType());
-        if (tableTarget) {
-          type = type.toLowerCase(Locale.ROOT);
-        }
-        throw new RuntimeException(
-            new IcebergConflictException(
-                "AlreadyExistsException",
-                format(
-                    "%s%s %salready exists: %s",
-                    prefix,
-                    type,
-                    op.getType().equals(content.getType()) ? "" : "with same name ",
-                    op.getKey())));
+        throw new CatalogEntityAlreadyExistsException(
+            true, op.getType(), op.getKey(), content.getType());
       }
     } else if (!op.getType().equals(content.getType())) {
-      throw new RuntimeException(
-          new IcebergConflictException(
-              "CommitFailedException",
-              format(
-                  "Cannot update %s %s as a %s",
-                  typeToEntityName(content.getType()).toLowerCase(Locale.ROOT),
-                  op.getKey(),
-                  typeToEntityName(op.getType()).toLowerCase(Locale.ROOT))));
+      String msg =
+          format(
+              "Cannot update %s %s as a %s",
+              typeToEntityName(content.getType()).toLowerCase(Locale.ROOT),
+              op.getKey(),
+              typeToEntityName(op.getType()).toLowerCase(Locale.ROOT));
+      throw new NessieReferenceConflictException(
+          referenceConflicts(conflict(Conflict.ConflictType.PAYLOAD_DIFFERS, op.getKey(), msg)),
+          msg,
+          null);
     }
 
     String contentId;
@@ -494,29 +486,22 @@ public class CatalogServiceImpl implements CatalogService {
         snapshotStage
             .thenApply(
                 nessieSnapshot -> {
-                  // TODO This throws `IcebergConflictException`s, even if the request came via
-                  //  `CatalogTransportResource` - need some way to distinguish exceptions.
-                  try {
-                    if (LOGGER.isTraceEnabled()) {
-                      LOGGER.trace(
-                          "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
-                          icebergOp.updates().size(),
-                          icebergOp.requirements().size(),
-                          op.getKey(),
-                          reference.getName(),
-                          reference.getHash());
-                    }
-                    return new IcebergTableMetadataUpdateState(
-                            nessieSnapshot, op.getKey(), content != null)
-                        .checkRequirements(icebergOp.requirements())
-                        .applyUpdates(icebergOp.updates())
-                        .snapshot();
-                    // TODO handle the case when nothing changed -> do not update
-                    //  e.g. when adding a schema/spec/order that already exists
-                  } catch (IllegalStateException | IllegalArgumentException e) {
-                    throw new RuntimeException(
-                        new IcebergConflictException("CommitFailedException", e.getMessage()));
+                  if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace(
+                        "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
+                        icebergOp.updates().size(),
+                        icebergOp.requirements().size(),
+                        op.getKey(),
+                        reference.getName(),
+                        reference.getHash());
                   }
+                  return new IcebergTableMetadataUpdateState(
+                          nessieSnapshot, op.getKey(), content != null)
+                      .checkRequirements(icebergOp.requirements())
+                      .applyUpdates(icebergOp.updates())
+                      .snapshot();
+                  // TODO handle the case when nothing changed -> do not update
+                  //  e.g. when adding a schema/spec/order that already exists
                 })
             .thenApply(
                 nessieSnapshot -> {
@@ -578,29 +563,22 @@ public class CatalogServiceImpl implements CatalogService {
         snapshotStage
             .thenApply(
                 nessieSnapshot -> {
-                  // TODO This throws `IcebergConflictException`s, even if the request came via
-                  //  `CatalogTransportResource` - need some way to distinguish exceptions.
-                  try {
-                    if (LOGGER.isTraceEnabled()) {
-                      LOGGER.trace(
-                          "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
-                          icebergOp.updates().size(),
-                          icebergOp.requirements().size(),
-                          op.getKey(),
-                          reference.getName(),
-                          reference.getHash());
-                    }
-                    return new IcebergViewMetadataUpdateState(
-                            nessieSnapshot, op.getKey(), content != null)
-                        .checkRequirements(icebergOp.requirements())
-                        .applyUpdates(icebergOp.updates())
-                        .snapshot();
-                    // TODO handle the case when nothing changed -> do not update
-                    //  e.g. when adding a schema/spec/order that already exists
-                  } catch (IllegalStateException | IllegalArgumentException e) {
-                    throw new RuntimeException(
-                        new IcebergConflictException("CommitFailedException", e.getMessage()));
+                  if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace(
+                        "Applying {} metadata updates with {} requirements to '{}' against {}@{}",
+                        icebergOp.updates().size(),
+                        icebergOp.requirements().size(),
+                        op.getKey(),
+                        reference.getName(),
+                        reference.getHash());
                   }
+                  return new IcebergViewMetadataUpdateState(
+                          nessieSnapshot, op.getKey(), content != null)
+                      .checkRequirements(icebergOp.requirements())
+                      .applyUpdates(icebergOp.updates())
+                      .snapshot();
+                  // TODO handle the case when nothing changed -> do not update
+                  //  e.g. when adding a schema/spec/order that already exists
                 })
             .thenApply(
                 nessieSnapshot -> {

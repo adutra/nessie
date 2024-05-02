@@ -49,7 +49,7 @@ import org.projectnessie.catalog.service.api.CatalogCommit;
 import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotReqParams;
 import org.projectnessie.catalog.service.api.SnapshotResponse;
-import org.projectnessie.error.NessieConflictException;
+import org.projectnessie.error.BaseNessieClientServerException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
@@ -127,7 +127,7 @@ public class NessieCatalogResource extends AbstractCatalogResource {
       @RequestBody CatalogCommit commit,
       @QueryParam("format") String format,
       @QueryParam("specVersion") String specVersion)
-      throws NessieNotFoundException, NessieConflictException {
+      throws BaseNessieClientServerException {
 
     ParsedReference reference = parseRefPathString(ref);
 

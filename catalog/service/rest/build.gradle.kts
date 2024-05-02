@@ -43,6 +43,7 @@ dependencies {
 
   implementation(enforcedPlatform(libs.quarkus.bom))
   implementation("io.quarkus.resteasy.reactive:resteasy-reactive-common")
+  implementation("io.quarkus.resteasy.reactive:resteasy-reactive")
 
   implementation(platform(libs.jackson.bom))
   implementation("com.fasterxml.jackson.core:jackson-databind")

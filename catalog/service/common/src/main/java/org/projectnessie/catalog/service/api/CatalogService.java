@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.model.snapshot.NessieEntitySnapshot;
-import org.projectnessie.error.NessieConflictException;
+import org.projectnessie.error.BaseNessieClientServerException;
 import org.projectnessie.error.NessieNotFoundException;
 import org.projectnessie.model.Content;
 import org.projectnessie.model.ContentKey;
@@ -63,7 +63,7 @@ public interface CatalogService {
       CatalogCommit commit,
       SnapshotReqParams reqParams,
       CatalogUriResolver catalogUriResolver)
-      throws NessieNotFoundException, NessieConflictException;
+      throws BaseNessieClientServerException;
 
   interface CatalogUriResolver {
     URI icebergSnapshot(
