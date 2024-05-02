@@ -96,6 +96,7 @@ if [[ -n "$HELP" ]]; then
   echo "  --container-runtime <runtime>   Container runtime to use. Default: podman if available, docker otherwise"
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
+  echo "  --no-nessie-start               Do not start Nessie Core/Catalog, use externally provided instance(s). Default: start"
   echo "  --clear-warehouse               Clear warehouse directory. Default: false"
   echo "  --debug                         Enable debug mode"
   echo "  --verbose                       Enable verbose mode"
@@ -143,11 +144,12 @@ cat <<EOF > "$TRINO_TEMP_DIR/catalog/iceberg.properties"
 connector.name=iceberg
 iceberg.catalog.type=rest
 iceberg.rest-catalog.uri=${TRINO_CATALOG_URI}
+iceberg.rest-catalog.warehouse=s3://demobucket/
 EOF
 
 echo "Starting Trino server version $TRINO_VERSION..."
 
-TRINO_PORT=8080
+TRINO_PORT=8180
 
 # Run Trino in a container, ensure that everything created in the warehouse is readable/writeable
 # by Nessie Catalog as well.
@@ -156,7 +158,6 @@ TRINO_CONTAINER_ID=$(${DOCKER} run --detach -p ${TRINO_PORT}:${TRINO_PORT} -p 50
   --volume $TRINO_TEMP_DIR/log.properties:/etc/trino/log.properties \
   --volume $TRINO_TEMP_DIR/jvm.config:/etc/trino/jvm.config \
   --volume $TRINO_TEMP_DIR/catalog:/etc/trino/catalog \
-  --volume "$WAREHOUSE_LOCATION":"$WAREHOUSE_LOCATION" \
   $DOCKER_RUN_OPTS \
   docker.io/trinodb/trino:"$TRINO_VERSION")
 
@@ -177,9 +178,9 @@ echo "Launching Trino CLI... (type 'exit' to quit)"
 echo "You can create a table with the following commands:"
 
 cat <<EOF
-CREATE SCHEMA iceberg.db1
-  WITH (location='file://$WAREHOUSE_LOCATION');
-USE iceberg.db1;
+CREATE SCHEMA iceberg.db3
+  WITH (location='s3://demobucket/');
+USE iceberg.db3;
 CREATE TABLE yearly_clicks (year, clicks)
   WITH (partitioning = ARRAY['year']) AS VALUES (2021, 10000), (2022, 20000);
 EOF

@@ -94,7 +94,7 @@ if [[ -z "$NO_NESSIE_START" ]]; then
 
   java "${DEBUG_NESSIE_CATALOG[@]}" \
     -Dquarkus.oidc.tenant-enabled=false -Dquarkus.otel.sdk.disabled=true \
-    -jar catalog/service/server/build/quarkus-app/quarkus-run.jar | \
+    -jar servers/quarkus-server/build/quarkus-app/quarkus-run.jar | \
     sed ''s/^/"$NESSIE_COMBINED_PROMPT"/'' \
     >> "$REDIRECT" 2>&1 &
 

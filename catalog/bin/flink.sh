@@ -67,6 +67,10 @@ do
       NO_CLEAR_IVY_CACHE="true"
       shift
       ;;
+    --no-nessie-start)
+      NO_NESSIE_START="true"
+      shift
+      ;;
     --clear-warehouse)
       CLEAR_WAREHOUSE="true"
       shift
@@ -99,6 +103,7 @@ if [[ -n "$HELP" ]]; then
   echo "  --container-runtime <runtime>   Container runtime to use. Default: podman if available, docker otherwise"
   echo "  --no-publish                    Do not publish jars to Maven local. Default: false"
   echo "  --no-clear-cache                Do not clear ivy cache. Default: false"
+  echo "  --no-nessie-start               Do not start Nessie Core/Catalog, use externally provided instance(s). Default: start"
   echo "  --clear-warehouse               Clear warehouse directory. Default: false"
   echo "  --debug                         Enable debug mode"
   echo "  --verbose                       Enable verbose mode"
@@ -238,7 +243,7 @@ CREATE CATALOG nessie_catalog WITH (
   'type'                = 'iceberg',
   'catalog-impl'        = '$FLINK_CATALOG_IMPL',
   'uri'                 = '$FLINK_CATALOG_URI',
-  'warehouse'           = 'file://$WAREHOUSE_LOCATION'
+  'warehouse'           = 's3://demobucket/'
 );
 CREATE database nessie_catalog.db1;
 CREATE TABLE nessie_catalog.db1.spotify (songid BIGINT, artist STRING, rating BIGINT);
