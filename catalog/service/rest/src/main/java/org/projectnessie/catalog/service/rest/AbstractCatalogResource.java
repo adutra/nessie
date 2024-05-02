@@ -15,6 +15,8 @@
  */
 package org.projectnessie.catalog.service.rest;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Context;
@@ -33,7 +35,10 @@ import org.projectnessie.model.ContentKey;
 import org.projectnessie.model.Reference;
 
 abstract class AbstractCatalogResource {
-  @Inject CatalogService catalogService;
+  @SuppressWarnings("CdiInjectionPointsInspection")
+  @Inject
+  CatalogService catalogService;
+
   @Inject ObjectIO objectIO;
 
   @Context ExternalBaseUri uriInfo;
@@ -78,6 +83,6 @@ abstract class AbstractCatalogResource {
   }
 
   static void nessieResponseHeaders(Reference reference, BiConsumer<String, String> header) {
-    header.accept("Nessie-Reference", URLEncoder.encode(reference.toPathString()));
+    header.accept("Nessie-Reference", URLEncoder.encode(reference.toPathString(), UTF_8));
   }
 }
