@@ -80,6 +80,8 @@ public class IcebergConfigurer {
   private static final String ADLS_READ_BLOCK_SIZE_BYTES = "adls.read.block-size-bytes";
   private static final String ADLS_WRITE_BLOCK_SIZE_BYTES = "adls.write.block-size-bytes";
 
+  private static final String OAUTH2_TOKEN_ENDPOINT = "oauth2-server-uri";
+
   @Inject ServerConfig serverConfig;
   @Inject CatalogConfig catalogConfig;
   @Inject S3CredentialsResolver s3CredentialsResolver;
@@ -87,7 +89,7 @@ public class IcebergConfigurer {
   @Inject GcsOptions<?> gcsOptions;
   @Inject AdlsOptions<?> adlsOptions;
   @Inject SecretsProvider secretsProvider;
-  @Inject @TokenEndpointUri Optional<URI> tokenEndpoint;
+  @Inject IcebergOAuthProxy proxy;
 
   @Context ExternalBaseUri uriInfo;
 
@@ -115,8 +117,11 @@ public class IcebergConfigurer {
     WarehouseConfig warehouseConfig = catalogConfig.getWarehouse(warehouse);
     String branch = defaultBranchName(reference);
     Map<String, String> config = new HashMap<>();
-    // FIXME the client needs this even before calling the /config endpoint
-    tokenEndpoint.ifPresent(uri -> config.put("oauth2-server-uri", uri.toString()));
+    if (!warehouseConfig.allowAuthProxy().orElse(false)) {
+      proxy
+          .resolvedTokenEndpoint()
+          .ifPresent(uri -> config.put(OAUTH2_TOKEN_ENDPOINT, uri.toString()));
+    }
     config.putAll(uriInfo.icebergConfigOverrides());
     config.putAll(storeConfigOverrides(URI.create(warehouseConfig.location())));
     config.putAll(catalogConfig.icebergConfigOverrides());

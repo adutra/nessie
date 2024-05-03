@@ -23,11 +23,14 @@ import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.iceberg.aws.s3.signer.S3V4RestSignerClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.projectnessie.client.NessieClientBuilder;
 import org.projectnessie.client.auth.oauth2.OAuth2AuthenticationProvider;
@@ -58,6 +61,18 @@ public abstract class AbstractAuthEnabledTests extends AbstractIcebergCatalogTes
   @BeforeEach
   public void clearBucket() {
     heapStorageBucket.clear();
+  }
+
+  @BeforeEach
+  public void clearS3SignerClientCache() throws Exception {
+    Field authSessionCache = S3V4RestSignerClient.class.getDeclaredField("authSessionCache");
+    authSessionCache.setAccessible(true);
+    Object cache = authSessionCache.get(null);
+    if (cache != null) {
+      Method invalidateAll = cache.getClass().getMethod("invalidateAll");
+      invalidateAll.setAccessible(true);
+      invalidateAll.invoke(cache);
+    }
   }
 
   @Override

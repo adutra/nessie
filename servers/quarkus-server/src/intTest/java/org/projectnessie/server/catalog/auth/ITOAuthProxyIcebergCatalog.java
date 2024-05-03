@@ -16,6 +16,8 @@
 package org.projectnessie.server.catalog.auth;
 
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.quarkus.test.junit.TestProfile;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogProperties;
@@ -23,7 +25,8 @@ import org.apache.iceberg.rest.RESTCatalog;
 import org.apache.iceberg.rest.auth.OAuth2Properties;
 
 @QuarkusIntegrationTest
-public class ITOAuthIcebergCatalog extends AbstractAuthEnabledTests {
+@TestProfile(ITOAuthProxyIcebergCatalog.Profile.class)
+public class ITOAuthProxyIcebergCatalog extends AbstractAuthEnabledTests {
 
   @Override
   protected RESTCatalog catalog() {
@@ -37,12 +40,19 @@ public class ITOAuthIcebergCatalog extends AbstractAuthEnabledTests {
             String.format("http://127.0.0.1:%d/iceberg/", catalogServerPort),
             OAuth2Properties.SCOPE,
             "email",
-            // See https://github.com/apache/iceberg/pull/10256
-            OAuth2Properties.OAUTH2_SERVER_URI,
-            tokenEndpoint.toString(),
             OAuth2Properties.CREDENTIAL,
             clientId + ":" + clientSecret));
     catalogs.add(catalog);
     return catalog;
+  }
+
+  public static class Profile extends AbstractAuthEnabledTests.Profile {
+
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      Map<String, String> config = new HashMap<>(super.getConfigOverrides());
+      config.put("nessie.catalog.default-warehouse.allow-auth-proxy", "true");
+      return config;
+    }
   }
 }
