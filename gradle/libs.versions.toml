@@ -6,7 +6,7 @@ bouncycastle = "1.70"
 checkstyle = "10.16.0"
 errorprone = "2.27.1"
 errorproneSlf4j = "0.1.24"
-gatling = "3.10.5"
+gatling = "3.11.2"
 googleJavaFormat = "1.22.0"
 hadoop = "3.4.0"
 iceberg = "1.5.0" # While bumping this version, 'nessieClientVersion' must also be updated.
@@ -41,7 +41,7 @@ antlr-antlr4-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "ant
 assertj-core = { module = "org.assertj:assertj-core", version = "3.25.3" }
 avro = { module = "org.apache.avro:avro", version = "1.11.3" }
 awaitility = { module = "org.awaitility:awaitility", version = "4.2.1" }
-awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.25.40" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version = "2.25.45" }
 azuresdk-bom = { module = "com.azure:azure-sdk-bom", version = "1.2.23" }
 bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk15on", version.ref = "bouncycastle" }
 bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk15on", version.ref = "bouncycastle" }
@@ -73,7 +73,7 @@ iceberg-bom = { module = "org.apache.iceberg:iceberg-bom", version.ref = "iceber
 immutables-builder = { module = "org.immutables:builder", version.ref = "immutables" }
 immutables-value-annotations = { module = "org.immutables:value-annotations", version.ref = "immutables" }
 immutables-value-processor = { module = "org.immutables:value-processor", version.ref = "immutables" }
-jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version = "2.17.0" }
+jackson-bom = { module = "com.fasterxml.jackson:jackson-bom", version = "2.17.1" }
 jacoco-ant = { module = "org.jacoco:org.jacoco.ant", version.ref = "jacoco" }
 jacoco-report = { module = "org.jacoco:org.jacoco.report", version.ref = "jacoco" }
 jacoco-maven-plugin = { module = "org.jacoco:jacoco-maven-plugin", version.ref = "jacoco" }
@@ -155,7 +155,7 @@ zstd-jni = { module = "com.github.luben:zstd-jni", version = "1.5.5-11" }
 [plugins]
 annotations-stripper = { id = "org.projectnessie.annotation-stripper", version = "0.1.2" }
 errorprone = { id = "net.ltgt.errorprone", version = "3.1.0" }
-gatling = { id = "io.gatling.gradle", version = "3.10.5.1" }
+gatling = { id = "io.gatling.gradle", version = "3.11.2" }
 jmh = { id = "me.champeau.jmh", version = "0.7.2" }
 nessie-run = { id = "org.projectnessie", version = "0.32.1" }
 nexus-publish-plugin = { id = "io.github.gradle-nexus.publish-plugin", version = "2.0.0" }
