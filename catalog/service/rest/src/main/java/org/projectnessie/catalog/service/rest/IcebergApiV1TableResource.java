@@ -75,7 +75,6 @@ import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 import org.projectnessie.api.v2.params.ParsedReference;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergJson;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergPartitionSpec;
-import org.projectnessie.catalog.formats.iceberg.meta.IcebergSchema;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergSortOrder;
 import org.projectnessie.catalog.formats.iceberg.meta.IcebergTableMetadata;
 import org.projectnessie.catalog.formats.iceberg.metrics.IcebergMetricsReport;
@@ -210,13 +209,6 @@ public class IcebergApiV1TableResource extends IcebergApiV1ResourceBase {
     if (spec == null) {
       spec = unpartitioned();
     }
-    IcebergSchema schema = createTableRequest.schema();
-    String location = createTableRequest.location();
-    if (location == null) {
-      location = defaultTableLocation(createTableRequest.location(), tableRef);
-    }
-    checkArgument(
-        objectIO.isValidUri(URI.create(location)), "Unsupported table location: " + location);
     Map<String, String> properties = new HashMap<>();
     properties.put("created-at", OffsetDateTime.now(ZoneOffset.UTC).toString());
     properties.putAll(createTableRequest.properties());
@@ -225,13 +217,13 @@ public class IcebergApiV1TableResource extends IcebergApiV1ResourceBase {
         Arrays.asList(
             assignUUID(randomUUID().toString()),
             upgradeFormatVersion(2),
-            addSchema(schema, 0),
+            addSchema(createTableRequest.schema(), 0),
             setCurrentSchema(-1),
             addPartitionSpec(spec),
             setDefaultPartitionSpec(-1),
             addSortOrder(sortOrder),
             setDefaultSortOrder(-1),
-            setLocation(location),
+            setLocation(defaultTableLocation(tableRef)),
             setProperties(properties));
 
     GetMultipleContentsResponse contentResponse =

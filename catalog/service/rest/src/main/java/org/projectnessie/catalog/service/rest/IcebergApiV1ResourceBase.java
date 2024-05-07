@@ -259,15 +259,13 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     return (Branch) reference;
   }
 
-  protected String defaultTableLocation(String location, TableRef tableRef) {
-    if (location != null) {
-      return location;
-    }
+  protected String defaultTableLocation(TableRef tableRef) {
 
     WarehouseConfig warehouse = catalogConfig.getWarehouse(tableRef.warehouse());
     ContentKey key = tableRef.contentKey();
 
     Namespace ns = key.getNamespace();
+    String location;
     if (!ns.isEmpty()) {
       List<ContentKey> parentNamespaces = new ArrayList<>();
       for (Namespace namespace = key.getNamespace();
@@ -309,7 +307,11 @@ abstract class IcebergApiV1ResourceBase extends AbstractCatalogResource {
     // Different tables with same table name can exist across references in Nessie.
     // To avoid sharing same table path between two tables with same name, use uuid in the table
     // path.
-    return location + "_" + UUID.randomUUID();
+    location += "_" + UUID.randomUUID();
+
+    checkArgument(objectIO.isValidUri(URI.create(location)), "Invalid table location: " + location);
+
+    return location;
   }
 
   private String concatLocation(String location, String key) {
