@@ -15,6 +15,7 @@
  */
 package org.projectnessie.catalog.service.rest;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate.SetLocation.setLocation;
 import static org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignResponse.icebergS3SignResponse;
@@ -53,6 +54,7 @@ import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergMetadataUpdate.SetLocation;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignRequest;
 import org.projectnessie.catalog.formats.iceberg.rest.IcebergS3SignResponse;
+import org.projectnessie.catalog.formats.iceberg.rest.IcebergUpdateRequirement;
 import org.projectnessie.catalog.service.api.CatalogCommit;
 import org.projectnessie.catalog.service.api.CatalogService;
 import org.projectnessie.catalog.service.api.SnapshotReqParams;
@@ -158,6 +160,14 @@ public class IcebergApiV1GenericResource extends IcebergApiV1ResourceBase {
                       .type(ICEBERG_TABLE);
 
               if (tableChange.hasAssertCreate()) {
+                List<IcebergUpdateRequirement> invalidRequirements =
+                    tableChange.requirements().stream()
+                        .filter(req -> !(req instanceof IcebergUpdateRequirement.AssertCreate))
+                        .collect(Collectors.toList());
+                checkArgument(
+                    invalidRequirements.isEmpty(),
+                    "Invalid create requirements: %s",
+                    invalidRequirements);
                 String location = defaultTableLocation(decoded.warehouse(), key);
                 builder.addUpdate(setLocation(location));
               }
