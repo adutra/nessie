@@ -44,7 +44,7 @@ public class ITPostgresPersistenceSpi extends AbstractJdbcPersistenceSpi {
     }
   }
 
-  protected static String dockerImage(String dbName) {
+  public static String dockerImage(String dbName) {
     URL resource = ITPostgresPersistenceSpi.class.getResource("Dockerfile-" + dbName + "-version");
     try (InputStream in = resource.openConnection().getInputStream()) {
       String[] imageTag =

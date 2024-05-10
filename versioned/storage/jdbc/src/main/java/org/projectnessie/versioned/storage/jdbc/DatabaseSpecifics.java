@@ -52,6 +52,8 @@ public final class DatabaseSpecifics {
   public static final DatabaseSpecific H2_DATABASE_SPECIFIC =
       new BasePostgresDatabaseSpecific("VARCHAR");
 
+  public static final DatabaseSpecific MARIADB_DATABASE_SPECIFIC = new MariaDBDatabaseSpecific();
+
   public static DatabaseSpecific detect(DataSource dataSource) {
     try (Connection conn = dataSource.getConnection()) {
       return detect(conn);
@@ -75,6 +77,9 @@ public final class DatabaseSpecifics {
               return POSTGRESQL_DATABASE_SPECIFIC;
             }
           }
+        case "mysql":
+        case "mariadb":
+          return MARIADB_DATABASE_SPECIFIC;
         default:
           throw new IllegalStateException(
               "Could not select specifics to use for database product '" + productName + "'");
@@ -85,6 +90,10 @@ public final class DatabaseSpecifics {
   }
 
   static class BasePostgresDatabaseSpecific implements DatabaseSpecific {
+
+    /** Postgres &amp; Cockroach integrity constraint violation. */
+    private static final String POSTGRES_CONSTRAINT_VIOLATION_SQL_STATE = "23505";
+
     private final Map<JdbcColumnType, String> typeMap;
     private final Map<JdbcColumnType, Integer> typeIdMap;
 
@@ -119,26 +128,61 @@ public final class DatabaseSpecifics {
 
     @Override
     public boolean isConstraintViolation(SQLException e) {
-      return CONSTRAINT_VIOLATION_SQL_STATE.equals(e.getSQLState());
-    }
-
-    @Override
-    public boolean isRetryTransaction(SQLException e) {
-      if (e.getSQLState() == null) {
-        return false;
-      }
-      switch (e.getSQLState()) {
-        case DEADLOCK_SQL_STATE_POSTGRES:
-        case RETRY_SQL_STATE_COCKROACH:
-          return true;
-        default:
-          return false;
-      }
+      return POSTGRES_CONSTRAINT_VIOLATION_SQL_STATE.equals(e.getSQLState());
     }
 
     @Override
     public String wrapInsert(String sql) {
       return sql + " ON CONFLICT DO NOTHING";
+    }
+  }
+
+  static class MariaDBDatabaseSpecific implements DatabaseSpecific {
+
+    private static final String VARCHAR = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin";
+    private static final String TEXT = "TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin";
+    private static final String MYSQL_CONSTRAINT_VIOLATION_SQL_STATE = "23000";
+
+    private final Map<JdbcColumnType, String> typeMap;
+    private final Map<JdbcColumnType, Integer> typeIdMap;
+
+    MariaDBDatabaseSpecific() {
+      typeMap = new EnumMap<>(JdbcColumnType.class);
+      typeIdMap = new EnumMap<>(JdbcColumnType.class);
+      typeMap.put(JdbcColumnType.NAME, VARCHAR);
+      typeIdMap.put(JdbcColumnType.NAME, Types.VARCHAR);
+      typeMap.put(JdbcColumnType.OBJ_ID, VARCHAR);
+      typeIdMap.put(JdbcColumnType.OBJ_ID, Types.VARCHAR);
+      typeMap.put(JdbcColumnType.OBJ_ID_LIST, TEXT);
+      typeIdMap.put(JdbcColumnType.OBJ_ID_LIST, Types.VARCHAR);
+      typeMap.put(JdbcColumnType.BOOL, "BIT(1)");
+      typeIdMap.put(JdbcColumnType.BOOL, Types.BIT);
+      typeMap.put(JdbcColumnType.VARBINARY, "BLOB");
+      typeIdMap.put(JdbcColumnType.VARBINARY, Types.BLOB);
+      typeMap.put(JdbcColumnType.BIGINT, "BIGINT");
+      typeIdMap.put(JdbcColumnType.BIGINT, Types.BIGINT);
+      typeMap.put(JdbcColumnType.VARCHAR, VARCHAR);
+      typeIdMap.put(JdbcColumnType.VARCHAR, Types.VARCHAR);
+    }
+
+    @Override
+    public Map<JdbcColumnType, String> columnTypes() {
+      return typeMap;
+    }
+
+    @Override
+    public Map<JdbcColumnType, Integer> columnTypeIds() {
+      return typeIdMap;
+    }
+
+    @Override
+    public boolean isConstraintViolation(SQLException e) {
+      return MYSQL_CONSTRAINT_VIOLATION_SQL_STATE.equals(e.getSQLState());
+    }
+
+    @Override
+    public String wrapInsert(String sql) {
+      return sql.replace("INSERT INTO", "INSERT IGNORE INTO");
     }
   }
 }

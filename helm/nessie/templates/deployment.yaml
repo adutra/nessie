@@ -139,20 +139,23 @@ spec:
             {{- end }}
 
             {{- if or (eq .Values.versionStoreType "JDBC") (eq .Values.versionStoreType "TRANSACTIONAL") }}
-            - name: QUARKUS_DATASOURCE_USERNAME
+            {{- $dbKind := include "nessie.dbKind" .Values.jdbc.jdbcUrl }}
+            - name: NESSIE_VERSION_STORE_PERSIST_JDBC_DATASOURCE
+              value: {{ $dbKind }}
+            {{- $dataSourceConfigPrefix := include "nessie.datasourceConfigPrefix" $dbKind }}
+            - name: {{ $dataSourceConfigPrefix }}USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.secret.name }}
-                  key: {{ .Values.postgres.secret.username }}
-            - name: QUARKUS_DATASOURCE_PASSWORD
+                  name: {{ .Values.jdbc.secret.name }}
+                  key: {{ .Values.jdbc.secret.username }}
+            - name: {{ $dataSourceConfigPrefix }}PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.secret.name }}
-                  key: {{ .Values.postgres.secret.password }}
-            - name: QUARKUS_DATASOURCE_JDBC_URL
-              value: {{ .Values.postgres.jdbcUrl }}
+                  name: {{ .Values.jdbc.secret.name }}
+                  key: {{ .Values.jdbc.secret.password }}
+            - name: {{ $dataSourceConfigPrefix }}JDBC_URL
+              value: {{ .Values.jdbc.jdbcUrl }}
             {{- end }}
-
             {{- if eq .Values.versionStoreType "BIGTABLE" }}
             - name: QUARKUS_GOOGLE_CLOUD_PROJECT_ID
               value: {{ .Values.bigtable.projectId }}

@@ -71,7 +71,7 @@ public abstract class ContainerBackendTestFactory extends AbstractJdbcBackendTes
     return container.getPassword();
   }
 
-  private void startJdbc(Optional<String> containerNetworkId) throws Exception {
+  public void startJdbc(Optional<String> containerNetworkId) throws Exception {
     if (container != null) {
       throw new IllegalStateException("Already started");
     }

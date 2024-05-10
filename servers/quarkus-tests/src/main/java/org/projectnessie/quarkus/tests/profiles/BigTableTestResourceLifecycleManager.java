@@ -15,7 +15,6 @@
  */
 package org.projectnessie.quarkus.tests.profiles;
 
-import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.common.DevServicesContext;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
@@ -39,11 +38,7 @@ public class BigTableTestResourceLifecycleManager
     bigTable = new BigTableBackendContainerTestFactory();
     bigTable.startBigtable(containerNetworkId);
 
-    return ImmutableMap.of(
-        "nessie.version.store.persist.bigtable.emulator-host",
-        bigTable.getEmulatorHost(),
-        "nessie.version.store.persist.bigtable.emulator-port",
-        Integer.toString(bigTable.getEmulatorPort()));
+    return bigTable.getQuarkusConfig();
   }
 
   @Override

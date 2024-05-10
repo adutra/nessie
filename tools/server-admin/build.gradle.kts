@@ -77,6 +77,10 @@ dependencies {
   testFixturesApi(project(":nessie-quarkus-tests"))
   testFixturesApi(project(":nessie-versioned-tests"))
   intTestImplementation(project(":nessie-versioned-storage-mongodb-tests"))
+  intTestImplementation(project(":nessie-versioned-storage-jdbc-tests"))
+  intTestImplementation(project(":nessie-versioned-storage-cassandra-tests"))
+  intTestImplementation(project(":nessie-versioned-storage-bigtable-tests"))
+  intTestImplementation(project(":nessie-versioned-storage-dynamodb-tests"))
   testFixturesApi(project(":nessie-versioned-storage-testextension"))
   testFixturesApi(enforcedPlatform(libs.quarkus.bom))
   testFixturesApi("io.quarkus:quarkus-junit5")
@@ -144,4 +148,8 @@ if (Os.isFamily(Os.FAMILY_WINDOWS)) {
 // Issue w/ testcontainers/podman in GH workflows :(
 if (Os.isFamily(Os.FAMILY_MAC) && System.getenv("CI") != null) {
   tasks.named<Test>("intTest").configure { this.enabled = false }
+}
+
+tasks.named<Test>("intTest").configure {
+  systemProperty("backendTestFactory", System.getProperty("backendTestFactory"))
 }

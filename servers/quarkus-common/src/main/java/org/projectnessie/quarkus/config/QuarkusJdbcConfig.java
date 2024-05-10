@@ -30,6 +30,13 @@ import org.projectnessie.versioned.storage.jdbc.JdbcBackendBaseConfig;
 @ConfigMapping(prefix = "nessie.version.store.persist.jdbc")
 public interface QuarkusJdbcConfig extends JdbcBackendBaseConfig {
 
+  /**
+   * The name of the datasource to use. Must correspond to a configured datasource under {@code
+   * quarkus.datasource.<name>}. If not provided, the default datasource (PostgreSQL) will be used,
+   * configured from {@code quarkus.datasource}.
+   */
+  Optional<String> datasource();
+
   @Override
   Optional<String> catalog();
 

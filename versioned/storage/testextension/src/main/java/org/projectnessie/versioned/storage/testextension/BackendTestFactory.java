@@ -15,6 +15,7 @@
  */
 package org.projectnessie.versioned.storage.testextension;
 
+import java.util.Map;
 import org.projectnessie.versioned.storage.common.persist.Backend;
 
 public interface BackendTestFactory {
@@ -25,4 +26,6 @@ public interface BackendTestFactory {
   void stop() throws Exception;
 
   String getName();
+
+  Map<String, String> getQuarkusConfig();
 }

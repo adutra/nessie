@@ -19,11 +19,12 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.main.QuarkusMainTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.projectnessie.quarkus.tests.profiles.BaseConfigProfile;
 import org.projectnessie.versioned.storage.common.persist.Persist;
 
 @QuarkusMainTest
-@TestProfile(QuarkusCliTestProfilePersistMongo.class)
-@ExtendWith(NessieCliPersistTestExtension.class)
+@TestProfile(BaseConfigProfile.class)
+@ExtendWith(NessieServerAdminTestExtension.class)
 class ITCheckContentPersist extends BaseContentPersistTest<CheckContentEntry> {
 
   ITCheckContentPersist(Persist persist) {

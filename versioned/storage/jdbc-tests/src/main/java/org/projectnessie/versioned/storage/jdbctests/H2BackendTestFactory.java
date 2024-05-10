@@ -15,6 +15,7 @@
  */
 package org.projectnessie.versioned.storage.jdbctests;
 
+import java.util.Map;
 import org.projectnessie.versioned.storage.jdbc.JdbcBackendFactory;
 
 public final class H2BackendTestFactory extends AbstractJdbcBackendTestFactory {
@@ -37,5 +38,15 @@ public final class H2BackendTestFactory extends AbstractJdbcBackendTestFactory {
   @Override
   public String jdbcPass() {
     return null;
+  }
+
+  @Override
+  public Map<String, String> getQuarkusConfig() {
+    return Map.of("quarkus.datasource.postgresql.jdbc.url", jdbcUrl());
+  }
+
+  @Override
+  public String getQuarkusDataSource() {
+    return "postgres";
   }
 }

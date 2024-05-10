@@ -173,7 +173,7 @@ database credentials from the secret that was created previously. We can do this
 
 ```yaml
 versionStoreType: JDBC
-postgres:
+jdbc:
   jdbcUrl: jdbc:postgresql://postgres:5432/nessie
   secret:
     name: postgres-creds

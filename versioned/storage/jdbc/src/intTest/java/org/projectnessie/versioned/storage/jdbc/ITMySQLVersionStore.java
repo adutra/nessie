@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Dremio
+ * Copyright (C) 2022 Dremio
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.tools.admin.cli;
+package org.projectnessie.versioned.storage.jdbc;
 
-import java.util.Collections;
-import java.util.List;
-import org.projectnessie.quarkus.tests.profiles.QuarkusTestProfilePersistMongo;
+import org.projectnessie.versioned.storage.commontests.AbstractVersionStoreTests;
+import org.projectnessie.versioned.storage.jdbctests.MySQLBackendTestFactory;
+import org.projectnessie.versioned.storage.testextension.NessieBackend;
 
-public class QuarkusCliTestProfilePersistMongo extends QuarkusTestProfilePersistMongo {
-  @Override
-  public List<TestResourceEntry> testResources() {
-    // In CLI tests external resources (MongoDB) are managed by NessieCliTestExtension
-    return Collections.emptyList();
-  }
-}
+@NessieBackend(MySQLBackendTestFactory.class)
+public class ITMySQLVersionStore extends AbstractVersionStoreTests {}

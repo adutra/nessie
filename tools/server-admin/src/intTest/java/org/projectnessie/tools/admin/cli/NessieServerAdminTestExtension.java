@@ -17,6 +17,7 @@ package org.projectnessie.tools.admin.cli;
 
 import static org.projectnessie.versioned.storage.common.logic.Logics.repositoryLogic;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -26,36 +27,45 @@ import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
+import org.projectnessie.quarkus.config.VersionStoreConfig.VersionStoreType;
 import org.projectnessie.quarkus.tests.profiles.BaseConfigProfile;
+import org.projectnessie.versioned.storage.bigtabletests.AbstractBigTableBackendTestFactory;
+import org.projectnessie.versioned.storage.cassandratests.AbstractCassandraBackendTestFactory;
 import org.projectnessie.versioned.storage.common.config.StoreConfig;
 import org.projectnessie.versioned.storage.common.persist.Backend;
 import org.projectnessie.versioned.storage.common.persist.Persist;
 import org.projectnessie.versioned.storage.common.persist.PersistFactory;
+import org.projectnessie.versioned.storage.dynamodbtests.DynamoDBBackendTestFactory;
+import org.projectnessie.versioned.storage.jdbctests.AbstractJdbcBackendTestFactory;
 import org.projectnessie.versioned.storage.mongodbtests.MongoDBBackendTestFactory;
+import org.projectnessie.versioned.storage.testextension.BackendTestFactory;
 
 /**
  * A JUnit5 extension that sets up the execution environment for Nessie CLI tests.
  *
- * <p>MongoDB storage is used.
+ * <p>MongoDB storage is used by default, overridable by setting the system property {@code
+ * backendTestFactoryClassName} to the fully qualified class name of the desired {@link
+ * BackendTestFactory} implementation.
  *
  * <p>A {@link Persist} instance is created and injected into tests for manipulating the test Nessie
  * repository
  *
  * <p>The test Nessie repository is erased and re-created for each test case.
  */
-public class NessieCliPersistTestExtension
+public class NessieServerAdminTestExtension
     implements BeforeAllCallback, BeforeEachCallback, ParameterResolver {
 
-  private static final Namespace NAMESPACE = Namespace.create(NessieCliPersistTestExtension.class);
-  private static final String MONGO_KEY = "mongo";
+  private static final Namespace NAMESPACE = Namespace.create(NessieServerAdminTestExtension.class);
+  private static final String BACKEND_KEY = "backend";
   private static final String PERSIST_KEY = "adapter";
+  private static final String BACKEND_TEST_FACTORY_CLASS_NAME_PROPERTY = "backendTestFactory";
 
   @Override
   public void beforeAll(ExtensionContext context) {
-    BackendHolder mongo = getOrCreateBackendHolder(context);
+    BackendHolder backend = getOrCreateBackendHolder(context);
 
     // Quarkus runtime will pick up relevant values from java system properties.
-    mongo.config.forEach(System::setProperty);
+    backend.config.forEach(System::setProperty);
   }
 
   @Override
@@ -91,7 +101,7 @@ public class NessieCliPersistTestExtension
     return context
         .getRoot()
         .getStore(NAMESPACE)
-        .getOrComputeIfAbsent(MONGO_KEY, key -> createBackendHolder(), BackendHolder.class);
+        .getOrComputeIfAbsent(BACKEND_KEY, key -> createBackendHolder(), BackendHolder.class);
   }
 
   private Persist createPersist(ExtensionContext context) {
@@ -103,10 +113,42 @@ public class NessieCliPersistTestExtension
 
   private BackendHolder createBackendHolder() {
     try {
-      MongoDBBackendTestFactory backendTestFactory = new MongoDBBackendTestFactory();
+      BackendTestFactory backendTestFactory = createBackendTestFactory();
       backendTestFactory.start();
       Backend backend = backendTestFactory.createNewBackend();
-      return new BackendHolder(backend, backendTestFactory.getQuarkusConfig());
+      backend.setupSchema();
+      return new BackendHolder(backend, augmentQuarkusConfig(backendTestFactory));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Map<String, String> augmentQuarkusConfig(BackendTestFactory factory) {
+    Map<String, String> config = new HashMap<>(factory.getQuarkusConfig());
+    if (factory instanceof MongoDBBackendTestFactory) {
+      config.put("nessie.version.store.type", VersionStoreType.MONGODB.name());
+    } else if (factory instanceof DynamoDBBackendTestFactory) {
+      config.put("nessie.version.store.type", VersionStoreType.DYNAMODB.name());
+    } else if (factory instanceof AbstractBigTableBackendTestFactory) {
+      config.put("nessie.version.store.type", VersionStoreType.BIGTABLE.name());
+    } else if (factory instanceof AbstractJdbcBackendTestFactory f) {
+      config.put("nessie.version.store.type", VersionStoreType.JDBC.name());
+      config.put("nessie.version.store.persist.jdbc.datasource", f.getQuarkusDataSource());
+    } else if (factory instanceof AbstractCassandraBackendTestFactory) {
+      config.put("nessie.version.store.type", VersionStoreType.CASSANDRA.name());
+    }
+    return config;
+  }
+
+  private BackendTestFactory createBackendTestFactory() {
+    String backendTestFactoryClassName =
+        System.getProperty(BACKEND_TEST_FACTORY_CLASS_NAME_PROPERTY);
+    if (backendTestFactoryClassName == null || backendTestFactoryClassName.isEmpty()) {
+      return new MongoDBBackendTestFactory();
+    }
+    try {
+      return (BackendTestFactory)
+          Class.forName(backendTestFactoryClassName).getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

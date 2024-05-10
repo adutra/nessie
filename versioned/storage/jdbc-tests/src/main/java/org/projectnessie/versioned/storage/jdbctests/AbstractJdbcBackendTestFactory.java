@@ -34,6 +34,8 @@ public abstract class AbstractJdbcBackendTestFactory implements BackendTestFacto
 
   public abstract String jdbcPass();
 
+  public abstract String getQuarkusDataSource();
+
   @Override
   public Backend createNewBackend() throws SQLException {
     checkState(jdbcUrl() != null, "Must set JDBC URL first");

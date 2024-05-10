@@ -143,6 +143,7 @@ public class MongoDBBackendTestFactory implements BackendTestFactory {
     }
   }
 
+  @Override
   public Map<String, String> getQuarkusConfig() {
     Map<String, String> config = new HashMap<>();
     config.put("quarkus.mongodb.connection-string", connectionString);

@@ -14,6 +14,26 @@ as necessary. Empty sections will not end in the release notes.
 
 ### Upgrade notes
 
+#### Support for MariaDB and MySQL
+
+Nessie now includes built-in support for MariaDB, with full compatibility with MySQL servers.
+
+- Existing PostgresQL users can continue to use their current JDBC configuration, but are encouraged 
+  to update it as follows:
+  1. Specify the new configuration property `nessie.version.store.persist.jdbc.datasource=postgresql`;
+  2. Migrate any property under `quarkus.datasource.*` to `quarkus.datasource.postgresql.*`.
+- New users wishing to try MariaDB (or MySQL) should:
+  1. Specify the new configuration property `nessie.version.store.persist.jdbc.datasource=mariadb`;
+  2. Provide all the MariaDB (or MySQL) connection details using `quarkus.datasource.mariadb.*` 
+     configuration properties.
+- The Helm chart has been updated. The old `postgres` section is now called `jdbc`. Existing Helm 
+  chart configurations should be updated accordingly, although the old `postgres` section is still 
+  honored. E.g. `postgres.jdbcUrl` now becomes `jdbc.jdbcUrl`. The right datasource will be chosen
+  based on the `jdbcUrl` configuration.
+- The Nessie GC tool is now also compatible with MariaDB and MySQL (using the MariaDB connector).
+- The Nessie Server Admin tool is now also compatible with MariaDB and MySQL (using the MariaDB 
+  connector).
+
 ### Breaking changes
 
 - `nessie-quarkus-cli`, the low-level tool to for example export/import Nessie repositories, has been renamed

@@ -83,3 +83,18 @@ Convert a dict into a string formed by a comma-separated list of key-value pairs
 {{ end -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Determine the datasource kind based on the jdbcUrl.
+*/}}
+{{- define "nessie.dbKind" -}}
+{{- $v := . | split ":" -}}
+{{ $v._1 }}
+{{- end }}
+
+{{/*
+Determine the datasource config prefix based on the db kind.
+*/}}
+{{- define "nessie.datasourceConfigPrefix" -}}
+QUARKUS_DATASOURCE_{{- upper . -}}_
+{{- end }}

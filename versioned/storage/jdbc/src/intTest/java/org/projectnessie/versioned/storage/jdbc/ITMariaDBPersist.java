@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.projectnessie.quarkus.tests.profiles;
+package org.projectnessie.versioned.storage.jdbc;
 
-public class RocksPersistTestResourceLifecycleManager
-    extends AbstractRocksTestResourceLifecycleManager {
-  public RocksPersistTestResourceLifecycleManager() {
-    super("nessie.version.store.persist.rocks.database-path");
-  }
-}
+import org.projectnessie.versioned.storage.commontests.AbstractPersistTests;
+import org.projectnessie.versioned.storage.jdbctests.MariaDBBackendTestFactory;
+import org.projectnessie.versioned.storage.testextension.NessieBackend;
+
+@NessieBackend(MariaDBBackendTestFactory.class)
+public class ITMariaDBPersist extends AbstractPersistTests {}
