@@ -496,10 +496,7 @@ public class IcebergApiV1TableResource extends IcebergApiV1ResourceBase {
   Uni<SnapshotResponse> createOrUpdateTable(
       TableRef tableRef, IcebergUpdateTableRequest commitTableRequest) throws IOException {
 
-    boolean isCreate =
-        commitTableRequest.requirements().stream()
-            .anyMatch(IcebergUpdateRequirement.AssertCreate.class::isInstance);
-    if (isCreate) {
+    if (commitTableRequest.hasAssertCreate()) {
       List<IcebergUpdateRequirement> invalidRequirements =
           commitTableRequest.requirements().stream()
               .filter(req -> !(req instanceof IcebergUpdateRequirement.AssertCreate))
