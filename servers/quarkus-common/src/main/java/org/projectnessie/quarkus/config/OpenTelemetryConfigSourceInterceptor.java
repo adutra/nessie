@@ -15,7 +15,6 @@
  */
 package org.projectnessie.quarkus.config;
 
-import io.quarkus.opentelemetry.runtime.config.runtime.exporter.OtlpExporterRuntimeConfig;
 import io.smallrye.config.ConfigSourceInterceptor;
 import io.smallrye.config.ConfigSourceInterceptorContext;
 import io.smallrye.config.ConfigValue;
@@ -24,6 +23,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenTelemetryConfigSourceInterceptor implements ConfigSourceInterceptor {
+
+  // From
+  // io.quarkus.opentelemetry.runtime.config.runtime.exporter.OtlpExporterConfig.DEFAULT_GRPC_BASE_URI
+  private static final String DEFAULT_GRPC_BASE_URI = "http://localhost:4317/";
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(OpenTelemetryConfigSourceInterceptor.class);
@@ -57,7 +60,7 @@ public class OpenTelemetryConfigSourceInterceptor implements ConfigSourceInterce
     }
     // See io.quarkus.opentelemetry.runtime.exporter.otlp.OTelExporterRecorder.resolveEndpoint()
     // If *.traces.endpoint has its default value, *.endpoint is used instead.
-    if (tracesEndpoint.getValue().equals(OtlpExporterRuntimeConfig.DEFAULT_GRPC_BASE_URI)) {
+    if (tracesEndpoint.getValue().equals(DEFAULT_GRPC_BASE_URI)) {
       tracesEndpoint = context.proceed("quarkus.otel.exporter.otlp.endpoint");
     }
     if (isUserDefined(tracesEndpoint)) {
