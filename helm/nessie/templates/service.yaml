@@ -31,14 +31,58 @@ spec:
   selector:
     {{- include "nessie.selectorLabels" . | nindent 4 }}
   ports:
-    {{- $oldPortNumber := .Values.service.port -}}
-    {{- range $portName, $portNumber := .Values.service.ports }}
-    {{- if ne $portName "nessie-mgmt" }}
-    {{- if eq $portName "nessie-server"}}{{- $portNumber := coalesce $oldPortNumber $portNumber -}}{{- end }}
-    - port: {{ $portNumber }}
-      targetPort: {{ $portNumber }}
+    {{- range .Values.service.ports }}
+    - name: {{ .name }}
+      port: {{ .number }}
+      targetPort: {{ .number }}
       protocol: TCP
-      name: {{ $portName }}
-    {{- end }}
     {{- end }}
   sessionAffinity: {{ .Values.service.sessionAffinity }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nessie.fullname" . }}{{ .Values.managementService.nameSuffix }}
+  labels:
+    {{- include "nessie.labels" . | nindent 4 }}
+  {{- with .Values.managementService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "nessie.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: {{ .Values.managementService.portName }}
+      port: {{ .Values.managementService.portNumber }}
+      targetPort: {{ .Values.managementService.portNumber }}
+      protocol: TCP
+  publishNotReadyAddresses: true
+{{- range .Values.extraServices }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nessie.fullname" $ }}{{ .nameSuffix }}
+  labels:
+    {{- include "nessie.labels" $ | nindent 4 }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .type }}
+  selector:
+    {{- include "nessie.selectorLabels" $ | nindent 4 }}
+  ports:
+    {{- range .ports }}
+    - name: {{ .name }}
+      port: {{ .number }}
+      targetPort: {{ .number }}
+      protocol: TCP
+    {{- end }}
+  {{- if .sessionAffinity }}
+  sessionAffinity: {{ .sessionAffinity }}
+  {{- end }}
+{{- end }}

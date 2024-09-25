@@ -11,11 +11,33 @@ podLabels:
   app: nessie-{{ .Release.Namespace }}-{{ .Values.versionStoreType }}
 podAnnotations:
   app: nessie-{{ .Release.Namespace }}-{{ .Values.versionStoreType }}
+
 service:
   ports:
-    nessie-mgmt: 9001
-    nessie-alt: 19121
+  - name: http
+    number: 19120
+  - name: https
+    number: 19121
   sessionAffinity: ClientIP
+
+managementService:
+  portName: management
+  portNumber: 9001
+
+extraServices:
+  - nameSuffix: "-nodeport"
+    type: NodePort
+    ports:
+    - name: http
+      number: 19120
+    - name: alt-http
+      number: 29120
+  - nameSuffix: "-alt"
+    sessionAffinity: None
+    ports:
+      - name: http
+        number: 19120
+
 catalog:
   enabled: true
   iceberg:

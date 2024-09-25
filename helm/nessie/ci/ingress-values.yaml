@@ -3,5 +3,6 @@ ingress:
   enabled: true
   hosts:
     - host: chart-example.local
+      portName: nessie-http
       paths:
         - "/"

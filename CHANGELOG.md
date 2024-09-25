@@ -12,6 +12,12 @@ as necessary. Empty sections will not end in the release notes.
 
 ### Breaking changes
 
+- Helm chart: the `service` section has been redesigned to allow for extra services to be defined.
+  If you have customized the `service.ports` field, beware that this field is now an array. Also,
+  the management port configuration has been moved to a new `managementService` section. And
+  finally, a new `extraServices` section has been added to allow for additional services to be
+  defined.
+
 ### New Features
 
 - Access check SPI has been enhanced to provide richer information in the `Check` type about the receiving
