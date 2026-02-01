@@ -27,7 +27,6 @@ import static org.projectnessie.catalog.service.rest.IcebergConfigurer.icebergWr
 import static org.projectnessie.versioned.RequestMeta.apiRead;
 import static org.projectnessie.versioned.RequestMeta.apiWrite;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.core.Response.Status;
@@ -37,8 +36,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Check;
@@ -65,16 +62,6 @@ import org.slf4j.LoggerFactory;
 
 @Value.Immutable
 abstract class IcebergS3SignParams {
-
-  /**
-   * Pattern for the new object-storage path layout introduced in Apache Iceberg 1.7.0, checking for
-   * the four path elements that contain only {@code 0} or {@code 1}.
-   *
-   * <p>Example: {@code
-   * s3://bucket1/warehouse/1000/1000/1110/10001000/newdb/table_949afb2c-ed93-4702-b390-f1d4a9c59957/my-data-file.txt}
-   */
-  private static final Pattern NEW_OBJECT_STORAGE_LAYOUT =
-      Pattern.compile("[01]{4}/[01]{4}/[01]{4}/[01]{8}/(.*)");
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IcebergS3SignParams.class);
 
@@ -130,50 +117,14 @@ abstract class IcebergS3SignParams {
   }
 
   private boolean checkLocation(String location) {
-    return checkLocation(warehouseLocation(), requestedS3Uri(), location);
+    return checkLocation(requestedS3Uri(), location);
   }
 
-  @VisibleForTesting
-  static boolean checkLocation(String warehouseLocation, String requested, String location) {
-    if (requested.startsWith(location)) {
-      return true;
-    }
-
-    // For files that were written with 'write.object-storage.enabled' enabled, repeat the check but
-    // ignore the first S3 path element after the warehouse location
-
-    int warehouseLocationLength = warehouseLocation.length();
-    if (warehouseLocationLength == 0) {
-      return false;
-    }
-
-    if (!warehouseLocation.endsWith("/")) {
-      warehouseLocation += "/";
-      warehouseLocationLength++;
-    }
+  static boolean checkLocation(String requested, String location) {
     if (!location.endsWith("/")) {
       location += "/";
     }
-
-    if (!requested.startsWith(warehouseLocation) || !location.startsWith(warehouseLocation)) {
-      return false;
-    }
-
-    String requestedPath = requested.substring(warehouseLocationLength);
-
-    Matcher newObjectStorageLayoutMatcher = NEW_OBJECT_STORAGE_LAYOUT.matcher(requestedPath);
-    if (newObjectStorageLayoutMatcher.find()) {
-      requestedPath = newObjectStorageLayoutMatcher.group(1);
-    } else {
-      int requestedSlash = requestedPath.indexOf('/');
-      if (requestedSlash == -1) {
-        return false;
-      }
-      requestedPath = requestedPath.substring(requestedSlash + 1);
-    }
-
-    String locationPath = location.substring(warehouseLocationLength);
-    return requestedPath.startsWith(locationPath);
+    return requested.startsWith(location);
   }
 
   private Uni<SnapshotResponse> fetchSnapshot() {

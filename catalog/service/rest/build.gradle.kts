@@ -69,4 +69,7 @@ dependencies {
 
   testImplementation(platform(libs.awssdk.bom))
   testImplementation("software.amazon.awssdk:s3")
+
+  testImplementation(platform(libs.iceberg.bom))
+  testImplementation("org.apache.iceberg:iceberg-core")
 }
